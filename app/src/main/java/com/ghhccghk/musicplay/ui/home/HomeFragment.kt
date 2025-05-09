@@ -1,18 +1,27 @@
 package com.ghhccghk.musicplay.ui.home
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
+import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
 import com.ghhccghk.musicplay.databinding.ItemInputphoneBinding
-import com.ghhccghk.musicplay.util.KugouAPi
+import androidx.core.view.isVisible
+import com.ghhccghk.musicplay.R
+
 
 class HomeFragment : Fragment() {
 
@@ -38,20 +47,25 @@ class HomeFragment : Fragment() {
             addView(sendcode.root)
             val numberInput: EditText = sendcode.numberInput
             val sendcodeButton = sendcode.sendcode
+            val text = numberInput.text.toString().trim()
+            val a =  Button(this.context)
 
-            sendcodeButton.setOnClickListener {
-                val text = numberInput.text.toString().trim()  // 去除空格
-                Log.d("Debug", "用户输入的值: $text") // 检查是否正确获取到输入值
-                val number = text.toLongOrNull()
-                if (number != null) {
-                    Thread {
-                        KugouAPi.getMobileCode(number.toString())
-                    }.start()
+            val playerBar = requireActivity().findViewById<LinearLayout>(R.id.player_bar)
+            a.setText("隐藏play")
+            a.setOnClickListener {
+                if (playerBar.isVisible) {
+                    playerBar.isVisible = false // false 隐藏
                 } else {
-                    Toast.makeText(this.context, "请输入有效数字", Toast.LENGTH_SHORT).show()
+                    playerBar.isVisible = true // true 显示
                 }
             }
+            addView(a)
+            sendcodeButton.setOnClickListener {
+
+            }
         }
+
+
 
         return root
     }
@@ -60,4 +74,5 @@ class HomeFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
 }

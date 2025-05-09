@@ -396,7 +396,7 @@ object KugouAPi {
 
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                println("setUserPlayList failed: ${response.code}")
+                println("getTopAlbum failed: ${response.code}")
                 return response.code.toString()
             }
 
@@ -405,5 +405,274 @@ object KugouAPi {
         }
     }
 
+    fun getAlbum(id: String): String? {
+        val url = "$apiaddress/album".toUri().buildUpon().apply {
+            appendQueryParameter("type",id)
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getAlbum failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun getAlbumInSongs(id: String): String? {
+        val url = "$apiaddress/album/songs".toUri().buildUpon().apply {
+            appendQueryParameter("type",id)
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getAlbumInSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun getSongsUrl(hash: String,album_id: String? = null
+                    ,free_part: String? = null , album_audio_id: String? = null,
+                    quality: String? = null ): String? {
+        val url = "$apiaddress/song/url".toUri().buildUpon().apply {
+            appendQueryParameter("hash",hash)
+            album_id.let { appendQueryParameter("album_id",it) }
+            free_part.let { appendQueryParameter("free_part",it) }
+            album_audio_id.let { appendQueryParameter("album_audio_id",it) }
+            quality.let { appendQueryParameter("quality",it) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongsUrl failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun getSongsUrlNew(hash: String,free_part: String? = null ,
+                       album_audio_id: String? = null): String? {
+        val url = "$apiaddress/song/url/new".toUri().buildUpon().apply {
+            appendQueryParameter("hash",hash)
+            free_part.let { appendQueryParameter("free_part",it) }
+            album_audio_id.let { appendQueryParameter("album_audio_id",it) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongsUrlNew failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun getSongClimax(hash: String): String? {
+        val url = "$apiaddress/song/climax".toUri().buildUpon().apply {
+            appendQueryParameter("hash",hash)
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongClimax failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun searchSongs(key: String,page: Long? = null,
+                    pageSize: Long? = null,type: String? = null): String? {
+
+        val url = "$apiaddress/search".toUri().buildUpon().apply {
+            appendQueryParameter("keyword",key)
+            page.let { appendQueryParameter("page",it.toString()) }
+            pageSize.let { appendQueryParameter("pageSize",it.toString()) }
+            type.let { appendQueryParameter("type",it.toString()) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("searchSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun getSearchdefault(): String? {
+        val url = "$apiaddress/search/default"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSearchdefault failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun getSearchhot(): String? {
+        val url = "$apiaddress/search/hot"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSearchhot failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun searchSongsSuggest(key: String,albumTipCount : String,correctTipCount : String? = null,
+                           mvTipCount : String? = null,musicTipCount : String? = null): String? {
+
+        val url = "$apiaddress/search/suggest".toUri().buildUpon().apply {
+            appendQueryParameter("keyword",key)
+            albumTipCount.let {  appendQueryParameter("albumTipCount ",it )}
+            correctTipCount.let { appendQueryParameter("correctTipCount",it.toString()) }
+            mvTipCount .let { appendQueryParameter("mvTipCount ",it.toString()) }
+            musicTipCount .let { appendQueryParameter("musicTipCount ",it.toString()) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("searchSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun getSearchSongLyrics(keyword: String,hash: String,
+                      album_audio_id: String? = null,man:String? = null): String? {
+
+        val url = "$apiaddress/search/lyric".toUri().buildUpon().apply {
+            appendQueryParameter("keyword",keyword)
+            appendQueryParameter("hash",hash)
+            album_audio_id.let { appendQueryParameter("album_audio_id ",it )}
+            man.let { appendQueryParameter("man ",it.toString()) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSearchSongLyrics failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun getSongLyrics(id: String,accesskey: String,
+                      fmt: String? = null,decode: Boolean? = false): String? {
+
+        val url = "$apiaddress/lyric".toUri().buildUpon().apply {
+            appendQueryParameter("id",id)
+            appendQueryParameter("accesskey",accesskey)
+            fmt.let { appendQueryParameter("fmt ",it )}
+            appendQueryParameter("decode ", decode.toString())
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSearchSongLyrics failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+    fun getPlayListTag(): String? {
+        val url = "$apiaddress/playlist/tag"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListTag failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    fun getPlayList(category_id: String, withsong: String? = null,
+                    withtag: String? = null): String? {
+
+        val url = "$apiaddress/top/playlist".toUri().buildUpon().apply {
+            appendQueryParameter("category_id",category_id)
+            withsong.let { appendQueryParameter("withsong ",withsong )}
+            withtag.let { appendQueryParameter("withtag ",withtag )}
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayList failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    fun getPlayListTheme(): String? {
+        val url = "$apiaddress/theme/playlist"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListTag failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
 
 }
