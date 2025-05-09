@@ -7,4 +7,6 @@
     <string name="activated">账号未登录</string>
     <string name="inputmobilephone">输入手机号码</string>
     <string name="sendcode">发送验证码</string>
+    <string name="album_art">歌曲封面</string>
+    <string name="default_time">00:00</string>
 </resources>

@@ -1,0 +1,70 @@
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:card_view="http://schemas.android.com/tools"
+    android:layout_margin="8dp"
+    style="@style/Widget.Material3.CardView.Elevated"
+    card_view:cardCornerRadius="16dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainer"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:orientation="vertical">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp">
+
+
+            <ImageView
+                android:id="@+id/musicplaylist_image_cover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:background="@drawable/ic_album"
+                android:scaleType="centerCrop" />
+
+
+
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/musicplaylist_text_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:text="title"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:id="@+id/musicplaylist_text_intro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:text="intro"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:inputType="textMultiLine"
+            android:layout_marginTop="2dp"
+            card_view:ignore="TextViewEdits" />
+
+        <TextView
+            android:id="@+id/musicplaylist_text_play_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#888888"
+            android:text="intro"
+            android:layout_marginTop="2dp"/>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -66,4 +66,12 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.okhttp)
+
+    implementation(libs.core)
+    implementation(libs.zxing.android.embedded)
+    implementation(libs.gson)
+    implementation(libs.glide)
+
+
+
 }
