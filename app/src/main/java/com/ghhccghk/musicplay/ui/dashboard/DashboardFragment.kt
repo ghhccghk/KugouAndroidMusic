@@ -15,11 +15,15 @@ import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.HotSearchResponse
 import com.ghhccghk.musicplay.data.KeywordGroup
 import com.ghhccghk.musicplay.data.KeywordItem
+import com.ghhccghk.musicplay.data.PlayCategory
+import com.ghhccghk.musicplay.data.PlayCategoryBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
 import com.ghhccghk.musicplay.util.KugouAPi
 import com.ghhccghk.musicplay.util.hotsearch.HotGroupAdapter
+import com.ghhccghk.musicplay.util.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.playlist.PlayMusicSceneAdapter
+import com.google.android.material.tabs.TabLayoutMediator
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,57 +63,148 @@ class DashboardFragment : Fragment() {
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()
-
+            addgetPlayListTag()
         }
     }
 
-    fun addgetSearchhotView(){
+    fun addgetSearchhotView() {
         lifecycleScope.launch {
+            val loadView = binding.loadingLayoutTestaaa
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getSearchhot()
             }
 
-
-            val gson = Gson()
-            val result = gson.fromJson(json, HotSearchResponse::class.java)
-            val groups = result.data.list.map { listItem ->
-                Log.d("debug",listItem.name)
-                KeywordGroup(
-                    name = listItem.name,
-                    keywords = listItem.keywords.take(5).mapIndexed { index,keywordItem ->
-                        KeywordItem(keyword = "${index + 1}. ${keywordItem.keyword}", keywordItem.reason)
+            if (json == null || json == "502" || json == "404") {
+                loadView.loadingSpinner.visibility = View.GONE
+                loadView.retryButton.visibility = View.VISIBLE
+                loadView.retryButton.setOnClickListener {
+                    addgetSearchhotView()
+                }
+            } else {
+                try {
+                    val gson = Gson()
+                    val result = gson.fromJson(json, HotSearchResponse::class.java)
+                    val groups = result.data.list.map { listItem ->
+                        KeywordGroup(
+                            name = listItem.name,
+                            keywords = listItem.keywords.take(5).mapIndexed { index, keywordItem ->
+                                KeywordItem(
+                                    keyword = "${index + 1}. ${keywordItem.keyword}",
+                                    keywordItem.reason
+                                )
+                            }
+                        )
                     }
-                )
-            }
 
-            binding.testaaa.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-            binding.testaaa.adapter = HotGroupAdapter(groups) { keywordItem ->
-                // 在这里处理点击事件
-                // 你可以对点击的 KeywordItem 进行任何操作，例如显示详细信息或跳转页面
-                Toast.makeText(context, "点击了：${keywordItem.keyword}", Toast.LENGTH_SHORT).show()
+                    binding.testaaa.layoutManager =
+                        LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+                    binding.testaaa.adapter = HotGroupAdapter(groups) { keywordItem ->
+                        // 在这里处理点击事件
+                        // 你可以对点击的 KeywordItem 进行任何操作，例如显示详细信息或跳转页面
+                        Toast.makeText(context, "点击了：${keywordItem.keyword}", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                    binding.testaaa.isNestedScrollingEnabled = false
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.loadingFooterLayout.visibility = View.GONE
+                    binding.testaaa.visibility = View.VISIBLE
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.retryButton.visibility = View.VISIBLE
+                    Toast.makeText(context, "数据加载失败: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
-            binding.testaaa.isNestedScrollingEnabled = false
         }
 
     }
 
-    fun addgetPlayListTheme(){
+    fun addgetPlayListTheme() {
         lifecycleScope.launch {
+            val loadView = binding.loadingPlaymusicscene
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getPlayListTheme()
             }
-            val gson = Gson()
-            val result = gson.fromJson(json, ThemeMusicList::class.java)
-            val themeList = result.data?.theme_list ?: emptyList()
-            val groups =  PlayMusicSceneAdapter(themeList) { keywordItem ->
-                // 在这里处理点击事件
-                // 你可以对点击的 KeywordItem 进行任何操作，例如显示详细信息或跳转页面
-                Toast.makeText(context, "点击了：${keywordItem.title}", Toast.LENGTH_SHORT).show()
+            if (json == null || json == "502" || json == "404") {
+                loadView.retryButton.visibility = View.VISIBLE
+                loadView.loadingSpinner.visibility = View.GONE
+                loadView.retryButton.setOnClickListener {
+                    addgetPlayListTheme()
+                }
+            } else {
+                try {
+                    val gson = Gson()
+                    val result = gson.fromJson(json, ThemeMusicList::class.java)
+                    val themeList = result.data?.theme_list ?: emptyList()
+
+                    val adapter = PlayMusicSceneAdapter(themeList) { item ->
+                        Toast.makeText(context, "点击了：${item.title}", Toast.LENGTH_SHORT).show()
+                    }
+
+                    binding.playmusicscene.layoutManager =
+                        GridLayoutManager(context, 2, RecyclerView.HORIZONTAL, false)
+                    binding.playmusicscene.adapter = adapter
+                    binding.playmusicscene.isNestedScrollingEnabled = false
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.loadingFooterLayout.visibility = View.GONE
+                    binding.playmusicscene.visibility = View.VISIBLE
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.retryButton.visibility = View.VISIBLE
+                    Toast.makeText(context, "数据加载失败: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+
             }
 
-            binding.playmusicscene.layoutManager = GridLayoutManager(context, 2, RecyclerView.HORIZONTAL, false)
-            binding.playmusicscene.adapter = groups
-            binding.playmusicscene.isNestedScrollingEnabled = false
+
+        }
+    }
+
+    fun addgetPlayListTag() {
+        lifecycleScope.launch {
+            val loadView = binding.loadingPlaylist
+            val json = withContext(Dispatchers.IO) {
+                KugouAPi.getPlayListTag()
+            }
+            if (json == null || json == "502" || json == "404") {
+                loadView.retryButton.visibility = View.VISIBLE
+                loadView.loadingSpinner.visibility = View.GONE
+                loadView.retryButton.setOnClickListener {
+                    addgetPlayListTag()
+                }
+            } else {
+                try {
+                    val gson = Gson()
+                    val result = gson.fromJson(json, PlayCategoryBase::class.java)
+                    val themeList = result.data
+                    val adapter = PLayListCategoryPagerAdapter(requireActivity(), themeList)
+
+                    val viewPager = binding.playlistTabViewPager
+                    val tabLayout = binding.playlistTabLayout
+
+                    viewPager.adapter = adapter
+
+                    TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+                        tab.text = themeList[position].tag_name
+                    }.attach()
+
+
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.loadingFooterLayout.visibility = View.GONE
+                    viewPager.visibility = View.VISIBLE
+                    tabLayout.visibility = View.VISIBLE
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    loadView.loadingSpinner.visibility = View.GONE
+                    loadView.retryButton.visibility = View.VISIBLE
+                    Toast.makeText(context, "数据加载失败: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+
+            }
 
 
         }

@@ -28,15 +28,19 @@ class LyricsFragment: Fragment() {
         val lyrics = listOf(
             LyricLine(0, "第一句歌词"),
             LyricLine(5000, "第二句歌词"),
-            LyricLine(10000, "第三句歌词")
+            LyricLine(10000, "第三句歌词"),
+            LyricLine(15000, "第二句歌词"),
+            LyricLine(20000, "第三句歌词"),
+            LyricLine(25000, "第二句歌词"),
+            LyricLine(50000, "第三句歌词"),
+            LyricLine(90000, "第三句歌词")
         )
 
         val adapter = LyricsAdapter(lyrics)
         binding.rvLyrics.layoutManager = LinearLayoutManager(requireContext())
         binding.rvLyrics.adapter = adapter
-        binding.button.setOnClickListener {
-            findNavController().popBackStack()
-        }
+        adapter.highlightedPosition = 50000
+
 
 
         return root

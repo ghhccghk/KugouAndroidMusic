@@ -38,19 +38,72 @@
 
         <!-- 排行榜内容：横向滚动列表 -->
 
-        <!-- 搜索结果列表 -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/testaaa"
+        <LinearLayout
+            android:id="@+id/testcontent"
+            android:layout_marginTop="16dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/chart_title">
+            app:layout_constraintTop_toBottomOf="@id/chart_title"
+            android:orientation="vertical">
 
-        </androidx.recyclerview.widget.RecyclerView>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/testaaa"
+                android:visibility="gone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                >
 
-        <!-- 排行榜标题 -->
+            </androidx.recyclerview.widget.RecyclerView>
+
+            <include
+                android:id="@+id/loading_layout_testaaa"
+                layout="@layout/item_loading" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/playlist_tab"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/testcontent"
+            android:orientation="vertical">
+
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="15dp"
+                android:text="歌单分类"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:layout_constraintTop_toBottomOf="@id/playlist_tab"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <include
+                android:id="@+id/loading_playlist"
+                layout="@layout/item_loading" />
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/playlist_tab_layout"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/playlist_tab_view_pager"
+                android:layout_width="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+        </LinearLayout>
+
+
         <TextView
             android:id="@+id/musictheme_title"
             android:layout_width="wrap_content"
@@ -59,14 +112,11 @@
             android:text="主题歌单"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/testaaa"
+            app:layout_constraintTop_toBottomOf="@id/playlist_tab"
             app:layout_constraintStart_toStartOf="parent" />
 
-
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/playmusicscene"
+        <LinearLayout
+            android:id="@+id/musicthemeview"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -74,7 +124,20 @@
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/musictheme_title"
-            tools:listitem="@layout/item_musicplaylist_scene" />
+            android:orientation="vertical">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/playmusicscene"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                tools:listitem="@layout/item_musicplaylist_scene" />
+
+            <include
+                android:id="@+id/loading_playmusicscene"
+                layout="@layout/item_loading" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>

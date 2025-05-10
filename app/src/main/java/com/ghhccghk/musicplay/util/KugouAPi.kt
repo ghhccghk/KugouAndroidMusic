@@ -624,7 +624,7 @@ object KugouAPi {
 
     }
     fun getPlayListTag(): String? {
-        val url = "$apiaddress/playlist/tag"
+        val url = "$apiaddress/playlist/tags"
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).execute().use { response ->
@@ -632,7 +632,6 @@ object KugouAPi {
                 println("getPlayListTag failed: ${response.code}")
                 return response.code.toString()
             }
-
             val responseBody = response.body?.string() ?: return null
             return responseBody
         }
