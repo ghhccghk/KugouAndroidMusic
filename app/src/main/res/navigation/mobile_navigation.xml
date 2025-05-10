@@ -35,4 +35,10 @@
         android:label="fragment_lyrics"
         tools:layout="@layout/fragment_lyrics"/>
 
+    <fragment
+        android:id="@+id/playlisttag"
+        android:name="com.ghhccghk.musicplay.ui.playlisttag.PlayTagListFragment"
+        android:label="fragment_PlayTagList"
+        tools:layout="@layout/fragment_playlist_tag"/>
+
 </navigation>

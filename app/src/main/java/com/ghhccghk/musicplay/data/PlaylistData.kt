@@ -29,3 +29,22 @@ data class ThemeMusicList(
 data class theme_list(
     val theme_list: List<ThemeMusicScene> = emptyList(),
 )
+
+data class PlayCategoryBase(
+    val data: List<PlayCategory> = emptyList(),
+    val error_code: String,
+    val status: Int
+)
+
+data class PlayCategory(
+    val tag_id: String,
+    val tag_name: String,
+    val son: List<PlayListTag> = emptyList()
+)
+
+data class PlayListTag(
+    val tag_id: String,
+    val tag_name: String,
+    val sort: String
+)
+
