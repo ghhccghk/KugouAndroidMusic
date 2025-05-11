@@ -127,6 +127,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // 处理返回时的操作，确保返回时显示 BottomNavigationView
+    @Suppress("DEPRECATION")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // 只有当不在播放 Fragment 时才显示 BottomNavigationView
