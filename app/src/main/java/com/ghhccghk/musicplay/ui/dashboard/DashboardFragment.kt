@@ -19,7 +19,7 @@ import com.ghhccghk.musicplay.data.PlayCategory
 import com.ghhccghk.musicplay.data.PlayCategoryBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
-import com.ghhccghk.musicplay.util.KugouAPi
+import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.hotsearch.HotGroupAdapter
 import com.ghhccghk.musicplay.util.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.playlist.PlayMusicSceneAdapter

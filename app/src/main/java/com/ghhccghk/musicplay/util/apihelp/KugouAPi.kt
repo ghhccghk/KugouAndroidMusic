@@ -1,8 +1,8 @@
-package com.ghhccghk.musicplay.util
+package com.ghhccghk.musicplay.util.apihelp
 
+import androidx.core.net.toUri
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import androidx.core.net.toUri
 
 object KugouAPi {
     val client = OkHttpClient()
@@ -578,12 +578,16 @@ object KugouAPi {
 
     }
 
-    fun getSearchSongLyrics(keyword: String,hash: String,
+    fun getSearchSongLyrics(keyword: String? = null,hash: String? = null,
                       album_audio_id: String? = null,man:String? = null): String? {
 
         val url = "$apiaddress/search/lyric".toUri().buildUpon().apply {
-            appendQueryParameter("keyword",keyword)
-            appendQueryParameter("hash",hash)
+            keyword.let {
+                if (hash == null) appendQueryParameter("keyword",it)
+            }
+            hash.let {
+                if (keyword == null) appendQueryParameter("hash",it)
+            }
             album_audio_id.let { appendQueryParameter("album_audio_id ",it )}
             man.let { appendQueryParameter("man ",it.toString()) }
         }.build().toString()
@@ -607,8 +611,8 @@ object KugouAPi {
         val url = "$apiaddress/lyric".toUri().buildUpon().apply {
             appendQueryParameter("id",id)
             appendQueryParameter("accesskey",accesskey)
-            fmt.let { appendQueryParameter("fmt ",it )}
-            appendQueryParameter("decode ", decode.toString())
+            fmt.let { appendQueryParameter("fmt",it.toString() )}
+            appendQueryParameter("decode", decode.toString())
         }.build().toString()
         val request = Request.Builder().url(url).build()
 

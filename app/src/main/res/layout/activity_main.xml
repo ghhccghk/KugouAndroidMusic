@@ -24,9 +24,10 @@
     <LinearLayout
         android:id="@+id/player_bar"
         android:layout_width="0dp"
+        android:layout_margin="12dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="?attr/colorSurfaceContainer"
+        android:background="@drawable/play_bar_rounded_corner"
         android:orientation="horizontal"
         android:padding="10dp"
         app:layout_constraintBottom_toTopOf="@id/nav_view"
@@ -37,7 +38,7 @@
             android:id="@+id/player_album"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="18dp"
+            android:layout_marginStart="5dp"
             android:scaleType="centerCrop"
             android:src="@drawable/lycaon_icon" />
 
@@ -51,7 +52,7 @@
             tools:ignore="RtlSymmetry">
 
             <TextView
-                android:id="@+id/player_title"
+                android:id="@+id/playbar_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="歌名"
@@ -61,7 +62,7 @@
                 tools:ignore="HardcodedText" />
 
             <TextView
-                android:id="@+id/player_artist"
+                android:id="@+id/playbar_artist"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="歌手"
@@ -71,13 +72,33 @@
         </LinearLayout>
 
         <ImageButton
-            android:id="@+id/player_play_pause"
+            android:id="@+id/playerbar_play_pause"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:layout_marginEnd="18dp"
+            android:layout_marginEnd="9dp"
             android:background="?attr/colorSurfaceContainer"
-            android:src="@drawable/play_anim"
+            android:src="@drawable/ic_play_arrow_filled"
+            tools:ignore="ContentDescription,SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+
+        <ImageButton
+            android:id="@+id/playerbar_play_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="9dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:src="@drawable/ic_skip_next_filled"
+            tools:ignore="ContentDescription,SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+
+        <ImageButton
+            android:id="@+id/playerbar_playlist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginEnd="5dp"
+            android:background="?attr/colorSurfaceContainer"
+            android:src="@drawable/ic_playlist_play"
             tools:ignore="ContentDescription,SpeakableTextPresentCheck,TouchTargetSizeCheck" />
     </LinearLayout>
 
