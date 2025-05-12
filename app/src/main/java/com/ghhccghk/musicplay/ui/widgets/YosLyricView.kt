@@ -1153,7 +1153,7 @@ fun LazyItemScope.LyricItem(
                                             }
                                         }
 
-                                        // 以下为逐字处理
+                                        // 以下为逐字处理逻辑
 
                                         var sum = 0
                                         var lastTime = 0f
@@ -1165,41 +1165,6 @@ fun LazyItemScope.LyricItem(
                                         lastTime = mainLyric.first().first
 
                                         mainLyric.fastForEachIndexed { wordIndex, word ->
-
-                                            // 旧的逐字处理逻辑
-                                            /*val process = processWords(word.second)
-
-                                    process.fastForEach { word ->
-
-                                        // 非逐字转移到上面处理
-                                        *//*if (isNotOneByOne.value) {
-                                                word.split("").fastForEach { charWord ->
-                                                    wordsToDraw += DrawWord(
-                                                        time = word.first,
-                                                        word = charWord,
-                                                        layout = measurer.measure(
-                                                            text = charWord,
-                                                            style = MainTextStyle,
-                                                            constraints = measureResult.layoutInput.constraints,
-                                                            layoutDirection = if (viewAlign.value == Alignment.End) LayoutDirection.Rtl else LayoutDirection.Ltr
-                                                        ),
-                                                        topLeft = measureResult.getBoundingBox(sum.coerceAtMost(
-                                                            mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0)).topLeft,
-                                                        brush = { _, _ ->
-                                                               focusedSolidBrush
-                                                        }
-                                                    ).also {
-                                                        sum += charWord.length
-                                                    }
-                                                }
-
-                                                return@fastForEach
-                                            }*//*
-                                        }*/
-
-                                            //println(word.second + "：" + sum.coerceAtMost(mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0) + "，共 "+ mainLyric.sumOf { it.second.length })
-
-                                            // 新逻辑
 
                                             val thisWord = word.second
 

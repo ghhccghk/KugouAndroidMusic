@@ -1,5 +1,6 @@
 package com.ghhccghk.musicplay.util.lrc
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastJoinToString
@@ -8,7 +9,7 @@ import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 /**
  * Lrc 歌词文本处理
  */
-class YosLrcFactory(private val formatText: Boolean = true) {
+class YosLrcFactory() {
     /**
      * Lrc 歌词文本处理方法
      * @param lrcText Lrc 格式的文本
@@ -31,6 +32,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
     }*/
     fun formatLrcEntries(lrcText: String): List<List<Pair<Float, String>>> {
         val lrcLines = lrcText.lines()
+        Log.d("歌词处理",lrcLines.toString())
         val timeLyricPairs = mutableListOf<MutableList<Pair<Float, String>>>()
         lrcLines.fastForEachIndexed { index, line ->
             //将文本中完全相同而且重复的两个时间轴修改为一个

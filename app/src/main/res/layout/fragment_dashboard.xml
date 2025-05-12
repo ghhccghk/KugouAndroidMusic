@@ -17,11 +17,36 @@
             android:id="@+id/search_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="@id/chart_title"
             android:hint="搜索歌曲"
+            app:layout_scrollFlags="scroll|enterAlways"
+            app:defaultScrollFlagsEnabled="true"
+            app:layout_constraintEnd_toEndOf="@id/chart_title"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="@drawable/ic_arrow_back" />
+
+        <com.google.android.material.search.SearchView
+            android:id="@+id/search_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            app:layout_constraintEnd_toEndOf="@id/search_bar"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- 推荐关键词列表 -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/search_recommendation_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:clipToPadding="false"/>
+
+
+        </com.google.android.material.search.SearchView>
+
 
         <!-- 排行榜标题 -->
         <TextView
