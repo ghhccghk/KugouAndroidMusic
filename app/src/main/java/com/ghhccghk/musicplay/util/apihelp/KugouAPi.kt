@@ -8,8 +8,7 @@ object KugouAPi {
     val client = OkHttpClient()
     val apiaddress = "http:/127.0.0.1:9600"
 
-
-
+    /** 发送验证码*/
     fun getMobileCode(mobile: String): String? {
         val url = "$apiaddress/captcha/sent?mobile=$mobile"
         println(url)
@@ -27,6 +26,7 @@ object KugouAPi {
 
     }
 
+    /**手机登录 */
     fun loginCellphone(mobile: String, code: String): String? {
         val url = "$apiaddress/login/cellphone?phone=$mobile&code=$code"
         val request = Request.Builder().url(url).build()
@@ -43,7 +43,7 @@ object KugouAPi {
         }
 
     }
-
+    /**  用户名登录(该登录可能需要验证，不推荐使用) */
     fun loginUserNameAndPassword(username: String, password: String): String?{
         val url = "$apiaddress/login?username=$username&password=$password"
         val request = Request.Builder().url(url).build()
@@ -60,6 +60,7 @@ object KugouAPi {
         }
     }
 
+    /** 开放接口登录(目前仅支持微信登录) */
     fun loginOpenPlat(code: String): String?{
         val url = "$apiaddress/login/openplat?$code"
         val request = Request.Builder().url(url).build()
@@ -76,6 +77,7 @@ object KugouAPi {
         }
     }
 
+    /** 二维码登录 二维码 key 生成接口 */
     fun getQrCode(): String?{
         val url = "$apiaddress/login/qr/key"
         val request = Request.Builder().url(url).build()
@@ -92,12 +94,13 @@ object KugouAPi {
         }
     }
 
+    /** 二维码检测扫码状态接口  */
     fun getQrCodeCheck(key: String): String?{
         val url = "$apiaddress/login/qr/check?key=$key"
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
-                println("loginCellphone failed: ${response.code}")
+                println("getQrCodeCheck failed: ${response.code}")
                 return response.code.toString()
             }
 
@@ -105,7 +108,25 @@ object KugouAPi {
             return responseBody
         }
     }
+    /** 二维码生成接口 */
+    fun getQrCode(key: String): String? {
+        val url = "$apiaddress/login/wx/create?key=$key"
+        val request = Request.Builder().url(url).build()
 
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getQrCode failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+
+    /** 微信二维码生成 */
     fun loginWeChatQr(): String? {
         val url = "$apiaddress/login/wx/create"
         val request = Request.Builder().url(url).build()
@@ -122,6 +143,8 @@ object KugouAPi {
 
     }
 
+    /** 微信二维码检查*/
+
     fun getWechatCheck(timestamp: String): String?{
         val url = "$apiaddress/login/wx/check?timestamp=$timestamp"
         val request = Request.Builder().url(url).build()
@@ -136,6 +159,8 @@ object KugouAPi {
         }
     }
 
+
+    /** 更新 token 登录信息 */
     fun updateToken(token: String): String?{
         val url = "$apiaddress/login/token?token$token"
         val request = Request.Builder().url(url).build()
@@ -151,6 +176,7 @@ object KugouAPi {
 
     }
 
+    /** dfid 获取 */
     fun getDfid(): String?{
         val url = "$apiaddress/register/dev"
         val request = Request.Builder().url(url).build()
@@ -166,6 +192,7 @@ object KugouAPi {
 
     }
 
+    /** 获取用户额外信息 */
     fun getUserDetail(): String?{
         val url = "$apiaddress/user/detail"
         val request = Request.Builder().url(url).build()
@@ -181,6 +208,7 @@ object KugouAPi {
         }
     }
 
+    /** 获取用户 vip 信息 */
     fun getUserVip(): String?{
         val url = "$apiaddress/user/vip/detail"
         val request = Request.Builder().url(url).build()
@@ -196,6 +224,7 @@ object KugouAPi {
         }
     }
 
+    /** 获取用户歌单*/
     fun getUserPlayList(page: Int? = null, pageSize: Int? = null): String?{
         val url = "$apiaddress/user/playlist".toUri().buildUpon().apply {
             page?.let { appendQueryParameter("page", it.toString()) }
@@ -214,7 +243,24 @@ object KugouAPi {
         }
     }
 
+    /** 获取用户关注 */
+    fun getUserFollow(): String? {
+        val url = "$apiaddress/user/follow"
+        val request = Request.Builder().url(url).build()
 
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getUesrDetail failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    /** 获取用户云盘音乐 */
     fun getUserCloudMusic(page: Int? = null, pageSize: Int? = null): String?{
         val url = "$apiaddress/user/cloud".toUri().buildUpon().apply {
             page?.let { appendQueryParameter("page", it.toString()) }
@@ -232,7 +278,7 @@ object KugouAPi {
             return responseBody
         }
     }
-
+    /** 获取用户云盘音乐Url */
     fun getUserCloudMusicUrl(hash: String, album_id: String? = null,
                              name: String? = null,album_audio_id: String? = null): String?{
         val url = "$apiaddress/user/cloud/url?hash=$hash".toUri().buildUpon().apply {
@@ -251,7 +297,7 @@ object KugouAPi {
             return responseBody
         }
     }
-
+    /** 获取用户收藏的视频 */
     fun getUserVideoCollect(page: Int? = null, pageSize: Int? = null): String?{
         val url = "$apiaddress/video/collect".toUri().buildUpon().apply {
             page?.let { appendQueryParameter("page", it.toString()) }
@@ -270,6 +316,7 @@ object KugouAPi {
         }
     }
 
+    /** 获取用户喜欢的视频 */
     fun getUserVideoLove(pageSize: Int? = null): String?{
         val url = "$apiaddress/video/love".toUri().buildUpon().apply {
             pageSize?.let { appendQueryParameter("pageSize", it.toString()) }
@@ -554,15 +601,23 @@ object KugouAPi {
 
     }
 
-    fun searchSongsSuggest(key: String,albumTipCount : String,correctTipCount : String? = null,
+    fun getSearchSuggest(key: String,albumTipCount : String?= null,correctTipCount : String? = null,
                            mvTipCount : String? = null,musicTipCount : String? = null): String? {
 
         val url = "$apiaddress/search/suggest".toUri().buildUpon().apply {
-            appendQueryParameter("keyword",key)
-            albumTipCount.let {  appendQueryParameter("albumTipCount ",it )}
-            correctTipCount.let { appendQueryParameter("correctTipCount",it.toString()) }
-            mvTipCount .let { appendQueryParameter("mvTipCount ",it.toString()) }
-            musicTipCount .let { appendQueryParameter("musicTipCount ",it.toString()) }
+            appendQueryParameter("keywords",key)
+            if (albumTipCount != null){
+                appendQueryParameter("albumTipCount",albumTipCount)
+            }
+            if (correctTipCount != null){
+                appendQueryParameter("correctTipCount",correctTipCount)
+            }
+            if (mvTipCount != null){
+                appendQueryParameter("mvTipCount",mvTipCount)
+            }
+            if (musicTipCount != null) {
+                appendQueryParameter("musicTipCount", musicTipCount)
+            }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 

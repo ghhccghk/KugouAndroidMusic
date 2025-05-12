@@ -7,25 +7,18 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.ghhccghk.musicplay.MainActivity
-import com.ghhccghk.musicplay.data.LyricLine
-import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.widgets.YosLyricView
-import com.ghhccghk.musicplay.util.LyricsAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
-import com.ghhccghk.musicplay.util.playlist.PlayMusicSceneAdapter
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DecimalFormat
 
 class LyricsFragment: Fragment() {
 
@@ -65,14 +58,15 @@ class LyricsFragment: Fragment() {
             val json = withContext(Dispatchers.IO) {
 
                 KugouAPi.getSongLyrics(id = "329624309", accesskey = "80B48FA9CBE574CDBE5686BBCA4DBD58",
-                    fmt = "lrc",decode = true)
+                    fmt = "krc",decode = true)
             }
 
             try {
                 val gson = Gson()
                 val result = gson.fromJson(json, getLyricCode::class.java)
                 val lyric = result.decodeContent
-                val ok = YosLrcFactory().formatLrcEntries(lyric)
+                val out = convertKrcToLrc(lyric)
+                val ok = YosLrcFactory().formatLrcEntries(out)
 
                 binding.lyricsContainerComposeView.setContent {
                     YosLyricView(
@@ -83,7 +77,7 @@ class LyricsFragment: Fragment() {
                                 Toast.makeText(context, "点击: ${position}", Toast.LENGTH_LONG).show()
                             }
                         },
-                        weightLambda = { false },
+                        weightLambda = { true },
                         onBackClick = {
                         }
                     )
@@ -99,5 +93,56 @@ class LyricsFragment: Fragment() {
         }
     }
 
+    fun convertKrcToLrc(krcContent: String): String {
+        val timeFormat = DecimalFormat("00")
+        val secFormat = DecimalFormat("00.00")
+
+        val lineRegex = Regex("""\[(\d+),(\d+)](.*)""")
+        val wordRegex = Regex("""<(\d+),(\d+),0>([^<])""")
+
+        val output = mutableListOf<String>()
+
+        val lines = krcContent.split("\n")
+
+        for (line in lines) {
+            val match = lineRegex.find(line) ?: continue
+            val startTime = match.groupValues[1].toInt()
+            val content = match.groupValues[3]
+
+            val words = wordRegex.findAll(content).toList()
+            if (words.isEmpty()) continue
+
+            val sb = StringBuilder()
+
+            // 对于每一行，单独处理字和时间戳
+            var previousTime = startTime
+            for ((index, word) in words.withIndex()) {
+                val offset = word.groupValues[1].toInt()
+                val char = word.groupValues[3]
+                val wordTime = previousTime + offset
+                val wordTimestamp = formatTime(wordTime, timeFormat, secFormat)
+                sb.append("[$wordTimestamp]$char")
+
+                // 更新为当前字的时间戳
+                previousTime = wordTime
+
+                // 如果是最后一个字，确保输出时间戳
+                if (index == words.size - 1) {
+                    val finalTimestamp = formatTime(previousTime, timeFormat, secFormat)
+                    sb.append("[$finalTimestamp]") // 最后一个字后也输出时间戳
+                }
+            }
+
+            output.add(sb.toString())
+        }
+
+        return output.joinToString("\n")
+    }
+
+    fun formatTime(ms: Int, minFmt: DecimalFormat, secFmt: DecimalFormat): String {
+        val minutes = ms / 60000
+        val seconds = (ms % 60000).toDouble() / 1000
+        return "${minFmt.format(minutes)}:${secFmt.format(seconds)}"
+    }
 
 }
