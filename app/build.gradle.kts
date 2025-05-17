@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.animation.core.android)
     implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.lifecycle.service)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -122,6 +123,10 @@ dependencies {
     // Optional - Integration with RxJava
     implementation(libs.androidx.runtime.rxjava2)
 
+    implementation(libs.androidx.media3.exoplayer)// Media3 ExoPlayer
+    implementation(libs.androidx.media3.session)   // 媒体会话管理
+    implementation(libs.androidx.media3.ui)   // 媒体会话管理
+    implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
 
 
 }

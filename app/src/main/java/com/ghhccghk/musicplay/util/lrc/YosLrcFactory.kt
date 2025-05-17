@@ -1,6 +1,5 @@
 package com.ghhccghk.musicplay.util.lrc
 
-import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastJoinToString
@@ -9,7 +8,7 @@ import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 /**
  * Lrc 歌词文本处理
  */
-class YosLrcFactory() {
+class YosLrcFactory(private val formatText: Boolean = true) {
     /**
      * Lrc 歌词文本处理方法
      * @param lrcText Lrc 格式的文本
@@ -31,8 +30,12 @@ class YosLrcFactory() {
         }
     }*/
     fun formatLrcEntries(lrcText: String): List<List<Pair<Float, String>>> {
+        val timeTagRegex = Regex("""\[\d{2}:\d{2}(?:\.\d{1,2})?]""")
+        lrcText.lines()
+            .filter { timeTagRegex.containsMatchIn(it) }
+            .joinToString("\n")
+
         val lrcLines = lrcText.lines()
-        Log.d("歌词处理",lrcLines.toString())
         val timeLyricPairs = mutableListOf<MutableList<Pair<Float, String>>>()
         lrcLines.fastForEachIndexed { index, line ->
             //将文本中完全相同而且重复的两个时间轴修改为一个
@@ -43,21 +46,6 @@ class YosLrcFactory() {
             println("歌词处理：$remainingLine")
             val currentLinePairs = mutableListOf<Pair<Float, String>>()
             while (remainingLine.isNotEmpty()) {
-                /*val timeIndex = remainingLine.indexOf("]")
-                if (timeIndex == -1) break
-                val timeText = remainingLine.substring(1, timeIndex)
-                val timeParts = timeText.split(":")
-                if (timeParts.size != 2) break
-                val minutes = timeParts[0].toIntOrNull() ?: break
-                val seconds = timeParts[1].toFloatOrNull() ?: break
-                val time = (minutes * 60 + seconds) * 1000
-                remainingLine = remainingLine.substring(timeIndex + 1)
-                val nextTimeIndex = remainingLine.indexOf("[")
-                val lyric = if (nextTimeIndex != -1) {
-                    remainingLine.substring(0, nextTimeIndex)
-                } else {
-                    remainingLine
-                }*/
 
                 val timeIndex = remainingLine.indexOf("[")
                 if (timeIndex == -1) break

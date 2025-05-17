@@ -7,6 +7,7 @@ import okhttp3.Request
 object KugouAPi {
     val client = OkHttpClient()
     val apiaddress = "http:/127.0.0.1:9600"
+    val token : String? = null
 
     /** 发送验证码*/
     fun getMobileCode(mobile: String): String? {
@@ -435,9 +436,9 @@ object KugouAPi {
 
     fun getTopAlbum(type: Int? = null,pageSize: Int? = null,page: Int? = null): String? {
         val url = "$apiaddress/top/album".toUri().buildUpon().apply {
-            type.let { appendQueryParameter("type", it.toString()) }
-            pageSize.let { appendQueryParameter("pageSize", it.toString()) }
-            page.let { appendQueryParameter("page", it.toString()) }
+            type?.let { appendQueryParameter("type", it.toString()) }
+            pageSize?.let { appendQueryParameter("pageSize", it.toString()) }
+            page?.let { appendQueryParameter("page", it.toString()) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -491,10 +492,10 @@ object KugouAPi {
                     quality: String? = null ): String? {
         val url = "$apiaddress/song/url".toUri().buildUpon().apply {
             appendQueryParameter("hash",hash)
-            album_id.let { appendQueryParameter("album_id",it) }
-            free_part.let { appendQueryParameter("free_part",it) }
-            album_audio_id.let { appendQueryParameter("album_audio_id",it) }
-            quality.let { appendQueryParameter("quality",it) }
+            album_id?.let { appendQueryParameter("album_id",it) }
+            free_part?.let { appendQueryParameter("free_part",it) }
+            album_audio_id?.let { appendQueryParameter("album_audio_id",it) }
+            quality?.let { appendQueryParameter("quality",it) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -513,8 +514,8 @@ object KugouAPi {
                        album_audio_id: String? = null): String? {
         val url = "$apiaddress/song/url/new".toUri().buildUpon().apply {
             appendQueryParameter("hash",hash)
-            free_part.let { appendQueryParameter("free_part",it) }
-            album_audio_id.let { appendQueryParameter("album_audio_id",it) }
+            free_part?.let { appendQueryParameter("free_part",it) }
+            album_audio_id?.let { appendQueryParameter("album_audio_id",it) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -551,9 +552,9 @@ object KugouAPi {
 
         val url = "$apiaddress/search".toUri().buildUpon().apply {
             appendQueryParameter("keyword",key)
-            page.let { appendQueryParameter("page",it.toString()) }
-            pageSize.let { appendQueryParameter("pageSize",it.toString()) }
-            type.let { appendQueryParameter("type",it.toString()) }
+            page?.let { appendQueryParameter("page",it.toString()) }
+            pageSize?.let { appendQueryParameter("pageSize",it.toString()) }
+            type?.let { appendQueryParameter("type",it.toString()) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -633,18 +634,30 @@ object KugouAPi {
 
     }
 
+
+    /** 歌词搜索
+     * 说明: 调用此接口, 可以搜索歌词，该接口需配合 /lyric 使用。
+     *
+     * 必选参数：
+     *
+     * @param keyword: 关键词，与 hash 二选一
+     *
+     * @param hash: 歌曲 hash，与 keyword 二选一
+     *
+     * 可选参数：
+     *
+     * @param album_audio_id: 专辑音乐 id,
+     *
+     * @param man: 是否返回多个歌词，yes：返回多个， no：返回一个。 默认为no
+     * */
     fun getSearchSongLyrics(keyword: String? = null,hash: String? = null,
                       album_audio_id: String? = null,man:String? = null): String? {
 
         val url = "$apiaddress/search/lyric".toUri().buildUpon().apply {
-            keyword.let {
-                if (hash == null) appendQueryParameter("keyword",it)
-            }
-            hash.let {
-                if (keyword == null) appendQueryParameter("hash",it)
-            }
-            album_audio_id.let { appendQueryParameter("album_audio_id ",it )}
-            man.let { appendQueryParameter("man ",it.toString()) }
+            keyword?.let { appendQueryParameter("keyword",it) }
+            hash?.let { appendQueryParameter("hash",it) }
+            album_audio_id?.let { appendQueryParameter("album_audio_id ",it )}
+            man?.let { appendQueryParameter("man ",it.toString()) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -660,13 +673,27 @@ object KugouAPi {
 
     }
 
+    /** 获取歌词
+     * 说明 : 调用此接口，可以获取歌词，调用该接口前则需要调用/search/lyric 获取完整参数
+     *
+     * 必选参数：
+     *
+     * @param id: 歌词 id, 可以从 getSearchSongLyrics 接口中获取
+     *
+     * @param accesskey: 歌词 accesskey, 可以从getSearchSongLyrics接口中获取
+     *
+     * 可选参数：
+     *
+     * @param fmt: 歌词类型，lrc 为普通歌词，krc 为逐字歌词
+     *
+     * @param decode: 是否解码，传入该参数这返回解码后的歌词*/
     fun getSongLyrics(id: String,accesskey: String,
                       fmt: String? = null,decode: Boolean? = false): String? {
 
         val url = "$apiaddress/lyric".toUri().buildUpon().apply {
             appendQueryParameter("id",id)
             appendQueryParameter("accesskey",accesskey)
-            fmt.let { appendQueryParameter("fmt",it.toString() )}
+            fmt?.let { appendQueryParameter("fmt",it.toString() )}
             appendQueryParameter("decode", decode.toString())
         }.build().toString()
         val request = Request.Builder().url(url).build()
@@ -701,8 +728,8 @@ object KugouAPi {
 
         val url = "$apiaddress/top/playlist".toUri().buildUpon().apply {
             appendQueryParameter("category_id",category_id)
-            withsong.let { appendQueryParameter("withsong ",withsong )}
-            withtag.let { appendQueryParameter("withtag ",withtag )}
+            withsong?.let { appendQueryParameter("withsong ",withsong )}
+            withtag?.let { appendQueryParameter("withtag ",withtag )}
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -732,5 +759,395 @@ object KugouAPi {
             return responseBody
         }
     }
+
+
+    fun getPlayListEffect(page: Int? = null, pageSize: Int? = null,): String? {
+        val url = "$apiaddress/playlist/effect".toUri().buildUpon().apply {
+            page?.let { appendQueryParameter("page ",it.toString() )}
+            pageSize?.let { appendQueryParameter("pagesize ",it.toString() )}
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListEffect failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+    /** 获取歌单详情 */
+    fun getPlayListDetail(ids: String): String? {
+        val url = "$apiaddress/playlist/detail?ids=$ids"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListDetail failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取歌单所有歌曲 */
+    fun getPlayListAllSongs(ids: String,page: Int? = null, pageSize: Int? = null,): String?{
+        val url = "$apiaddress/playlist/track/all".toUri().buildUpon().apply {
+            appendQueryParameter("ids",ids)
+            page?.let { appendQueryParameter("page", it.toString()) }
+            pageSize?.let { appendQueryParameter("pagesize", it.toString()) }
+
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListAllSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+
+    }
+
+    /** 获取歌单所有歌曲 (New)*/
+    fun getPlayListAllSongsNew(ids: String,page: Int? = null, pageSize: Int? = null,): String?{
+        val url = "$apiaddress/playlist/track/all/new".toUri().buildUpon().apply {
+            appendQueryParameter("listid",ids)
+            page?.let { appendQueryParameter("page", it.toString()) }
+            pageSize?.let { appendQueryParameter("pagesize", it.toString()) }
+
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListAllSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+
+    }
+
+    /** 获取相似歌单 */
+    fun getPlayListSimilar(ids: String,page: Int? = null, pageSize: Int? = null,): String?{
+        val url = "$apiaddress/playlist/similar".toUri().buildUpon().apply {
+            appendQueryParameter("ids",ids)
+            page?.let { appendQueryParameter("page", it.toString()) }
+            pageSize?.let { appendQueryParameter("pagesize", it.toString()) }
+
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListAllSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+
+    /** 获取主题歌单所有歌曲*/
+    fun getPlayListThemeAllSong(theme_id: String): String? {
+
+        val url = "$apiaddress/theme/playlist/track".toUri().buildUpon().apply {
+            appendQueryParameter("theme_id",theme_id)
+
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getPlayListAllSongs failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+    }
+    /** 获取主题音乐 */
+    fun getThemeMuisc(): String? {
+        val url = "$apiaddress/theme/music"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getThemeMuisc failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取主题音乐详情 */
+    fun getThemeMuiscDetail(id: String): String? {
+        val url = "$apiaddress/theme/music/detail?id=$id"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getThemeMuiscDetail failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 歌曲推荐
+     * : 1：对应安卓 精选好歌随心听 || 私人专属好歌，2：对应安卓 经典怀旧金曲，3：对应安卓 热门好歌精选，4：对应安卓 小众宝藏佳作，5：未知，6：对应 vip 专属推荐 */
+    fun getSongcard(id : String = "1"): String? {
+        val url = "$apiaddress/top/card".toUri().buildUpon().apply {
+            appendQueryParameter("card_id", id)
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongcard failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+
+    /** 获取歌手和专辑图片 */
+    fun getSongUserListen(hash: String,album_id : String? = null,album_audio_id: String? = null,
+                          count: String? = null): String? {
+        val url = "$apiaddress/user/listen".toUri().buildUpon().apply {
+           appendQueryParameter("hash", hash)
+            album_id?.let { appendQueryParameter("album_id", it) }
+            album_audio_id?.let { appendQueryParameter("album_audio_id", it) }
+            count?.let { appendQueryParameter("count", it) }
+        }.build().toString()
+
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongUserListen failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取音乐信息 */
+    fun getMuiscInfo(hash: String): String? {
+        val url = "$apiaddress/audio?hash=$hash"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取更多音乐版本
+     * 必选参数：
+     *
+     * @param album_audio_id：音乐的 mixsongid/album_audio_id
+     *
+     * 可选参数：
+     *
+     * @param page： 页码
+     *
+     * @param pageSize: 每页页数, 默认为 30
+     *
+     * @param show_type：是否返回分类
+     *
+     * @param sort：排序，支持 all，hot，new
+     *
+     * @param  type: 分类
+     *
+     * show_detail：是否返回详情，否则只返回总数，0：只返回总数，不传或者其他都返回详情*/
+    fun getMoreMusic(album_audio_id: String,page: Int? = null, pageSize: Int? = null,
+                     show_type: String? = null,sort: String? = null,type: String? = null,): String?{
+        val url = "$apiaddress/audio/related?album_audio_id=$album_audio_id".toUri().buildUpon().apply {
+            page?.let { appendQueryParameter("page", it.toString())  }
+            pageSize?.let { appendQueryParameter("pagesize", it.toString()) }
+            show_type?.let { appendQueryParameter("show_type", it.toString()) }
+            sort?.let { appendQueryParameter("sort", it.toString()) }
+            type?.let { appendQueryParameter("type", it.toString()) }
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取音乐详情
+     * @param hash: 歌曲 hash, 可以传多个，每个以逗号分开*/
+    fun getSongDetail(hash: String): String? {
+        val url = "$apiaddress/privilege/lite".toUri().buildUpon().apply {
+            appendQueryParameter("hash", hash)
+        }.build().toString()
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getSongDetail failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /**获取音乐专辑/歌手信息
+     * 必选参数：
+     *
+     * @param album_audio_id: 专辑音乐 id (album_audio_id/MixSongID 均可以), 可以传多个，每个以逗号分开
+     *
+     * 可选参数
+     *
+     * @param fields: 可以传 album_info authors.base base audio_info, authors.ip, extra, tags, tagmap 每个 field 以逗号分开
+     */
+    fun getKrmAudio(album_audio_id: String,fileids: String? = null): String? {
+        val url = "$apiaddress/krm/audio".toUri().buildUpon().apply {
+            appendQueryParameter("album_audio_id", album_audio_id)
+            fileids?.let { appendQueryParameter("fileids", it.toString())  }
+        }.build().toString()
+
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getKrmAudio failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+
+    /** 私人 FM(对应手机和 pc 端的猜你喜欢)
+     * 说明 : 私人 FM
+     *
+     * 可选参数：
+     *
+     * @param hash: 音乐 hash, 建议
+     *
+     * @param songid: 音乐 songid, 建议
+     *
+     * @param playtime: 已播放时间, 建议
+     *
+     * @param mode: 获取模式，默认为 normal, normal：发现，small： 小众，peak：30s
+     *
+     * @param action: 默认为 play, garbage: 为不喜欢
+     *
+     * @param song_pool_id： 手机版的 AI，0：Alpha 根据口味推荐相似歌曲, 1：Beta 根据风格推荐相似歌曲, 2：Gamma
+     *
+     * @param is_overplay: 是否已播放完成
+     *
+     * @param remain_songcnt: 剩余未播放歌曲数, 默认为 0，大于 4 不返回推荐歌曲，建议*/
+
+    fun getFm(hash: String? = null,songid: String? = null,playtime: String? = null,
+                       mode: String? = null,action: String? = null,song_pool_id: String? = null,
+                       is_overplay: String? = null,remain_songcnt: String? = null): String? {
+
+        val url = "$apiaddress/personal/fm".toUri().buildUpon().apply {
+            hash?.let { appendQueryParameter("hash", it.toString())  }
+            songid?.let { appendQueryParameter("songid", it.toString()) }
+            playtime?.let { appendQueryParameter("playtime", it.toString()) }
+            mode?.let { appendQueryParameter("mode", it.toString()) }
+            action?.let { appendQueryParameter("action", it.toString()) }
+            song_pool_id?.let { appendQueryParameter("song_pool_id", it.toString()) }
+        }.build().toString()
+
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getFm failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+
+
+
+    }
+
+    /** 领取 VIP（需要登陆，该接口为测试接口,仅限概念版使用） */
+    fun getlitevip(): String? {
+        val url = "$apiaddress/youth/vip"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 领取 一天 VIP（需要登陆，该接口为测试接口,仅限概念版使用） */
+    fun getlitevipday(): String? {
+        val url = "$apiaddress/youth/day/vip"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取当月已领取 VIP 天数（需要登陆，该接口为测试接口,仅限概念版使用） */
+    fun getlitevipdayok(): String? {
+        val url = "$apiaddress/youth/month/vip/record"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取已领取 VIP 状态（需要登陆，该接口为测试接口,仅限概念版使用） */
+    fun getlitevipok(): String? {
+        val url = "$apiaddress/youth/union/vip"
+        val request = Request.Builder().url(url).build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getMuiscInfo failed: ${response.code}")
+            }
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
 
 }

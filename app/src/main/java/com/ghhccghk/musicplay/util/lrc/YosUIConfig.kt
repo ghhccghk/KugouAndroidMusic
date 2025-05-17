@@ -22,7 +22,7 @@ import androidx.compose.runtime.Stable
 @Stable
 data class YosUIConfig(
     val edgeFade: Boolean = false,
-    val formatText: Boolean = true,
+    val formatText: Boolean = false,
     val noLrcText: String = "No lyrics",
     val blankHeight: Int = 20,
     val mainTextSize: Int = 34,

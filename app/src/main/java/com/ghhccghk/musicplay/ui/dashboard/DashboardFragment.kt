@@ -26,6 +26,8 @@ import com.ghhccghk.musicplay.data.PlayCategory
 import com.ghhccghk.musicplay.data.PlayCategoryBase
 import com.ghhccghk.musicplay.data.SearchBase
 import com.ghhccghk.musicplay.data.SearchData
+import com.ghhccghk.musicplay.data.SongData
+import com.ghhccghk.musicplay.data.SongDataBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
@@ -33,11 +35,15 @@ import com.ghhccghk.musicplay.util.hotsearch.HotGroupAdapter
 import com.ghhccghk.musicplay.util.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.playlist.PlayMusicSceneAdapter
 import com.ghhccghk.musicplay.util.search.RecommendationAdapter
+import com.google.android.material.search.SearchBar
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
 
 class DashboardFragment : Fragment() {
 
@@ -54,16 +60,45 @@ class DashboardFragment : Fragment() {
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
-
+        Log.d("nodejs",MainActivity.isNodeRunning.toString())
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()
+            addgetPlayListTag()
             addsearch()
+        }
+
+
+
+
+
+        a {
+            MainActivity.isNodeRunning  = it
         }
 
         return root
     }
 
+
+    fun isPortOpen(port: Int = 9600, timeout: Int = 200): Boolean {
+        return try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress("127.0.0.1", port), timeout)
+                true
+            }
+        } catch (e: IOException) {
+            false
+        }
+    }
+
+    fun a(callback: (Boolean) -> Unit){
+        lifecycleScope.launch {
+            val b = withContext(Dispatchers.IO) {
+                isPortOpen()
+            }
+            callback(b)
+        }
+    }
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
@@ -71,6 +106,7 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        Log.d("nodejs",MainActivity.isNodeRunning.toString())
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()
@@ -233,7 +269,31 @@ class DashboardFragment : Fragment() {
         view.editText.setOnEditorActionListener { textView, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 val query = view.text.toString()
-                Toast.makeText(context, "搜索: $query", Toast.LENGTH_SHORT).show()
+                if (query.isNotEmpty()) {
+                    lifecycleScope.launch {
+                        val json = withContext(Dispatchers.IO) {
+                            KugouAPi.searchSongs(query)
+                        }
+                        if (json == null || json == "502" || json == "404") {
+                            Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
+                        } else {
+                            try {
+                                val gson = Gson()
+                                val result = gson.fromJson(json, SongDataBase::class.java)
+                                Log.d("search",result.data.lists.toString())
+
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(
+                                    context,
+                                    "数据加载失败: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+
+                        }
+                    }
+                }
                 true
             } else {
                 false

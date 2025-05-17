@@ -15,29 +15,45 @@ import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import com.google.android.material.navigation.NavigationBarView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import androidx.core.content.edit
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.ghhccghk.musicplay.service.NodeService
+import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.ZipExtractor
+import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
+import kotlin.getValue
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
     private var nodeService: NodeService? = null
     var isNodeRunning = false
     var bound = false
+    private  lateinit var  controllerFuture : ListenableFuture<MediaController>
 
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -67,6 +83,7 @@ class MainActivity : AppCompatActivity() {
         instance = this
         enableEdgeToEdge()
 
+
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
         Intent(this, NodeService::class.java).also {
@@ -78,6 +95,13 @@ class MainActivity : AppCompatActivity() {
 
         val intent = Intent(this, NodeService::class.java)
         startService(intent)
+
+        // 启动 Service
+        // 初始化媒体控制器
+        val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
+        controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+
+        bi
 
 
         if (isFirstRun(this)) {
@@ -124,6 +148,10 @@ class MainActivity : AppCompatActivity() {
             unbindService(connection)
             bound = false
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
     }
 
     // 处理返回时的操作，确保返回时显示 BottomNavigationView
@@ -184,10 +212,15 @@ class MainActivity : AppCompatActivity() {
         private lateinit var instance: MainActivity
         val lontext: Context
             get() = instance.applicationContext
-        val isNodeRunning : Boolean
+        var isNodeRunning : Boolean
             get() = instance.isNodeRunning
+            set(value) {
+                instance.isNodeRunning = value
+            }
         val bound : Boolean
             get() = instance.bound
+        val controllerFuture : ListenableFuture<MediaController>
+            get() = instance.controllerFuture
     }
 
 }

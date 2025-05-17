@@ -42,31 +42,6 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        binding.listContainer.apply {
-            val sendcode = ItemInputphoneBinding.inflate(LayoutInflater.from(context))
-            addView(sendcode.root)
-            val numberInput: EditText = sendcode.numberInput
-            val sendcodeButton = sendcode.sendcode
-            val text = numberInput.text.toString().trim()
-            val a =  Button(this.context)
-
-            val playerBar = requireActivity().findViewById<LinearLayout>(R.id.player_bar)
-            a.setText("隐藏play")
-            a.setOnClickListener {
-                if (playerBar.isVisible) {
-                    playerBar.isVisible = false // false 隐藏
-                } else {
-                    playerBar.isVisible = true // true 显示
-                }
-            }
-            addView(a)
-            sendcodeButton.setOnClickListener {
-
-            }
-        }
-
-
-
         return root
     }
 

@@ -1,6 +1,7 @@
 package com.ghhccghk.musicplay.ui.widgets
 
 import android.os.Build
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.AnimationSpec
@@ -62,7 +63,6 @@ import androidx.compose.ui.draw.DrawResult
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -93,15 +93,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
-import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
-import com.ghhccghk.musicplay.util.lrc.YosUIConfig
-import com.ghhccghk.musicplay.util.others.Vibrator
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.ui.widgets.basic.YosWrapper
+import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
+import com.ghhccghk.musicplay.util.lrc.YosUIConfig
+import com.ghhccghk.musicplay.util.others.Vibrator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -145,6 +145,7 @@ fun YosLyricView(
     //animationConfig: YosAnimationConfig = YosAnimationConfig(),
     uiConfig: YosUIConfig = YosUIConfig(),
     weightLambda: () -> Boolean,
+    modifier: Modifier,
     onBackClick: () -> Unit
 ) {
     println("重组：YosLyricView")
@@ -305,26 +306,21 @@ fun YosLyricView(
                 state = scrollState,
                 contentPadding = PaddingValues(vertical = 16.dp),/*
             verticalArrangement = Arrangement.spacedBy(5.dp),*/
-                modifier = Modifier
-                    .fillMaxSize()
-                    /*.scrollable(state = rememberScrollableState {
-                        enableLyricScroll.value = false
-                        lastClickTime.longValue =
-                            TimeUtils.getNowMills()
-                        it
-                    }, orientation = Orientation.Vertical)*/
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }) {
-                        onBackClick()
-                    }
-                    .nestedScroll(nestedScrollConnection)
-                    .onSizeChanged {
-                        if (height.intValue == 0 && it.height != 0) {
-                            height.intValue = it.height
-                            //println("计算歌词视图高度：${height.intValue}")
+                modifier =
+                    modifier
+                        .fillMaxSize()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }) {
+                            onBackClick()
                         }
-                    }
+                        .nestedScroll(nestedScrollConnection)
+                        .onSizeChanged {
+                            if (height.intValue == 0 && it.height != 0) {
+                                height.intValue = it.height
+                                //println("计算歌词视图高度：${height.intValue}")
+                            }
+                        }
             ) {
                 //println("重组：歌词列表")
                 blankSpacer()
@@ -353,9 +349,11 @@ fun YosLyricView(
 
                     val isLyricEmpty = rememberSaveable(lines) {
                         mutableStateOf(
-                            lines.all { it.second.isBlank() }
+                            lines.all { it.second.isEmpty() }
                         )
                     }
+
+                    Log.d("YosLyricView", "重组：歌词列表${isLyricEmpty.value} ${lines.all { it.second.isEmpty() }} " )
 
                     key(lines) {
                         val translation = remember(index) {
@@ -582,7 +580,7 @@ fun YosLyricView(
             }
         }
 
-        /*YosWrapper {
+        YosWrapper {
             LaunchedEffect(Unit) {
                 while (true) {
                     val liveTime = liveTimeLambda()
@@ -598,40 +596,6 @@ fun YosLyricView(
 
                     delay(100)
                 }
-            }
-        }*/
-
-        YosWrapper {
-            //val lifecycleState = LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
-            LaunchedEffect(Unit) {
-                /*if (!lifecycleState.value.isAtLeast(Lifecycle.State.RESUMED)) {
-                    return@LaunchedEffect
-                }*/
-                try {
-                    if (currentLyricIndex.intValue != -1) {
-                        return@LaunchedEffect
-                    }
-                    val liveTime = liveTimeLambda()
-                    val nextIndex = lrcEntries.indexOfFirst { line ->
-                        line.first().first > liveTime
-                    }
-
-                    if (nextIndex != -1 && nextIndex - 1 != currentLyricIndex.intValue) {
-                        scrollState.scrollToItem(
-                            index = (nextIndex).coerceAtLeast(0),
-                            scrollOffset = -targetOffset.toInt()
-                        )
-                        currentLyricIndex.intValue = nextIndex - 1
-                    } else if (nextIndex == -1 && currentLyricIndex.intValue != lrcEntries.size - 1) {
-                        scrollState.scrollToItem(
-                            index = (lrcEntries.size).coerceAtLeast(0),
-                            scrollOffset = -targetOffset.toInt()
-                        )
-                        currentLyricIndex.intValue = lrcEntries.size - 1
-                    }
-                } catch (_: Exception) {
-                }
-
             }
         }
     }
@@ -846,7 +810,6 @@ fun LazyItemScope.LyricItem(
     //val focusedSolidBrush = SolidColor(focusedColor)
 
     val unfocusedSolidBrush = SolidColor(unfocusedColor)
-
     val isNotOneByOne = rememberSaveable(mainLyric) {
         mutableStateOf(
             mainLyric.all { it.first == mainLyric.firstOrNull()?.first }
@@ -936,11 +899,7 @@ fun LazyItemScope.LyricItem(
                     val percent = remember(mainLyric) {
                         derivedStateOf {
                             val m = mainLyric.first().first
-                            /*(if ((nextTime() - m) < 900f) {
-                                0f
-                            } else {
-                                */((liveTime.intValue - m).coerceAtLeast(0f) / (nextTime() - m))
-                            /*})*/.coerceAtMost(1f)
+                            ((liveTime.intValue - m).coerceAtLeast(0f) / (nextTime() - m)).coerceAtMost(1f)
                         }
                     }
                     val show = remember(mainLyric) {
@@ -1096,11 +1055,9 @@ fun LazyItemScope.LyricItem(
 
                                     Line(
                                         lines = mainLyric,
-                                        style = if (otherSide) MainTextStyle.copy(
-                                            textAlign = TextAlign.End) else MainTextStyle,
+                                        style = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle,
                                         measurer = measurer,
                                         modifier = Modifier
-
                                             .graphicsLayer {
                                                 this.alpha = thisAlpha.value
                                                 compositingStrategy =
@@ -1117,6 +1074,11 @@ fun LazyItemScope.LyricItem(
                                         viewAlign = viewAlign
                                     ) { parentConstraints, measureResult ->
 
+                                        if (showHighLight.value) {
+                                            //println("高亮：$liveTime  $mainLyric" )
+                                        }
+
+
 
                                         if (isNotOneByOne.value) {
                                             // 当不是逐字时
@@ -1124,7 +1086,7 @@ fun LazyItemScope.LyricItem(
                                             return@Line onDrawWithContent {
                                                 drawText(
                                                     textLayoutResult = measureResult,
-                                                    color = focusedColor,
+                                                    color = focusedColor
                                                 )
                                             }
                                         }
@@ -1132,17 +1094,6 @@ fun LazyItemScope.LyricItem(
                                         if (!isCurrentLambda()) {
                                             // 是逐字 但不是当前行
                                             // 是否已播放完？
-                                            if (showHighLight.value) {
-                                                // 高亮
-                                                println("高亮：$mainLyric")
-                                                return@Line onDrawWithContent {
-                                                    drawText(
-                                                        textLayoutResult = measureResult,
-                                                        color = focusedColor,
-                                                        topLeft = Offset(0F, -4F)
-                                                    )
-                                                }
-                                            } else {
                                                 // 不高亮
                                                 return@Line onDrawWithContent {
                                                     drawText(
@@ -1150,10 +1101,9 @@ fun LazyItemScope.LyricItem(
                                                         color = unfocusedColor
                                                     )
                                                 }
-                                            }
                                         }
 
-                                        // 以下为逐字处理逻辑
+                                        // 以下为逐字处理
 
                                         var sum = 0
                                         var lastTime = 0f
@@ -1220,11 +1170,11 @@ fun LazyItemScope.LyricItem(
                                                     topLeft = measureResult.getBoundingBox(sum.coerceAtMost(
                                                         mainLyric.sumOf { it.second.length } - 1)
                                                         .coerceAtLeast(0)).topLeft.minus(
-                                                            Offset(
-                                                                0F,
-                                                                topLeftWeight
-                                                            )
-                                                            ),
+                                                        Offset(
+                                                            0F,
+                                                            topLeftWeight
+                                                        )
+                                                    ),
                                                     brush = { px, percent ->
                                                         if (thisWord == " ") {
                                                             return@DrawWord unfocusedSolidBrush
@@ -1422,18 +1372,18 @@ val MainTextStyle = TextStyle(
     fontSize = 30.5.sp,
     lineHeight = 40.5.sp,
     fontWeight =
-    when (LyricFontWeight) {
-        "Thin" -> FontWeight.Thin
-        "ExtraLight" -> FontWeight.ExtraLight
-        "Light" -> FontWeight.Light
-        "Regular" -> FontWeight.Normal
-        "Medium" -> FontWeight.Medium
-        "SemiBold" -> FontWeight.SemiBold
-        "Bold" -> FontWeight.Bold
-        "ExtraBold" -> FontWeight.ExtraBold
-        "Black" -> FontWeight.Black
-        else -> FontWeight.ExtraBold
-    },
+        when (LyricFontWeight) {
+            "Thin" -> FontWeight.Thin
+            "ExtraLight" -> FontWeight.ExtraLight
+            "Light" -> FontWeight.Light
+            "Regular" -> FontWeight.Normal
+            "Medium" -> FontWeight.Medium
+            "SemiBold" -> FontWeight.SemiBold
+            "Bold" -> FontWeight.Bold
+            "ExtraBold" -> FontWeight.ExtraBold
+            "Black" -> FontWeight.Black
+            else -> FontWeight.ExtraBold
+        },
     letterSpacing = 0.05.sp,
     lineHeightStyle = LineHeightStyle(
         alignment = LineHeightStyle.Alignment.Center,
