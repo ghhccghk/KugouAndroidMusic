@@ -9,4 +9,11 @@
     <string name="sendcode">发送验证码</string>
     <string name="album_art">歌曲封面</string>
     <string name="default_time">00:00</string>
+    <string name="login">登录</string>
+    <string name="inputcode">请输入验证码</string>
+    <string name="inputphone">请输入手机号</string>
+    <string name="password">密码</string>
+    <string name="username">用户名</string>
+    <string name="scanqrcodelogin">请使用其他设备酷狗扫码登录</string>
+    <string name="login_qrcode">登录二维码</string>
 </resources>

@@ -108,6 +108,20 @@
                     android:orientation="vertical"
                     tools:ignore="UselessLeaf" >
 
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/login_tabLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:tabIndicatorColor="@color/teal_700"
+                        app:tabSelectedTextColor="@color/teal_700"
+                        app:tabTextColor="@android:color/darker_gray"/>
+
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/login_viewPager"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginTop="8dp"/>
+
                 </LinearLayout>
 
 

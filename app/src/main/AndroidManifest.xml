@@ -34,6 +34,15 @@
             android:foregroundServiceType="mediaPlayback"
             android:exported="false"
             tools:ignore="ForegroundServicePermission" />
+        <service android:name=".service.PlayService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false"
+            tools:ignore="ForegroundServicePermission">
+
+        <intent-filter>
+            <action android:name="androidx.media3.session.MediaSessionService" />
+        </intent-filter>
+        </service>
     </application>
 
 </manifest>

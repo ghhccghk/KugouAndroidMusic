@@ -8,30 +8,39 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="40dp">
+        android:layout_height="match_parent">
 
 
-        <!-- 搜索输入框 -->
-        <com.google.android.material.search.SearchBar
-            android:id="@+id/search_bar"
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/search_bar_base"
+            android:fitsSystemWindows="true"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="搜索歌曲"
-            app:layout_scrollFlags="scroll|enterAlways"
-            app:defaultScrollFlagsEnabled="true"
-            app:layout_constraintEnd_toEndOf="@id/chart_title"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:navigationIcon="@drawable/ic_arrow_back" />
+            tools:ignore="MissingConstraints">
+            <!-- 搜索输入框 -->
+            <com.google.android.material.search.SearchBar
+                android:id="@+id/search_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="搜索歌曲"
+                app:layout_scrollFlags="scroll|enterAlways"
+                app:defaultScrollFlagsEnabled="true"
+                app:layout_constraintEnd_toEndOf="@id/chart_title"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:navigationIcon="@drawable/ic_arrow_back" />
+
+        </com.google.android.material.appbar.AppBarLayout>
+
 
         <com.google.android.material.search.SearchView
             android:id="@+id/search_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            style="@style/Widget.Material3.SearchView.Toolbar"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
-            app:layout_constraintEnd_toEndOf="@id/search_bar"
+            app:layout_constraintEnd_toEndOf="@id/search_bar_base"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -40,6 +49,7 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/search_recommendation_list"
                 android:layout_width="match_parent"
+                app:background="@drawable/search_bar_background"
                 android:layout_height="wrap_content"
                 android:padding="16dp"
                 android:clipToPadding="false"/>
@@ -58,7 +68,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/search_bar"
+            app:layout_constraintTop_toBottomOf="@id/search_bar_base"
             app:layout_constraintStart_toStartOf="parent" />
 
         <!-- 排行榜内容：横向滚动列表 -->
