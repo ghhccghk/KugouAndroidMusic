@@ -80,8 +80,9 @@ class NotificationsFragment : Fragment() {
                     binding.textNickname.text = data.nickname
 
                     val gen = if (data.gender == 1) "男" else if (data.gender == 0) "女" else "保密"
-                    binding.textGenderGrade.text = gen + " ｜ 等级 " + data.p_grade.toString()
-                    binding.textLocation.text = data.province + data.city
+                    binding.textGenderGrade.text = gen + "｜等级：Lv" + data.p_grade.toString()
+                    binding.textListTimeDuration.text = "听歌时长：" + data.duration + " 分钟"
+                    binding.textLocation.text = data.province + " " +data.city
                     binding.textBirthday.text = "生日：" + data.birthday
                     binding.textOccupation.text = "职业：" + data.occupation
                     binding.textFans.text = data.fans.toString()

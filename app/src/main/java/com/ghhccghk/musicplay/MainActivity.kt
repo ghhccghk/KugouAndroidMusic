@@ -87,9 +87,6 @@ class MainActivity : AppCompatActivity() {
         TokenManager.init(this)
         KugouAPi.init()
 
-        Log.d("tlk",TokenManager.getToken().toString())
-
-
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
         Intent(this, NodeService::class.java).also {
