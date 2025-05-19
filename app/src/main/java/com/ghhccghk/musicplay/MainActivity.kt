@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.google.android.material.navigation.NavigationBarView
@@ -35,6 +36,7 @@ import androidx.navigation.fragment.findNavController
 import com.ghhccghk.musicplay.service.NodeService
 import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.util.NodeBridge
+import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -82,6 +84,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
+        TokenManager.init(this)
+        KugouAPi.init()
+
+        Log.d("tlk",TokenManager.getToken().toString())
 
 
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
@@ -100,8 +106,6 @@ class MainActivity : AppCompatActivity() {
         // 初始化媒体控制器
         val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
         controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-
-        bi
 
 
         if (isFirstRun(this)) {
@@ -130,6 +134,10 @@ class MainActivity : AppCompatActivity() {
             hideBottomNav(a)
             hideLinearLayout(playerBar,a)
         }
+
+        //playerBar.findViewById<TextView>(R.id.playbar_artist).text = controllerFuture.get().currentMediaItem?.mediaMetadata?.artist
+        //playerBar.findViewById<TextView>(R.id.playbar_title).text = controllerFuture.get().currentMediaItem?.mediaMetadata?.title
+
     }
 
     fun isFirstRun(context: Context): Boolean {
@@ -217,10 +225,10 @@ class MainActivity : AppCompatActivity() {
             set(value) {
                 instance.isNodeRunning = value
             }
-        val bound : Boolean
-            get() = instance.bound
         val controllerFuture : ListenableFuture<MediaController>
             get() = instance.controllerFuture
+        val playbar :LinearLayout
+            get() = instance.findViewById<LinearLayout>(R.id.player_bar)
     }
 
 }

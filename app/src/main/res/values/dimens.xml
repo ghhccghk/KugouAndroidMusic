@@ -3,4 +3,8 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="grid_spacing">10dp</dimen>
+    <dimen name="media_seekbar_progress_wavelength">27dp</dimen>
+    <dimen name="media_seekbar_progress_amplitude">2.7dp</dimen>
+    <dimen name="media_seekbar_progress_phase">8dp</dimen>
+    <dimen name="media_seekbar_progress_stroke_width">3.4dp</dimen>
 </resources>

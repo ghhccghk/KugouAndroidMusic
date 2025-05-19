@@ -61,17 +61,6 @@ class LyricsFragment: Fragment() {
     ): View {
         _binding = FragmentLyricsBinding.inflate(inflater, container, false)
         val root: View = binding.root
-        val dataSpec = DataSpec(Uri.parse("asset:///野火.mp3"))
-
-        val mediaItem = MediaItem.Builder()
-            .setUri(dataSpec.uri)
-            .build()
-
-        val play = MainActivity.controllerFuture
-
-        play.get().setMediaItem(mediaItem)
-
-        play.get().prepare()
 
         if (MainActivity.isNodeRunning){
             testlyric()
@@ -80,6 +69,13 @@ class LyricsFragment: Fragment() {
         return root
     }
 
+
+    @UnstableApi
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+
+    }
 
 
 

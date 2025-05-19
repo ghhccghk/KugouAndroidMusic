@@ -1,6 +1,7 @@
 package com.ghhccghk.musicplay.ui.login
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -29,9 +30,6 @@ class LoginPassWord : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val homeViewModel =
-            ViewModelProvider(this).get(HomeViewModel::class.java)
-
         _binding = FragmentLoginPasswordBinding.inflate(inflater, container, false)
         val root: View = binding.root
         val login_Pwd: Button = binding.loginPwd
@@ -49,6 +47,7 @@ class LoginPassWord : Fragment() {
                     if (json == null || json == "502" || json == "404") {
                         Toast.makeText(context, "失败", Toast.LENGTH_LONG).show()
                     } else {
+                        Log.d("json",(json.toString()))
                         Toast.makeText(context, "成功", Toast.LENGTH_LONG).show()
                     }
                 }

@@ -4,8 +4,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.AssetDataSource
@@ -17,6 +21,9 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.ui.PlayerNotificationManager
+import androidx.navigation.findNavController
+import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.MainActivity.Companion.playbar
 import com.ghhccghk.musicplay.R
 import java.io.IOException
 
@@ -40,6 +47,7 @@ class PlayService : MediaSessionService() {
             e.printStackTrace()
         }
 
+
         val factory = DataSource.Factory { assetDataSource }
        // 初始化 ExoPlayer
         val player: ExoPlayer = ExoPlayer.Builder(this)
@@ -50,6 +58,13 @@ class PlayService : MediaSessionService() {
             this,
             player // ExoPlayer 或其他支持的 Player 实现
         ).build()
+
+
+        val mediaItem = MediaItem.Builder()
+            .setUri(dataSpec.uri)
+            .build()
+
+       player.setMediaItem(mediaItem)
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -75,7 +90,36 @@ class PlayService : MediaSessionService() {
 
         notificationProvider.setSmallIcon(R.drawable.ic_cd)
 
+        player.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    // 播放开始
+                    println("▶️ 播放中")
+                    playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
+                    playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
+                } else {
+                    // 播放暂停
+                    println("⏸️ 已暂停")
+                    playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
+                    playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
+                }
+            }
+
+            override fun onPlaybackStateChanged(state: Int) {
+                when (state) {
+                    Player.STATE_IDLE -> println("空闲")
+                    Player.STATE_BUFFERING -> println("缓冲中")
+                    Player.STATE_READY -> println("准备好")
+                    Player.STATE_ENDED -> println("播放结束")
+                }
+            }
+        })
+
+
         this.setMediaNotificationProvider(notificationProvider)
+
+
+
 
     }
 
@@ -92,7 +136,7 @@ class PlayService : MediaSessionService() {
         override fun createCurrentContentIntent(player: Player): PendingIntent? =
             // 点击通知进入主界面
             packageManager?.getLaunchIntentForPackage(packageName)?.let {
-                PendingIntent.getActivity(local, 0, it, FLAG_IMMUTABLE)
+                PendingIntent.getActivity(baseContext, 0, it, FLAG_IMMUTABLE)
             }
 
         override fun getCurrentContentText(player: Player) =
