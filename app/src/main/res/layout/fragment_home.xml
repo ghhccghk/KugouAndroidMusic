@@ -111,10 +111,7 @@
                     <com.google.android.material.tabs.TabLayout
                         android:id="@+id/login_tabLayout"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:tabIndicatorColor="@color/teal_700"
-                        app:tabSelectedTextColor="@color/teal_700"
-                        app:tabTextColor="@android:color/darker_gray"/>
+                        android:layout_height="wrap_content"/>
 
                     <androidx.viewpager2.widget.ViewPager2
                         android:id="@+id/login_viewPager"

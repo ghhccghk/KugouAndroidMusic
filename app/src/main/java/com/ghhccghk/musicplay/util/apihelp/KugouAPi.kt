@@ -1,14 +1,19 @@
 package com.ghhccghk.musicplay.util.apihelp
 
 import androidx.core.net.toUri
+import com.ghhccghk.musicplay.util.TokenManager
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
 object KugouAPi {
     val client = OkHttpClient()
     val apiaddress = "http:/127.0.0.1:9600"
-    val token : String? = null
+    var token : String? = null
 
+
+    fun init() {
+        token = TokenManager.getToken()
+    }
     /** 发送验证码*/
     fun getMobileCode(mobile: String): String? {
         val url = "$apiaddress/captcha/sent?mobile=$mobile"
@@ -79,7 +84,7 @@ object KugouAPi {
     }
 
     /** 二维码登录 二维码 key 生成接口 */
-    fun getQrCode(): String?{
+    fun getQrCodekey(): String?{
         val url = "$apiaddress/login/qr/key"
         val request = Request.Builder().url(url).build()
 
@@ -87,6 +92,21 @@ object KugouAPi {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 println("getQrCode failed: ${response.code}")
+                return response.code.toString()
+            }
+
+            val responseBody = response.body?.string() ?: return null
+            return responseBody
+        }
+    }
+
+    /** 获取二维码  */
+    fun getQrCode(key: String): String?{
+        val url = "$apiaddress/login/qr/create?key=$key"
+        val request = Request.Builder().url(url).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                println("getQrCodeCheck failed: ${response.code}")
                 return response.code.toString()
             }
 
@@ -110,7 +130,7 @@ object KugouAPi {
         }
     }
     /** 二维码生成接口 */
-    fun getQrCode(key: String): String? {
+    fun getWxQrCode(key: String): String? {
         val url = "$apiaddress/login/wx/create?key=$key"
         val request = Request.Builder().url(url).build()
 
@@ -179,7 +199,9 @@ object KugouAPi {
 
     /** dfid 获取 */
     fun getDfid(): String?{
-        val url = "$apiaddress/register/dev"
+        val url = "$apiaddress/register/dev".toUri().buildUpon().apply {
+            token?.let { appendQueryParameter("token", it.toString()) }
+        }.build().toString()
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -195,7 +217,10 @@ object KugouAPi {
 
     /** 获取用户额外信息 */
     fun getUserDetail(): String?{
-        val url = "$apiaddress/user/detail"
+        val url = "$apiaddress/user/detail".toUri().buildUpon().apply {
+            token?.let { appendQueryParameter("token", it.toString()) }
+            appendQueryParameter("userid","")
+        }.build().toString()
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).execute().use { response ->
@@ -211,7 +236,9 @@ object KugouAPi {
 
     /** 获取用户 vip 信息 */
     fun getUserVip(): String?{
-        val url = "$apiaddress/user/vip/detail"
+        val url = "$apiaddress/user/vip/detail".toUri().buildUpon().apply {
+            token?.let { appendQueryParameter("token", it.toString()) }
+        }.build().toString()
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).execute().use { response ->
