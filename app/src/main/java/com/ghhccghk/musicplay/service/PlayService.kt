@@ -94,12 +94,10 @@ class PlayService : MediaSessionService() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     // 播放开始
-                    println("▶️ 播放中")
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
                 } else {
                     // 播放暂停
-                    println("⏸️ 已暂停")
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
                 }

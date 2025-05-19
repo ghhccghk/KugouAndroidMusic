@@ -137,6 +137,16 @@
                     app:layout_constraintStart_toStartOf="@id/text_nickname"
                     app:layout_constraintTop_toBottomOf="@id/text_nickname" />
 
+                <TextView
+                    android:id="@+id/text_ListTimeDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="听歌时间"
+                    android:textColor="#666666"
+                    android:textSize="14sp"
+                    app:layout_constraintStart_toStartOf="@id/text_gender_grade"
+                    app:layout_constraintTop_toBottomOf="@id/text_gender_grade" />
+
                 <!-- 城市 + 省份 -->
                 <TextView
                     android:id="@+id/text_location"
@@ -146,7 +156,7 @@
                     android:textColor="#666666"
                     android:textSize="14sp"
                     app:layout_constraintStart_toStartOf="@id/text_nickname"
-                    app:layout_constraintTop_toBottomOf="@id/text_gender_grade" />
+                    app:layout_constraintTop_toBottomOf="@id/text_ListTimeDuration" />
 
                 <!-- 生日 -->
                 <TextView
