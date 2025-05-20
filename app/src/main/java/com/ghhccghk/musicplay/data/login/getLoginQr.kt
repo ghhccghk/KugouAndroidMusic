@@ -22,7 +22,7 @@ data class qrData(
 )
 
 
-data class qrLoginkey(
+data class QrLoginkey(
     val `data`: KeyData,
     val error_code: Int,
     val status: Int

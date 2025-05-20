@@ -9,8 +9,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.PlayListTag
-import com.ghhccghk.musicplay.ui.player.PlayerFragment
-import com.ghhccghk.musicplay.util.playlist.PlaylistTagAdapter
+import com.ghhccghk.musicplay.util.adapte.playlist.PlaylistTagAdapter
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

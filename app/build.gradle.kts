@@ -11,7 +11,7 @@ plugins {
 android {
     namespace = "com.ghhccghk.musicplay"
     compileSdk = 35
-
+    val buildTime = System.currentTimeMillis()
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
         minSdk = 28
@@ -20,6 +20,7 @@ android {
         versionName = "1.0"
         //noinspection ChromeOsAbiSupport
         ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a")
+        buildConfigField("long", "BUILD_TIME", "$buildTime")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -48,6 +49,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
     externalNativeBuild.cmake {
         CmakeProperty.ANDROID_STL
@@ -127,6 +129,8 @@ dependencies {
     implementation(libs.androidx.media3.session)   // 媒体会话管理
     implementation(libs.androidx.media3.ui)   // 媒体会话管理
     implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
+
+    implementation(libs.superlyricapi)
 
 
 }

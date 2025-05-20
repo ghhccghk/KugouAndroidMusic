@@ -1,9 +1,8 @@
-package com.ghhccghk.musicplay.util.search
+package com.ghhccghk.musicplay.util.adapte.search
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -11,7 +10,7 @@ import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.SongLists
 import com.ghhccghk.musicplay.data.PlayListTag
-import com.ghhccghk.musicplay.util.search.SearchResultItemAdapter.SearchResultItemAdapterHolder
+import com.ghhccghk.musicplay.util.adapte.search.SearchResultItemAdapter.SearchResultItemAdapterHolder
 
 class SearchResultItemAdapter(private val items: List<SongLists>,
                                   private val onItemClick: ((PlayListTag) -> Unit)? = null

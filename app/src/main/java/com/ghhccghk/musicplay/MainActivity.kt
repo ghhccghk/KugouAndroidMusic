@@ -85,8 +85,8 @@ class MainActivity : AppCompatActivity() {
         instance = this
         enableEdgeToEdge()
         TokenManager.init(this)
-        KugouAPi.init()
 
+        KugouAPi.init()
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
         Intent(this, NodeService::class.java).also {

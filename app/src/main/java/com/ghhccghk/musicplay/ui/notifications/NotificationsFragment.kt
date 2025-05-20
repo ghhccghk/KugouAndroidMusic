@@ -10,12 +10,15 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.login.getLoginQr
 import com.ghhccghk.musicplay.data.user.UserDetail
+import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentNotificationsBinding
 import com.ghhccghk.musicplay.util.TokenManager
+import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +48,10 @@ class NotificationsFragment : Fragment() {
         val root: View = binding.root
         TokenManager.init(requireContext())
         KugouAPi.init()
-        setui()
+        if (MainActivity.isNodeRunning) {
+            setui()
+            setUserPlayList()
+        }
 
 
         return root
@@ -63,10 +69,11 @@ class NotificationsFragment : Fragment() {
 
 
     fun setui(){
-        if (MainActivity.isNodeRunning) {
             lifecycleScope.launch {
                 val gson = Gson()
                 val json = withContext(Dispatchers.IO) {
+                    val a = KugouAPi.getUserPlayList()
+                    Log.d("test", a.toString())
                     KugouAPi.getUserDetail()
                 }
                 if (json == null || json == "502" || json == "404") {
@@ -98,6 +105,26 @@ class NotificationsFragment : Fragment() {
                 }
             }
 
+    }
+
+    fun setUserPlayList(){
+        lifecycleScope.launch {
+            val gson = Gson()
+            val json = withContext(Dispatchers.IO) {
+                KugouAPi.getUserPlayList()
+            }
+            if (json == null || json == "502" || json == "404") {
+                Toast.makeText(requireContext(), "获取用户歌单失败", Toast.LENGTH_SHORT).show()
+            } else {
+                val userplaylist = gson.fromJson(json, LikePlayListBase::class.java)
+                val data = userplaylist.data.info
+
+                binding.recyclerViewUserLikePlaylist.layoutManager =
+                    LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+                val adapter = UserLikePLayListAdapter(data)
+                binding.recyclerViewUserLikePlaylist.adapter = adapter
+            }
         }
+
     }
 }

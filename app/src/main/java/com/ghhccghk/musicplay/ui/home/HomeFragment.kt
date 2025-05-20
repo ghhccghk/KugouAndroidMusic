@@ -58,15 +58,16 @@ class HomeFragment : Fragment() {
             LoginQrcode()
         )
 
-        // 设置适配器
-        val adapter = SimpleFragmentPagerAdapter(this, fragments)
-        login_viewPager.adapter = adapter
+        if (!isLoggedIn()) {        // 设置适配器
+            val adapter = SimpleFragmentPagerAdapter(this, fragments)
+            login_viewPager.adapter = adapter
 
-        // 设置 Tab 标题
-        val titles = listOf("密码登录", "二维码登录")
-        TabLayoutMediator(login_tabLayout, login_viewPager) { tab, position ->
-            tab.text = titles[position]
-        }.attach()
+            // 设置 Tab 标题
+            val titles = listOf("密码登录", "二维码登录")
+            TabLayoutMediator(login_tabLayout, login_viewPager) { tab, position ->
+                tab.text = titles[position]
+            }.attach()
+        }
 
         binding.apply {
             if (!isLoggedIn()) {

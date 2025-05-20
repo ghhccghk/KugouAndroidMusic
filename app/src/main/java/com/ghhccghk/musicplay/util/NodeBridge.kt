@@ -3,6 +3,7 @@ package com.ghhccghk.musicplay.util
 import android.content.Intent
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 
 object NodeBridge {
@@ -22,7 +23,9 @@ object NodeBridge {
     // Kotlin 中的静态方法，用于日志输出
     @JvmStatic
     fun logFromNative(msg: String) {
-        Log.d("KugouApi", msg)
+        if (BuildConfig.DEBUG) {
+            Log.d("KugouApi", msg)
+        }
         if (msg.contains("server running @ http://localhost:9600")) {
             // 发送广播通知服务已启动
             val intent = Intent(ACTION_NODE_READY)

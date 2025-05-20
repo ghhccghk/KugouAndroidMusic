@@ -17,6 +17,7 @@
         <androidx.cardview.widget.CardView
             android:layout_width="100dp"
             android:layout_height="100dp"
+            app:cardBackgroundColor="@android:color/transparent"
             android:layout_gravity="center"
             app:cardCornerRadius="10dp"
             app:cardElevation="0dp">
@@ -27,9 +28,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"
-                android:background="@drawable/ic_album"
                 android:scaleType="centerCrop" />
-
 
 
         </androidx.cardview.widget.CardView>
