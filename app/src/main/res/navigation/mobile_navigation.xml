@@ -41,4 +41,11 @@
         android:label="fragment_PlayTagList"
         tools:layout="@layout/fragment_playlist_tag"/>
 
+    <fragment
+        android:id="@+id/playlistDetailFragment"
+        android:name="com.ghhccghk.musicplay.ui.playlistdetail.PlaylistDetailFragment"
+        android:label="歌单详情"
+        tools:layout="@layout/fragment_playlist">
+    </fragment>
+
 </navigation>

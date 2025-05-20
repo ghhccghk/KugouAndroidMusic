@@ -10,9 +10,11 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.login.getLoginQr
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
@@ -121,7 +123,13 @@ class NotificationsFragment : Fragment() {
 
                 binding.recyclerViewUserLikePlaylist.layoutManager =
                     LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-                val adapter = UserLikePLayListAdapter(data)
+                val adapter = UserLikePLayListAdapter(data){
+                    val bundle = Bundle().apply {
+                        putString("playlistId", it.global_collection_id)
+
+                    }
+                    requireActivity().findNavController(R.id.nav_host_fragment_activity_main).navigate(R.id.playlistDetailFragment, bundle)
+                }
                 binding.recyclerViewUserLikePlaylist.adapter = adapter
             }
         }
