@@ -34,7 +34,7 @@ private class InnerMeiZuLyricsMediaNotificationProvider(
         builder.setTicker(ticker)
         if (ticker != null) {
             builder.addExtras(Bundle().apply {
-                putInt("ticker_icon", R.drawable.ic_gramophone_mono16)
+                putInt("ticker_icon", R.drawable.ic_cd)
                 // set to true if icon changed and SysUI has to dispose of cached one
                 putBoolean("ticker_icon_switch", false)
             })
@@ -49,7 +49,7 @@ class MeiZuLyricsMediaNotificationProvider(
     private val tickerProvider: () -> CharSequence?
 ) : MediaNotification.Provider {
     private val inner = InnerMeiZuLyricsMediaNotificationProvider(context, tickerProvider).apply {
-        setSmallIcon(R.drawable.ic_gramophone_monochrome)
+        setSmallIcon(R.drawable.ic_cd)
     }
 
     override fun createNotification(

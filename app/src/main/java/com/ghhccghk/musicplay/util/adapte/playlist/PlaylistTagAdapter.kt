@@ -1,4 +1,4 @@
-package com.ghhccghk.musicplay.util.playlist
+package com.ghhccghk.musicplay.util.adapte.playlist
 
 import android.view.LayoutInflater
 import android.view.View

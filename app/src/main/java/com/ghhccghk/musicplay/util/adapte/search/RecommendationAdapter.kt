@@ -1,4 +1,4 @@
-package com.ghhccghk.musicplay.util.search
+package com.ghhccghk.musicplay.util.adapte.search
 
 import android.view.LayoutInflater
 import android.view.View

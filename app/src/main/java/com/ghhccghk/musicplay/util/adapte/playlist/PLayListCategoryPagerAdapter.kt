@@ -1,4 +1,4 @@
-package com.ghhccghk.musicplay.util.playlist
+package com.ghhccghk.musicplay.util.adapte.playlist
 
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity

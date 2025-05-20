@@ -90,7 +90,7 @@ class LyricsFragment: Fragment() {
 
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getSongLyrics(id = "164976364", accesskey = "DD1E9537A34B69F0BF69EEF3A1CED125",
-                    fmt = "lrc",decode = true)
+                    fmt = "krc",decode = true)
             }
 
             try {
@@ -102,7 +102,7 @@ class LyricsFragment: Fragment() {
                 val fix = lrctimefix(lyric)
                 //println(lyric)
                 //println(out)
-                val ok = YosLrcFactory(false).formatLrcEntries(fix)
+                val ok = YosLrcFactory(false).formatLrcEntries(out)
                 lrcEntries.value = ok
                 binding.lyricsContainerComposeView.setContent {
                     YosLyricView(

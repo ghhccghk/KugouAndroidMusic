@@ -40,240 +40,268 @@
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         tools:ignore="SpeakableTextPresentCheck">
 
-        <!-- 此处嵌套你之前的用户信息 ConstraintLayout 或 LinearLayout -->
 
         <!-- 示例： -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            style="@style/Widget.Material3.CardView.Elevated"
-            card_view:cardCornerRadius="16dp"
-            app:cardBackgroundColor="?attr/colorSurfaceContainer"
             android:orientation="vertical">
 
-            <FrameLayout
-                android:id="@+id/not_logged_in"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="您尚未登录"
-                        android:textColor="#666666"
-                        android:textSize="18sp" />
-
-                    <Button
-                        android:id="@+id/btn_go_login"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="去登录" />
-                </LinearLayout>
-            </FrameLayout>
-
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/layout_user_info"
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.Material3.CardView.Elevated"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:visibility="visible">
+                android:layout_margin="8dp"
+                android:orientation="vertical"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                card_view:cardCornerRadius="16dp">
 
-                <!-- 头像 -->
-                <androidx.cardview.widget.CardView
-                    android:layout_marginTop="10dp"
-                    android:id="@+id/image_avatar_base"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:layout_gravity="center"
-                    app:cardCornerRadius="50dp"
-                    app:cardElevation="0dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-
-
-                    <ImageView
-                        android:id="@+id/image_avatar"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_gravity="center"
-                        android:background="@drawable/ic_album"
-                        android:scaleType="centerCrop" />
-
-                </androidx.cardview.widget.CardView>
-
-
-                <!-- 昵称 -->
-                <TextView
-                    android:id="@+id/text_nickname"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="16dp"
-                    android:text="k"
-                    android:textSize="17sp"
-                    android:textStyle="bold"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toEndOf="@id/image_avatar_base" />
-
-                <!-- 性别 + 等级 -->
-                <TextView
-                    android:id="@+id/text_gender_grade"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="男 ｜ 等级 7"
-                    android:textColor="#666666"
-                    android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/text_nickname"
-                    app:layout_constraintTop_toBottomOf="@id/text_nickname" />
-
-                <TextView
-                    android:id="@+id/text_ListTimeDuration"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="听歌时间"
-                    android:textColor="#666666"
-                    android:textSize="14sp"
-                    app:layout_constraintStart_toStartOf="@id/text_gender_grade"
-                    app:layout_constraintTop_toBottomOf="@id/text_gender_grade" />
-
-                <!-- 城市 + 省份 -->
-                <TextView
-                    android:id="@+id/text_location"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="浙江省 台州市"
-                    android:textColor="#666666"
-                    android:textSize="14sp"
-                    app:layout_constraintStart_toStartOf="@id/text_nickname"
-                    app:layout_constraintTop_toBottomOf="@id/text_ListTimeDuration" />
-
-                <!-- 生日 -->
-                <TextView
-                    android:id="@+id/text_birthday"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="生日：2014-11-16"
-                    android:textColor="#666666"
-                    android:textSize="14sp"
-                    app:layout_constraintStart_toStartOf="@id/text_nickname"
-                    app:layout_constraintTop_toBottomOf="@id/text_location" />
-
-                <!-- 职业 -->
-                <TextView
-                    android:id="@+id/text_occupation"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="职业：其他行业"
-                    android:textColor="#666666"
-                    android:textSize="14sp"
-                    app:layout_constraintStart_toStartOf="@id/text_nickname"
-                    app:layout_constraintTop_toBottomOf="@id/text_birthday" />
-
-                <!-- 分割线 -->
-                <View
-                    android:id="@+id/view"
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="16dp"
-                    android:background="#DDDDDD"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/text_occupation" />
-
-                <!-- 粉丝/关注/访问 -->
-                <LinearLayout
-                    android:id="@+id/layout_stats"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                <FrameLayout
+                    android:id="@+id/not_logged_in"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:gravity="center"
-                    android:orientation="horizontal"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/view">
+                    android:visibility="gone">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:gravity="center"
-                        android:text="粉丝"
-                        android:textColor="#FF5722"
-                        android:textSize="14sp" />
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/text_fans"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="2"
-                        android:textColor="#FF5722"
-                        android:textSize="14sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="您尚未登录"
+                            android:textColor="#666666"
+                            android:textSize="18sp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="关注"
-                        android:textColor="#3F51B5"
-                        android:textSize="14sp" />
+                        <Button
+                            android:id="@+id/btn_go_login"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:text="去登录" />
+                    </LinearLayout>
+                </FrameLayout>
 
-                    <TextView
-                        android:id="@+id/text_follows"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="18"
-                        android:textColor="#3F51B5"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="center"
-                        android:text="访问"
-                        android:textColor="#009688"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:id="@+id/text_visitors"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:text="2"
-                        android:textColor="#009688"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <!-- 登录时间 -->
-                <TextView
-                    android:id="@+id/text_last_time"
-                    android:layout_width="0dp"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/layout_user_info"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="上次登录时间：2023-11-16"
-                    android:textColor="#888888"
-                    android:textSize="14sp"
+                    android:padding="16dp"
+                    android:visibility="visible">
+
+                    <!-- 头像 -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/image_avatar_base"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="10dp"
+                        app:cardCornerRadius="50dp"
+                        app:cardElevation="0dp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+
+                        <ImageView
+                            android:id="@+id/image_avatar"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_gravity="center"
+                            android:background="@drawable/ic_album"
+                            android:scaleType="centerCrop" />
+
+                    </androidx.cardview.widget.CardView>
+
+
+                    <!-- 昵称 -->
+                    <TextView
+                        android:id="@+id/text_nickname"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="k"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/image_avatar_base" />
+
+                    <!-- 性别 + 等级 -->
+                    <TextView
+                        android:id="@+id/text_gender_grade"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="男 ｜ 等级 7"
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="@id/text_nickname"
+                        app:layout_constraintTop_toBottomOf="@id/text_nickname" />
+
+                    <TextView
+                        android:id="@+id/text_ListTimeDuration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="听歌时间"
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        app:layout_constraintStart_toStartOf="@id/text_gender_grade"
+                        app:layout_constraintTop_toBottomOf="@id/text_gender_grade" />
+
+                    <!-- 城市 + 省份 -->
+                    <TextView
+                        android:id="@+id/text_location"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="浙江省 台州市"
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        app:layout_constraintStart_toStartOf="@id/text_nickname"
+                        app:layout_constraintTop_toBottomOf="@id/text_ListTimeDuration" />
+
+                    <!-- 生日 -->
+                    <TextView
+                        android:id="@+id/text_birthday"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="生日：2014-11-16"
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        app:layout_constraintStart_toStartOf="@id/text_nickname"
+                        app:layout_constraintTop_toBottomOf="@id/text_location" />
+
+                    <!-- 职业 -->
+                    <TextView
+                        android:id="@+id/text_occupation"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="职业：其他行业"
+                        android:textColor="#666666"
+                        android:textSize="14sp"
+                        app:layout_constraintStart_toStartOf="@id/text_nickname"
+                        app:layout_constraintTop_toBottomOf="@id/text_birthday" />
+
+                    <!-- 分割线 -->
+                    <View
+                        android:id="@+id/view"
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="16dp"
+                        android:background="#DDDDDD"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/text_occupation" />
+
+                    <!-- 粉丝/关注/访问 -->
+                    <LinearLayout
+                        android:id="@+id/layout_stats"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center"
+                        android:orientation="horizontal"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/view">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="粉丝"
+                            android:textColor="#FF5722"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/text_fans"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="2"
+                            android:textColor="#FF5722"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="关注"
+                            android:textColor="#3F51B5"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/text_follows"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="18"
+                            android:textColor="#3F51B5"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="访问"
+                            android:textColor="#009688"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/text_visitors"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:text="2"
+                            android:textColor="#009688"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <!-- 登录时间 -->
+                    <TextView
+                        android:id="@+id/text_last_time"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="上次登录时间：2023-11-16"
+                        android:textColor="#888888"
+                        android:textSize="14sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/layout_stats" />
+
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="10dp">
+
+
+                <TextView
+                    android:id="@+id/text_user_like_playlist_view"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/user_playlist" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler_view_user_like_playlist"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/layout_stats" />
-
+                    app:layout_constraintTop_toBottomOf="@id/text_user_like_playlist_view"/>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
     </ScrollView>
 
 
