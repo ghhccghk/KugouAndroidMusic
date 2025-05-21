@@ -15,19 +15,28 @@ import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.VectorDrawable
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcel
 import android.util.Base64
 import android.util.Log
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.AssetDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
@@ -46,6 +55,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 
 class PlayService : MediaSessionService() {
@@ -161,10 +171,24 @@ class PlayService : MediaSessionService() {
             e.printStackTrace()
         }
 
-        val factory = DataSource.Factory { assetDataSource }
+        val cache = SimpleCache(
+            File(this.cacheDir, "exo_music_cache"),
+            LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024 * 1024), // 100MB
+            StandaloneDatabaseProvider(this)
+        )
+
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory()) // 自动联网
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+
+
+
+       //val factory = DataSource.Factory { assetDataSource }
        // 初始化 ExoPlayer
         val player: ExoPlayer = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(factory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
 
         //通知点击返回应用
@@ -242,6 +266,8 @@ class PlayService : MediaSessionService() {
             }
         })
 
+
+
         this.setMediaNotificationProvider(notificationProvider)
         this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this){ lyric })
 
@@ -318,5 +344,33 @@ class PlayService : MediaSessionService() {
         val bytes = stream.toByteArray()
         return Base64.encodeToString(bytes, Base64.DEFAULT)
     }
+
+    @UnstableApi
+    fun createDownloadRequest(
+        uri: String,
+        title: String,
+        artist: String
+    ): DownloadRequest {
+        val fileName = "$artist - $title.mp3"
+
+        // 用 extras 存储文件名等信息（可选）
+        val extras = Bundle().apply {
+            putString("fileName", fileName)
+        }
+
+        return DownloadRequest.Builder(fileName, Uri.parse(uri))
+            .setMimeType(MimeTypes.AUDIO_MPEG) // 根据格式调整
+            .setData(extras.toByteArray()) // 用于记录额外信息
+            .build()
+    }
+
+    fun Bundle.toByteArray(): ByteArray {
+        val parcel = Parcel.obtain()
+        parcel.writeBundle(this)
+        val bytes = parcel.marshall()
+        parcel.recycle()
+        return bytes
+    }
+
 
 }

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.abc) apply false
+    id("com.google.devtools.ksp")
     kotlin("plugin.serialization") version "1.9.0"
 }
 
@@ -132,6 +133,10 @@ dependencies {
     implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
 
     implementation(libs.superlyricapi)
+
+    implementation(libs.moshi)
+    implementation(libs.moshi.kotlin)
+    ksp(libs.moshi.kotlin.codegen) //
 
 
 }
