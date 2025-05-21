@@ -164,14 +164,20 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // 只有当不在播放 Fragment 时才显示 BottomNavigationView
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
             super.onBackPressed()
             val a = findViewById<BottomNavigationView>(R.id.nav_view)
             showBottomNav(a)
             val b = findViewById<LinearLayout>(R.id.player_bar)
             showLinearLayout(b,a)
         } else {
-            super.onBackPressed()  // 调用系统的默认行为
+            if(findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
+                val a = findViewById<BottomNavigationView>(R.id.nav_view)
+                showBottomNav(a)
+                super.onBackPressed()
+            } else {
+                super.onBackPressed()  // 调用系统的默认行为
+            }
         }
     }
 

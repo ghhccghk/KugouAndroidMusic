@@ -1,6 +1,5 @@
 package com.ghhccghk.musicplay.util.adapte
 
-import android.media.Image
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,9 +10,10 @@ import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import com.ghhccghk.musicplay.util.adapte.SongAdapter.SongAdapterHolder
+import kotlin.text.isNotBlank
 
 class SongAdapter (
-    private val items: List<Song>,
+    private val items: List<Song>?,
     private val onItemClick: ((Song) -> Unit)? = null
 ) : RecyclerView.Adapter<SongAdapterHolder>() {
 
@@ -30,20 +30,31 @@ class SongAdapter (
         return SongAdapterHolder(tv)
     }
 
-    override fun getItemCount() = items.size
+    override fun getItemCount() = items?.size?: 0
 
     override fun onBindViewHolder(holder: SongAdapterHolder, position: Int) {
-        val item = items[position]
-        holder.song_title.text = item.name
-        holder.song_singer.text = item.singerinfo[0].name
-        holder.song_album.text = item.albuminfo.name
-        holder.itemView.setOnClickListener {
-                onItemClick?.invoke(item)
+        val item = items?.get(position)
+        val shield = item?.shield
+
+        if (shield == 0 ){
+            holder.song_title.text = item?.name
+            holder.song_singer.visibility = View.GONE
+            holder.song_album.text = item?.albuminfo?.name?.takeIf { it.isNotBlank() } ?: "未知专辑"
+
+            holder.itemView.setOnClickListener {
+                item?.let { p1 -> onItemClick?.invoke(p1) }
+            }
+            val secureUrl = item?.trans_param?.union_cover?.replaceFirst("http://", "https://")
+                ?.replaceFirst("/{size}/", "/")
+            // 使用 Glide 加载图片
+            Glide.with(holder.itemView)
+                .load(secureUrl)
+                .into(holder.cover)
+        } else {
+            holder.song_album.visibility = View.GONE
+            holder.song_title.visibility = View.GONE
+            holder.cover.visibility = View.GONE
+            holder.song_singer.visibility = View.GONE
         }
-        val secureUrl = item.trans_param.union_cover.replaceFirst("http://", "https://")
-        // 使用 Glide 加载图片
-        Glide.with(holder.itemView)
-            .load(secureUrl)
-            .into(holder.cover)
     }
 }

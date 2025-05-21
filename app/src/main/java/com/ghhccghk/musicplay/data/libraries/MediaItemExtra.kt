@@ -148,7 +148,11 @@ abstract class YosMediaItem(
     val addDate: Long?,
     val duration: Long,
     val modifiedDate: Long?,
-    val cdTrackNumber: Int?
+    val cdTrackNumber: Int?,
+    val songHash: String?,
+    val lrcId: String?,
+
+
     //val samplingRate: Int,
     //val bitrate: Int
 ) : Parcelable

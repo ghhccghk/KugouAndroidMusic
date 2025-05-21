@@ -886,7 +886,7 @@ object KugouAPi {
     /** 获取歌单所有歌曲 */
     fun getPlayListAllSongs(ids: String,page: Int? = null, pageSize: Int? = null,): String?{
         val url = "$apiaddress/playlist/track/all".toUri().buildUpon().apply {
-            appendQueryParameter("ids",ids)
+            appendQueryParameter("id",ids)
             page?.let { appendQueryParameter("page", it.toString()) }
             pageSize?.let { appendQueryParameter("pagesize", it.toString()) }
             token?.let { appendQueryParameter("token", it.toString()) }
