@@ -16,7 +16,7 @@ android {
     val buildTime = System.currentTimeMillis()
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
-        minSdk = 28
+        minSdk = 27
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"

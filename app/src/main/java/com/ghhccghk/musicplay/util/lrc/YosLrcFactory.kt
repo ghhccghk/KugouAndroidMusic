@@ -43,7 +43,7 @@ class YosLrcFactory(private val formatText: Boolean = true) {
             var remainingLine =
                 line.replace(Regex("([\\[\\]]){2,}"), "$1").replace(Regex("<([^>]+)>"), "[$1]")
                     .replace(Regex("(\\[\\d{2}:\\d{2}\\.\\d{2,3}]){2,}"), "$1")
-            println("歌词处理：$remainingLine")
+            //println("歌词处理：$remainingLine")
             val currentLinePairs = mutableListOf<Pair<Float, String>>()
             while (remainingLine.isNotEmpty()) {
 
@@ -152,9 +152,9 @@ class YosLrcFactory(private val formatText: Boolean = true) {
                 otherSide = !otherSide
             } else if (lines.size > 1) {
                 val currentSinger = lines[1].second
-                println("检查：$currentSinger")
+                //println("检查：$currentSinger")
                 if (currentSinger.matches(Regex(".+\\s*:\\s*"))) {
-                    println("符合要求：$lyric")
+                    //println("符合要求：$lyric")
                     deleteType = 0
                     if (lastSinger != null && lastSinger == currentSinger) {
                         // 保持 otherSide 不变
@@ -191,9 +191,3 @@ class YosLrcFactory(private val formatText: Boolean = true) {
         return filteredLrcEntries
     }
 }
-
-/*
-private fun String.ifNeedMirror(): Boolean {
-    val directionality = Character.getDirectionality(this.trim().first())
-    return directionality == Character.DIRECTIONALITY_RIGHT_TO_LEFT || directionality == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
-}*/
