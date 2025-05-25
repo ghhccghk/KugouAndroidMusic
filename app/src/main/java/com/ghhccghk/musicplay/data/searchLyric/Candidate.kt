@@ -1,0 +1,30 @@
+package com.ghhccghk.musicplay.data.searchLyric
+
+data class Candidate(
+    val accesskey: String,
+    val adjust: Int,
+    val can_score: Boolean,
+    val content_format: Int,
+    val contenttype: Int,
+    val download_id: String,
+    val duration: Int,
+    val hitcasemask: Int,
+    val hitlayer: Int,
+    val id: String,
+    val krctype: Int,
+    val language: String,
+    val nickname: String,
+    val originame: String,
+    val origiuid: String,
+    val parinfo: List<Any>,
+    val parinfoExt: List<Any>,
+    val product_from: String,
+    val score: Int,
+    val singer: String,
+    val song: String,
+    val soundname: String,
+    val sounduid: String,
+    val transname: String,
+    val transuid: String,
+    val uid: String
+)

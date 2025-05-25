@@ -19,7 +19,7 @@ data class GetSongUrlBase(
     val tracker_through: TrackerThrough,
     val trans_param: TransParam,
     val url: List<String>,
-    val volume: Int,
-    val volume_gain: Int,
+    val volume: String,
+    val volume_gain: String,
     val volume_peak: Double
 )

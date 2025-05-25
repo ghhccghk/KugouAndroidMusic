@@ -8,21 +8,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
+import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.data.songurl.getsongurl.GetSongUrlBase
 import com.ghhccghk.musicplay.data.user.playListDetail.PlayListDetail
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.SongListBase
 import com.ghhccghk.musicplay.databinding.FragmentPlaylistBinding
 import com.ghhccghk.musicplay.util.adapte.SongAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
 import com.squareup.moshi.Moshi
@@ -114,10 +115,13 @@ class PlaylistDetailFragment : Fragment() {
                                         try {
                                             val gson = Gson()
                                             val result = gson.fromJson(json, GetSongUrlBase::class.java)
-                                            val url = result.url[0].toString().replaceFirst("http://", "https://")
-                                            Log.d("debug",url)
+                                            val url = result.backupUrl[0].toString()
+                                            Log.d("debug",result.toString())
 
-                                            val item = it.singerinfo?.get(0)?.name?.let { artist -> createMediaItemWithId(artist,result.fileName,url,result) }
+                                            val item = it?.let { artist -> createMediaItemWithId(artist.singerinfo?.get(0)?.name,
+                                                it?.remark,
+                                                url,
+                                                result) }
 
                                             item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
 
@@ -160,15 +164,39 @@ class PlaylistDetailFragment : Fragment() {
             slideOut.start()
         }
 
-    fun createMediaItemWithId(artist: String, title: String, url: String, result: GetSongUrlBase): MediaItem {
+    suspend fun createMediaItemWithId(artist: String?, title: String?, url: String, result: GetSongUrlBase): MediaItem {
         val mediaId = "$artist - $title"
         val urla = result.trans_param.union_cover.replaceFirst("http://", "https://")
-            .replaceFirst("/{size}/", "/").toUri()
-        return MediaItem.Builder()
-            .setUri(url)
-            .setMediaMetadata(MediaMetadata.Builder().setArtworkUri(urla).build())
-            .setMediaId(mediaId)
-            .build()
+            .replaceFirst("/{size}/", "/")
+
+        val b = withContext(Dispatchers.IO) {
+            KugouAPi.getSearchSongLyrics(hash = result.hash)
+        }
+        if (b == null || b == "502" || b == "404") {
+            Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
+        } else {
+            val gson = Gson()
+            val resulta = gson.fromJson(b, searchLyricBase::class.java)
+            val accesskey = resulta.candidates[0].accesskey
+            val id = resulta.candidates[0].id
+
+            val abc = MediaItemEntity(
+                mediaId = mediaId,
+                uri = url.toString(),
+                artists = artist,
+                title = title,
+                album = "",
+                albumArtists = "",
+                trackNumber = 0,
+                discNumber = 0,
+                thumb = urla,
+                lrcId = id,
+                songHash = result.hash,
+                lrcAccesskey = accesskey
+            )
+            return abc.toMediaItem()
+        }
+        return MediaItem.Builder().setUri(url).build()
     }
 
 

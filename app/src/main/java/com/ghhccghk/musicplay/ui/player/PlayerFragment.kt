@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.media3.common.Player
 import androidx.navigation.fragment.findNavController
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
+import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
@@ -87,8 +88,11 @@ class PlayerFragment() : Fragment() {
                 }
             }
 
-            binding.fullSongName.text = MainActivity.controllerFuture.get().mediaMetadata.title
-            binding.fullSongArtist.text = MainActivity.controllerFuture.get().mediaMetadata.artist
+            if (binding.fullSongName.text  !=  MainActivity.controllerFuture.get().mediaMetadata.title){
+                binding.fullSongName.text = MainActivity.controllerFuture.get().mediaMetadata.title
+                binding.fullSongArtist.text =
+                    MainActivity.controllerFuture.get().mediaMetadata.artist
+            }
 
             if (player.isPlaying) {
                 progressDrawable.animate = true
@@ -98,6 +102,9 @@ class PlayerFragment() : Fragment() {
                 seekBar.visibility = View.VISIBLE
                 slider.value = player.currentPosition.toFloat()
                 seekBar.progress = player.currentPosition.toInt()
+                Glide.with(binding.root)
+                    .load(player.mediaMetadata.artworkUri)
+                    .into(binding.fullSheetCover)
                 binding.position.text = formatMillis(player.currentPosition)
                 binding.duration.text = formatMillis(player.duration)
             } else {

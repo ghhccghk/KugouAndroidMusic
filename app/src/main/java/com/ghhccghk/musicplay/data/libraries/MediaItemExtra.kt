@@ -90,6 +90,17 @@ val MediaItem.modifiedDate: Long?
 val MediaItem.cdTrackNumber: Int?
     get() = this.mediaMetadata.extras?.getInt("CdTrackNumber")
 
+val MediaItem.songHash: Int?
+    get() = this.mediaMetadata.extras?.getInt("songHash")
+
+val MediaItem.lrcId: String?
+    get() = this.mediaMetadata.extras?.getString("lrcId")
+
+val  MediaItem.lrcAccesskey: String?
+    get() = this.mediaMetadata.extras?.getString("lrcAccesskey")
+
+
+
 /*val MediaItem.samplingRate: Int
     get() = this.mediaMetadata.extras?.getInt("SamplingRate")?:0*/
 
@@ -151,6 +162,7 @@ abstract class YosMediaItem(
     val cdTrackNumber: Int?,
     val songHash: String?,
     val lrcId: String?,
+    var lrcAccesskey: String?
 
 
     //val samplingRate: Int,
