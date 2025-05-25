@@ -1,5 +1,6 @@
 package com.ghhccghk.musicplay.service
 
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -14,30 +15,25 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.VectorDrawable
-import android.net.Uri
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.Parcel
 import android.util.Base64
 import android.util.Log
+import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
-import androidx.media3.datasource.AssetDataSource
-import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
@@ -46,34 +42,31 @@ import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.MainActivity.Companion.playbar
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.objects.MainViewModelObject
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
-import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
-import com.hchen.superlyricapi.SuperLyricData
-import com.hchen.superlyricapi.SuperLyricPush
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
-import androidx.core.net.toUri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.asLiveData
 import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
+import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toEntity
 import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.gson.Gson
+import com.hchen.superlyricapi.SuperLyricData
+import com.hchen.superlyricapi.SuperLyricPush
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.DecimalFormat
+import java.io.ByteArrayOutputStream
+import java.io.File
+import androidx.core.graphics.createBitmap
+import com.bumptech.glide.Glide
+
 
 class PlayService : MediaSessionService() {
 
@@ -84,9 +77,13 @@ class PlayService : MediaSessionService() {
     }
     private lateinit var mediaSession: MediaSession
     private var lyric : String = ""
+    // 当前歌词行数
+    private var currentLyricIndex: Int = 0
+
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    @SuppressLint("UseCompatLoadingForDrawables")
     fun run() {
         val base64 = drawableToBase64(getDrawable(R.drawable.ic_cd)!!)
         val handler by lazy { Handler(Looper.getMainLooper()) }
@@ -94,7 +91,6 @@ class PlayService : MediaSessionService() {
         val updateLyricsRunnable = object : Runnable {
             override fun run() {
                 runCatching {
-                    var currentLyricIndex: Int
                     var isPlaying: Boolean?
                     var liveTime: Long
                     var lastLyric = listOf<Pair<Float, String>>()
@@ -103,7 +99,6 @@ class PlayService : MediaSessionService() {
                         isPlaying = mediaSession.player.isPlaying
 
                         runCatching {
-                            currentLyricIndex = MainViewModelObject.syncLyricIndex.intValue
 
 
                             if (isPlaying == true) {
@@ -118,8 +113,6 @@ class PlayService : MediaSessionService() {
 
                                 val sendLyric = fun() {
                                     try {
-                                        MainViewModelObject.syncLyricIndex.intValue =
-                                            currentLyricIndex
 
                                         val line = lrcEntries[currentLyricIndex]
                                         if (line == lastLyric) {
@@ -135,8 +128,9 @@ class PlayService : MediaSessionService() {
 
                                         val lyricResult = lyricb.toString()
                                         lyric = lyricResult
-
-                                        Log.d("debug",lyric)
+                                        if (playbar.visibility != View.GONE) {
+                                            playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
+                                        }
 
                                         if (true) {
                                             // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
@@ -182,19 +176,11 @@ class PlayService : MediaSessionService() {
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
-        val assetDataSource = AssetDataSource(this)
-        val dataSpec = DataSpec(Uri.parse("asset:///野火.mp3"))
         val repo = PlaylistRepository(MainActivity.lontext)
-
-        try {
-            assetDataSource.open(dataSpec)
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
 
         val cache = SimpleCache(
             File(this.getExternalFilesDir(null), "exo_music_cache"),
-            LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024 * 1024), // 100MB
+            LeastRecentlyUsedCacheEvictor(900 * 1024 * 1024), // 100MB
             StandaloneDatabaseProvider(this)
         )
 
@@ -207,6 +193,7 @@ class PlayService : MediaSessionService() {
 
 
         //val factory = DataSource.Factory { assetDataSource }
+
         // 初始化 ExoPlayer
         val player: ExoPlayer = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
@@ -219,7 +206,7 @@ class PlayService : MediaSessionService() {
 
         mediaSession = MediaSession.Builder(
             this,
-            player // ExoPlayer 或其他支持的 Player 实现
+            player
         ).setSessionActivity(
             PendingIntent.getActivity(
                 this,
@@ -233,14 +220,48 @@ class PlayService : MediaSessionService() {
 
         run()
 
+
+
         CoroutineScope(Dispatchers.Main).launch {
             val list = repo.loadPlaylist().first()  // 只取一次
             Log.d("debug", "数据库读取到了 ${list.size} 个项：$list")
             if (list.isNotEmpty()) {
                 val mediaItems = list.map { it.toMediaItem() }
                 player.setMediaItems(mediaItems)
+                val artist = player.mediaMetadata?.artist
+                val title = player.mediaMetadata?.title
+                val artlurl = player.mediaMetadata?.artworkUri.toString()
+                val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
+
+                if (artlurl.isNullOrBlank()) {
+                    ""
+                } else {
+                    Glide.with(playbar)
+                        .load(player.mediaMetadata.artworkUri)
+                        .into(playbaricon)
+                }
+
+                playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
+                playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
             }
         }
+        val artist = player.mediaMetadata?.artist
+        val title = player.mediaMetadata?.title
+        val artlurl = player.mediaMetadata?.artworkUri.toString()
+        val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
+
+        playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
+        playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
+        if (artlurl.isNullOrBlank()) {
+            ""
+        } else {
+            Glide.with(playbar)
+                .load(player.mediaMetadata.artworkUri)
+                .into(playbaricon)
+        }
+
+
+
 
 
         val name = "Media Control"
@@ -296,7 +317,6 @@ class PlayService : MediaSessionService() {
                                 val result = gson.fromJson(json, getLyricCode::class.java)
                                 val lyric = result.decodeContent
                                 val out = convertKrcToLrc(lyric)
-                                val fix = lrctimefix(lyric)
                                 writeToSubdirCache(
                                     MainActivity.lontext,
                                     subDir,
@@ -333,12 +353,26 @@ class PlayService : MediaSessionService() {
                     // 播放开始
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
+                    if (artlurl.isNullOrBlank()) {
+                        ""
+                    } else {
+                        Glide.with(playbar)
+                            .load(player.mediaMetadata.artworkUri)
+                            .into(playbaricon)
+                    }
                 } else {
                     serviceScope.launch {
                         saveCurrentPlaylist(player, repo)
                     }
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
+                    if (artlurl.isNullOrBlank()) {
+                        ""
+                    } else {
+                        Glide.with(playbar)
+                            .load(player.mediaMetadata.artworkUri)
+                            .into(playbaricon)
+                    }
 
 
                 }
@@ -349,19 +383,13 @@ class PlayService : MediaSessionService() {
                     Player.STATE_IDLE -> println("空闲")
                     Player.STATE_BUFFERING -> println("缓冲中")
                     Player.STATE_READY -> println("准备好")
-                    Player.COMMAND_PLAY_PAUSE -> println("播放暂停")
                     Player.STATE_ENDED -> println("播放结束")
                 }
             }
         })
 
-
-
         this.setMediaNotificationProvider(notificationProvider)
         this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this){ lyric })
-
-
-
 
     }
 
@@ -398,13 +426,15 @@ class PlayService : MediaSessionService() {
         }
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private fun adaptiveIconDrawableBase64(drawable: AdaptiveIconDrawable): String {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val background = drawable.background
             val foreground = drawable.foreground
             if (background != null && foreground != null) {
                 val layerDrawable = LayerDrawable(arrayOf(background, foreground))
-                val createBitmap = Bitmap.createBitmap(layerDrawable.intrinsicWidth, layerDrawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+                val createBitmap =
+                    createBitmap(layerDrawable.intrinsicWidth, layerDrawable.intrinsicHeight)
                 val canvas = Canvas(createBitmap)
                 layerDrawable.setBounds(0, 0, canvas.width, canvas.height)
                 layerDrawable.draw(canvas)
@@ -418,7 +448,7 @@ class PlayService : MediaSessionService() {
     }
 
     private fun makeDrawableToBitmap(drawable: Drawable): Bitmap {
-        val bitmap = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
         val canvas = Canvas(bitmap)
         drawable.apply {
             setBounds(0, 0, canvas.width, canvas.height)
@@ -432,33 +462,6 @@ class PlayService : MediaSessionService() {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
         val bytes = stream.toByteArray()
         return Base64.encodeToString(bytes, Base64.DEFAULT)
-    }
-
-    @UnstableApi
-    fun createDownloadRequest(
-        uri: String,
-        title: String,
-        artist: String
-    ): DownloadRequest {
-        val fileName = "$artist - $title.mp3"
-
-        // 用 extras 存储文件名等信息（可选）
-        val extras = Bundle().apply {
-            putString("fileName", fileName)
-        }
-
-        return DownloadRequest.Builder(fileName, uri.toUri())
-            .setMimeType(MimeTypes.AUDIO_MPEG) // 根据格式调整
-            .setData(extras.toByteArray()) // 用于记录额外信息
-            .build()
-    }
-
-    fun Bundle.toByteArray(): ByteArray {
-        val parcel = Parcel.obtain()
-        parcel.writeBundle(this)
-        val bytes = parcel.marshall()
-        parcel.recycle()
-        return bytes
     }
 
     fun getExternalSubdirFile(context: Context, subDir: String, fileName: String): File? {

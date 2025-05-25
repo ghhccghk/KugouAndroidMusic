@@ -13,8 +13,10 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.google.android.material.navigation.NavigationBarView
@@ -29,18 +31,27 @@ import androidx.core.content.edit
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
+import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.getLyricCode
+import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
+import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.service.NodeService
 import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -111,13 +122,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val navView: NavigationBarView = binding.navView
-        val playerBar = findViewById<LinearLayout>(R.id.player_bar)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
+
+
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         navView.setupWithNavController(navController)
-        playerBar.setOnClickListener {
-
+        playbar.setOnClickListener {
             val navOptions = NavOptions.Builder()
                 .setEnterAnim(R.anim.fragment_enter)    // 进入动画
                 .setExitAnim(R.anim.fragment_exit)      // 退出动画
@@ -130,11 +141,28 @@ class MainActivity : AppCompatActivity() {
             // 隐藏 BottomNavigationView
             val a = findViewById<BottomNavigationView>(R.id.nav_view)
             hideBottomNav(a)
-            hideLinearLayout(playerBar,a)
+            hideLinearLayout(playbar,a)
         }
 
-        //playerBar.findViewById<TextView>(R.id.playbar_artist).text = controllerFuture.get().currentMediaItem?.mediaMetadata?.artist
-        //playerBar.findViewById<TextView>(R.id.playbar_title).text = controllerFuture.get().currentMediaItem?.mediaMetadata?.title
+        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener{
+            if (controllerFuture.get().isPlaying){
+                controllerFuture.get().pause()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_play_arrow_filled)
+            } else {
+                controllerFuture.get().play()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_pause_filled)
+            }
+        }
+        controllerFuture.addListener({
+            val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
+                        if (isPlaying) R.drawable.ic_pause_filled else R.drawable.ic_play_arrow_filled
+                    )
+                }
+            })
+        }, ContextCompat.getMainExecutor(this))
 
     }
 
