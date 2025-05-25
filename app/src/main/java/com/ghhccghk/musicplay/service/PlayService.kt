@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -22,6 +23,7 @@ import android.os.Parcel
 import android.util.Base64
 import android.util.Log
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -29,7 +31,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.AssetDataSource
-import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
@@ -41,7 +42,6 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import androidx.media3.ui.PlayerNotificationManager
 import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.MainActivity.Companion.playbar
@@ -57,6 +57,23 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
+import androidx.core.net.toUri
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.asLiveData
+import com.ghhccghk.musicplay.data.getLyricCode
+import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
+import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
+import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
+import com.ghhccghk.musicplay.util.others.PlaylistRepository
+import com.ghhccghk.musicplay.util.others.toEntity
+import com.ghhccghk.musicplay.util.others.toMediaItem
+import com.google.gson.Gson
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import java.text.DecimalFormat
 
 class PlayService : MediaSessionService() {
 
@@ -67,6 +84,8 @@ class PlayService : MediaSessionService() {
     }
     private lateinit var mediaSession: MediaSession
     private var lyric : String = ""
+    // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     fun run() {
         val base64 = drawableToBase64(getDrawable(R.drawable.ic_cd)!!)
@@ -88,6 +107,7 @@ class PlayService : MediaSessionService() {
 
 
                             if (isPlaying == true) {
+
                                 liveTime = mediaSession.player.currentPosition
 
                                 val lrcEntries = MediaViewModelObject.lrcEntries.value
@@ -164,6 +184,7 @@ class PlayService : MediaSessionService() {
         super.onCreate()
         val assetDataSource = AssetDataSource(this)
         val dataSpec = DataSpec(Uri.parse("asset:///野火.mp3"))
+        val repo = PlaylistRepository(MainActivity.lontext)
 
         try {
             assetDataSource.open(dataSpec)
@@ -172,7 +193,7 @@ class PlayService : MediaSessionService() {
         }
 
         val cache = SimpleCache(
-            File(this.cacheDir, "exo_music_cache"),
+            File(this.getExternalFilesDir(null), "exo_music_cache"),
             LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024 * 1024), // 100MB
             StandaloneDatabaseProvider(this)
         )
@@ -185,8 +206,8 @@ class PlayService : MediaSessionService() {
 
 
 
-       //val factory = DataSource.Factory { assetDataSource }
-       // 初始化 ExoPlayer
+        //val factory = DataSource.Factory { assetDataSource }
+        // 初始化 ExoPlayer
         val player: ExoPlayer = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
@@ -212,11 +233,15 @@ class PlayService : MediaSessionService() {
 
         run()
 
-        val mediaItem = MediaItem.Builder()
-            .setUri(dataSpec.uri)
-            .build()
+        CoroutineScope(Dispatchers.Main).launch {
+            val list = repo.loadPlaylist().first()  // 只取一次
+            Log.d("debug", "数据库读取到了 ${list.size} 个项：$list")
+            if (list.isNotEmpty()) {
+                val mediaItems = list.map { it.toMediaItem() }
+                player.setMediaItems(mediaItems)
+            }
+        }
 
-       player.setMediaItem(mediaItem)
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -243,15 +268,79 @@ class PlayService : MediaSessionService() {
         notificationProvider.setSmallIcon(R.drawable.ic_cd)
 
         player.addListener(object : Player.Listener {
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                super.onMediaItemTransition(mediaItem, reason)
+
+                val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
+                val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
+
+                val subDir = "cache/lyrics"
+                val fileName = "${mediaSession.player.currentMediaItem?.mediaId}.lrc"
+
+                val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+
+                if (cachedData != null) {
+                    Log.d("Cache", "子目录缓存命中: $cachedData")
+                    MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedData)
+                } else {
+                    if ( MainActivity.isNodeRunning ) {
+                        serviceScope.launch {
+                            val json = withContext(Dispatchers.IO) {
+                                KugouAPi.getSongLyrics(
+                                    id = lyricid, accesskey = lyricAccess,
+                                    fmt = "krc", decode = true
+                                )
+                            }
+                            try {
+                                val gson = Gson()
+                                val result = gson.fromJson(json, getLyricCode::class.java)
+                                val lyric = result.decodeContent
+                                val out = convertKrcToLrc(lyric)
+                                val fix = lrctimefix(lyric)
+                                writeToSubdirCache(
+                                    MainActivity.lontext,
+                                    subDir,
+                                    fileName,
+                                    out.toString()
+                                )
+                                writeToSubdirCache(
+                                    MainActivity.lontext,
+                                    subDir,
+                                    "ghhcc.lrc",
+                                    lyric.toString()
+                                )
+                                val cachedDataa = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+                                if (cachedDataa != null) {
+                                    MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedDataa)
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(
+                                    MainActivity.lontext,
+                                    "数据加载失败: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+
+                        }
+                    }
+                }
+
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     // 播放开始
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
                 } else {
-                    // 播放暂停
+                    serviceScope.launch {
+                        saveCurrentPlaylist(player, repo)
+                    }
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
+
+
                 }
             }
 
@@ -358,7 +447,7 @@ class PlayService : MediaSessionService() {
             putString("fileName", fileName)
         }
 
-        return DownloadRequest.Builder(fileName, Uri.parse(uri))
+        return DownloadRequest.Builder(fileName, uri.toUri())
             .setMimeType(MimeTypes.AUDIO_MPEG) // 根据格式调整
             .setData(extras.toByteArray()) // 用于记录额外信息
             .build()
@@ -371,6 +460,139 @@ class PlayService : MediaSessionService() {
         parcel.recycle()
         return bytes
     }
+
+    fun getExternalSubdirFile(context: Context, subDir: String, fileName: String): File? {
+        val baseDir = context.getExternalFilesDir(null)
+        val targetDir = File(baseDir, subDir)
+
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()  // 确保子目录存在
+        }
+
+        return File(targetDir, fileName)
+    }
+
+    fun writeToSubdirCache(context: Context, subDir: String, fileName: String, data: String) {
+        val file = getExternalSubdirFile(context, subDir, fileName)
+        file?.writeText(data)
+    }
+
+    fun readFromSubdirCache(context: Context, subDir: String, fileName: String): String? {
+        val file = getExternalSubdirFile(context, subDir, fileName)
+        return if (file != null && file.exists()) {
+            file.readText()
+        } else {
+            null
+        }
+    }
+
+
+    fun convertKrcToLrc(krcContent: String): String {
+        val lineRegex = Regex("""\[(\d+),(\d+)]""")  // [开始时间, 持续时间]
+        val wordRegex = Regex("""<(\d+),(\d+),\d+>(.*?)(?=<|$)""")  // <偏移, 持续, ?>文字
+
+        val output = mutableListOf<String>()
+
+        for (line in krcContent.lines()) {
+            val lineMatch = lineRegex.find(line) ?: continue
+            val lineStartTime = lineMatch.groupValues[1].toLong()
+
+            val wordMatches = wordRegex.findAll(line).toList()
+            if (wordMatches.isEmpty()) continue
+
+            val sb = StringBuilder()
+
+            for ((index, match) in wordMatches.withIndex()) {
+                val offset = match.groupValues[1].toLong()
+                val duration = match.groupValues[2].toLong()
+                val word = match.groupValues[3]
+
+                val time = lineStartTime + offset
+                sb.append("[${millisToTimeStr(time)}]$word")
+
+                // 如果是最后一个词，加一个“结尾时间标签”
+                if (index == wordMatches.lastIndex) {
+                    val endTime = time + duration
+                    sb.append("[${millisToTimeStr(endTime)}]")
+                }
+            }
+
+            output.add(sb.toString())
+        }
+
+        return output.joinToString("\n")
+    }
+
+    fun millisToTimeStr(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        val hundredths = (ms % 1000) / 10
+        return "%02d:%02d.%02d".format(minutes, seconds, hundredths)
+    }
+
+
+    fun lrctimefix(a: String): String {
+
+        val timeRegex = "\\[(\\d{2}):(\\d{2})\\.(\\d{2})]".toRegex()
+
+        // Map 时间戳文本 -> 它出现的行索引
+        val timeMap = mutableMapOf<String, MutableList<Int>>()
+        val inputLines = a.lines()
+
+        inputLines.forEachIndexed { index, line ->
+            val match = timeRegex.find(line)
+            match?.value?.let { timeTag ->
+                timeMap.computeIfAbsent(timeTag) { mutableListOf() }.add(index)
+            }
+        }
+
+        val linesCopy = inputLines.toMutableList()
+
+        for ((timeTag, indices) in timeMap) {
+            if (indices.size >= 3) {
+                for ((offset, i) in indices.withIndex()) {
+                    val match = timeRegex.find(timeTag)
+                    if (match != null) {
+                        val minutes = match.groupValues[1].toInt()
+                        val seconds = match.groupValues[2].toInt()
+                        val hundredths = match.groupValues[3].toInt()
+
+                        // 原时间戳 + offset * 10ms
+                        var totalMillis = (minutes * 60 + seconds) * 1000 + hundredths * 10 + offset * 10
+
+                        val newMinutes = totalMillis / 60000
+                        val newSeconds = (totalMillis % 60000) / 1000
+                        val newHundredths = (totalMillis % 1000) / 10
+
+                        val newTimeTag = "[%02d:%02d.%02d]".format(newMinutes, newSeconds, newHundredths)
+                        // 替换原行中的时间戳
+                        linesCopy[i] = linesCopy[i].replace(timeRegex, newTimeTag)
+                    }
+                }
+            }
+        }
+
+        // 输出结果
+        return linesCopy.joinToString("\n")
+    }
+
+    suspend fun saveCurrentPlaylist(player: ExoPlayer, dao: PlaylistRepository) {
+        val itemCount = player.mediaItemCount
+        val entities = mutableListOf<MediaItemEntity>()
+
+        for (i in 0 until itemCount) {
+            val mediaItem = player.getMediaItemAt(i)
+            val entity = mediaItem.toEntity()  // 你之前写的转换函数
+            entities.add(entity)
+        }
+
+        // 批量插入数据库
+        dao.savePlaylist(entities)
+    }
+
+
+
 
 
 }

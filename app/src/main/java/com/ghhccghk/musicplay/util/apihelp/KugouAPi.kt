@@ -1,21 +1,58 @@
 package com.ghhccghk.musicplay.util.apihelp
 
+import android.util.Log
 import androidx.core.net.toUri
+import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.util.TokenManager
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
 object KugouAPi {
-    val client = OkHttpClient()
     val apiaddress = "http:/127.0.0.1:9600"
     var token : String? = null
     var userid : String? = null
-
 
     fun init() {
         token = TokenManager.getToken()
         userid = TokenManager.getUserId()
     }
+
+    val cookieJar = object : CookieJar {
+        private val cookieStore: MutableMap<HttpUrl, List<Cookie>> = mutableMapOf()
+
+        override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+            cookieStore[url] = cookies
+        }
+
+        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+            TokenManager.init(MainActivity.lontext)
+            val a = Cookie.Builder()
+                .domain(url.host)
+                .path("/")
+                .name("token")
+                .value(TokenManager.getToken().toString())
+                .build()
+
+            val b = Cookie.Builder()
+                .domain(url.host)
+                .path("/")
+                .name("userid")
+                .value(TokenManager.getUserId().toString())
+                .build()
+
+            Log.d(a.toString(),b.toString())
+
+            return cookieStore[url] ?: listOf(a,b)
+        }
+    }
+
+    val client = OkHttpClient.Builder()
+        .cookieJar(cookieJar)
+        .build()
+
     /** 发送验证码*/
     fun getMobileCode(mobile: String): String? {
         val url = "$apiaddress/captcha/sent?mobile=$mobile"
@@ -118,8 +155,8 @@ object KugouAPi {
     }
 
     /** 二维码检测扫码状态接口  */
-    fun getQrCodeCheck(key: String): String?{
-        val url = "$apiaddress/login/qr/check?key=$key"
+    fun getQrCodeCheck(key: String,timestamp: String ): String?{
+        val url = "$apiaddress/login/qr/check?key=$key&timestamp=$timestamp"
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -185,7 +222,7 @@ object KugouAPi {
 
     /** 更新 token 登录信息 */
     fun updateToken(token: String,userid: String): String?{
-        val url = "$apiaddress/login/token?token$token&userid=$userid"
+        val url = "$apiaddress/login/token"
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -239,10 +276,7 @@ object KugouAPi {
 
     /** 获取用户 vip 信息 */
     fun getUserVip(): String?{
-        val url = "$apiaddress/user/vip/detail".toUri().buildUpon().apply {
-            token?.let { appendQueryParameter("token", it.toString()) }
-            userid?.let { appendQueryParameter("userid", it.toString()) }
-        }.build().toString()
+        val url = "$apiaddress/user/vip/detail"
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).execute().use { response ->
@@ -552,8 +586,8 @@ object KugouAPi {
             free_part?.let { appendQueryParameter("free_part",it) }
             album_audio_id?.let { appendQueryParameter("album_audio_id",it) }
             quality?.let { appendQueryParameter("quality",it) }
-            token?.let { appendQueryParameter("token", it.toString()) }
-            userid?.let { appendQueryParameter("userid", it.toString()) }
+            token?.let { appendQueryParameter("cookie", "token=$it;userid=$userid") }
+            //userid?.let { appendQueryParameter("userid", it.toString()) }
         }.build().toString()
         val request = Request.Builder().url(url).build()
 
@@ -1278,6 +1312,7 @@ object KugouAPi {
             return responseBody
         }
     }
+
 
 
 }

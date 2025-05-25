@@ -102,6 +102,7 @@ class LoginQrcode: Fragment() {
                     val img = result.data.url
                     Log.d("a", result.data.url)
                     binding.qrimage.setImageBitmap(generateQRCode(img, 512))
+                    update()
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -120,7 +121,7 @@ class LoginQrcode: Fragment() {
         TokenManager.init(requireContext())
         lifecycleScope.launch {
             val json = withContext(Dispatchers.IO) {
-                key?.let { KugouAPi.getQrCodeCheck(it) }
+                key?.let { KugouAPi.getQrCodeCheck(it, System.currentTimeMillis().toString()) }
             }
             if (json == null || json == "502" || json == "404") {
                 Toast.makeText(context, "失败", Toast.LENGTH_LONG).show()

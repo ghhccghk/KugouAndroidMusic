@@ -59,6 +59,9 @@ android {
     buildFeatures {
         compose = true
     }
+    ksp {
+        arg("room.schemaLocation", project.layout.projectDirectory.dir("schemas").asFile.absolutePath)
+    }
 }
 
 dependencies {
@@ -137,6 +140,19 @@ dependencies {
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
     ksp(libs.moshi.kotlin.codegen) //
+    implementation(libs.androidx.room.ktx)
+
+    implementation( libs.kotlinx.coroutines.core)
+    implementation( libs.kotlinx.coroutines.android)
+
+    implementation( libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    implementation (libs.androidx.room.rxjava2)
+    implementation( libs.androidx.room.ktx)
+
+    // 如果你也用 RxJava2 本体，确保这也有
+    implementation (libs.rxjava)
+    implementation(libs.rxandroid)
 
 
 }

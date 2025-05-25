@@ -16,6 +16,7 @@ import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.login.getLoginQr
+import com.ghhccghk.musicplay.data.updateToken.updateToken
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentNotificationsBinding
@@ -29,6 +30,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.jvm.java
 
 class NotificationsFragment : Fragment() {
 
@@ -53,6 +55,20 @@ class NotificationsFragment : Fragment() {
         if (MainActivity.isNodeRunning) {
             setui()
             setUserPlayList()
+            binding.btnSettings.setOnClickListener {
+                lifecycleScope.launch {
+                    val a = withContext(Dispatchers.IO) {
+                        Log.d("test", KugouAPi.getlitevip().toString())
+                        KugouAPi.updateToken(TokenManager.getToken().toString(),TokenManager.getUserId().toString()).toString()
+                    }
+                    if (a != "" || a !="502" || a != "404"){
+                        val g = Gson()
+                        val re = g.fromJson(a, updateToken::class.java)
+                        TokenManager.saveToken(re.data.token)
+                        Toast.makeText(requireContext(), "更新token成功", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
 
 
@@ -66,7 +82,10 @@ class NotificationsFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        setui()
+        if (MainActivity.isNodeRunning){
+            setui()
+            setUserPlayList()
+        }
     }
 
 

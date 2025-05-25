@@ -113,7 +113,7 @@ val yosEasing = CubicBezierEasing(0.75f, 0.0f, 0.25f, 1.0f)
      * 歌词平衡行模式
      */
 
-    const val LyricLineBalance : Boolean = true
+    const val LyricLineBalance : Boolean = false
 
 
 
@@ -1106,128 +1106,74 @@ fun LazyItemScope.LyricItem(
                                         // 以下为逐字处理
 
                                         var sum = 0
-                                        var lastTime = 0f
+                                        var lastTime = mainLyric.first().first
 
                                         val wordsToDraw = arrayListOf<DrawWord>()
-
-                                        var averageTime = 0f
-
-                                        lastTime = mainLyric.first().first
 
                                         mainLyric.fastForEachIndexed { wordIndex, word ->
 
                                             val thisWord = word.second
+                                            if (thisWord.isEmpty()) return@fastForEachIndexed
 
-                                            if (thisWord.isEmpty()) {
-                                                return@fastForEachIndexed
-                                            }
+                                            val previousTime = if (wordIndex == 0) word.first else mainLyric[wordIndex - 1].first
+                                            val duration = (word.first - previousTime) / thisWord.length
 
-                                            averageTime = (word.first - lastTime) / thisWord.length
-
-                                            val thisWordGroupLastTime = if (wordIndex - 1 < 0) {
-                                                mainLyric.first().first
+                                            val groupPercent = if ((word.first - previousTime) == 0f) {
+                                                0f
                                             } else {
-                                                mainLyric[(wordIndex - 1)].first
+                                                ((liveTime.intValue - previousTime).coerceAtLeast(0f) / (word.first - previousTime)).coerceIn(0f, 1f)
                                             }
-                                            val groupPercent =
-                                                if ((word.first - thisWordGroupLastTime) == 0f) {
-                                                    0f
-                                                } else {
-                                                    ((liveTime.intValue - thisWordGroupLastTime).coerceAtLeast(
-                                                        0f
-                                                    ) / (word.first - thisWordGroupLastTime)).coerceIn(
-                                                        0f,
-                                                        1f
-                                                    )
-                                                }
-                                            val easedPercent = easing.transform(groupPercent.coerceIn(
-                                                0f,
-                                                1f
-                                            ))
+                                            val easedPercent = easing.transform(groupPercent)
                                             val topLeftWeight = 4 * easedPercent
 
                                             thisWord.forEach { char ->
 
-                                                //println("$char：$lastTime to ${lastTime + averageTime}")
-
-                                                val charWord = char.toString()
-
+                                                val charStr = char.toString()
                                                 val layout = measurer.measure(
-                                                    text = charWord,
-                                                    style = if (otherSide) MainTextStyle.copy(
-                                                        textAlign = TextAlign.End
-                                                    ) else MainTextStyle,
+                                                    text = charStr,
+                                                    style = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle,
                                                     constraints = measureResult.layoutInput.constraints
                                                 )
 
-                                                val thisWordLastTime = lastTime
-                                                val thisWordAverageTime = averageTime
+                                                val bboxIndex = sum.coerceAtMost(mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0)
+                                                val topLeft = measureResult.getBoundingBox(bboxIndex).topLeft.minus(Offset(0f, topLeftWeight))
+
+                                                val thisCharStartTime = lastTime
 
                                                 wordsToDraw += DrawWord(
-                                                    time = lastTime + averageTime,
-                                                    word = charWord,
+                                                    time = lastTime + duration,
+                                                    word = charStr,
                                                     layout = layout,
-                                                    topLeft = measureResult.getBoundingBox(sum.coerceAtMost(
-                                                        mainLyric.sumOf { it.second.length } - 1)
-                                                        .coerceAtLeast(0)).topLeft.minus(
-                                                        Offset(
-                                                            0F,
-                                                            topLeftWeight
-                                                        )
-                                                    ),
+                                                    topLeft = topLeft,
                                                     brush = { px, percent ->
                                                         if (thisWord == " ") {
                                                             return@DrawWord unfocusedSolidBrush
                                                         }
-
-                                                        val beforeColor = if (percent <= -0.5f) {
-                                                            unfocusedColor
-                                                        } else {
-                                                            focusedColor
-                                                        }
-
-                                                        val afterColor = if (percent >= 1f) {
-                                                            focusedColor
-                                                        } else {
-                                                            unfocusedColor
-                                                        }
+                                                        val beforeColor = if (percent <= 0f) unfocusedColor else focusedColor
+                                                        val afterColor = if (percent >= 1f) focusedColor else unfocusedColor
                                                         Brush.horizontalGradient(
                                                             0f to beforeColor,
-                                                            (percent - px).coerceIn(
-                                                                0f,
-                                                                1f
-                                                            ) to beforeColor,
-                                                            (percent + px).coerceIn(
-                                                                0f,
-                                                                1f
-                                                            ) to afterColor/*,
-                                                            1f to afterColor*/
+                                                            (percent - px).coerceIn(0f, 1f) to beforeColor,
+                                                            (percent + px).coerceIn(0f, 1f) to afterColor,
                                                         )
                                                     },
                                                     percent = {
-                                                        if (thisWord == " ") {
-                                                            return@DrawWord 0f
-                                                        }
-
-                                                        ((liveTime.intValue - thisWordLastTime) / thisWordAverageTime)
-
+                                                        if (thisWord == " ") return@DrawWord 0f
+                                                        ((liveTime.intValue - thisCharStartTime) / duration).coerceIn(0f, 1f)
                                                     }
-                                                ).also {
-                                                    sum += charWord.length
-                                                    lastTime += averageTime
-                                                }
+                                                )
+
+                                                sum++
+                                                lastTime += duration
                                             }
                                         }
 
                                         onDrawBehind {
-                                            wordsToDraw.fastForEach { l ->
+                                            wordsToDraw.fastForEach { drawWord ->
                                                 drawText(
-                                                    textLayoutResult = l.layout,
-                                                    topLeft = l.topLeft,
-                                                    brush = l.brush(
-                                                        0.3f,
-                                                        l.percent()
-                                                    )
+                                                    textLayoutResult = drawWord.layout,
+                                                    topLeft = drawWord.topLeft,
+                                                    brush = drawWord.brush(0.3f, drawWord.percent())
                                                 )
                                             }
                                         }
