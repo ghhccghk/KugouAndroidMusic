@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lyric_main">#FFFFFFFF</color>  <!-- 白色主文字 -->
+    <color name="lyric_sub">#2EFFFFFF</color>  <!-- 浅灰副文字 -->
+</resources>

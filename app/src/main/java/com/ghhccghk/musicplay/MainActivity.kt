@@ -14,6 +14,7 @@ import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -66,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     private var nodeService: NodeService? = null
     var isNodeRunning = false
     var bound = false
-    private  lateinit var  controllerFuture : ListenableFuture<MediaController>
+    private val viewModel by viewModels<MainViewModel>()
 
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -114,7 +115,7 @@ class MainActivity : AppCompatActivity() {
         // 启动 Service
         // 初始化媒体控制器
         val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
-        controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+        viewModel.controllerFuture  = MediaController.Builder(this, sessionToken).buildAsync()
 
 
         if (isFirstRun(this)) {
@@ -184,8 +185,79 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onResume() {
+        super.onResume()
+        val navView: NavigationBarView = binding.navView
+
+        val a = findViewById<BottomNavigationView>(R.id.nav_view)
+        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
+            // 隐藏 BottomNavigationView
+            hideBottomNav(a)
+            hideLinearLayout(playbar,a)
+        }
+        if(findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.lyricFragment ) {
+            hideBottomNav(a)
+            hideLinearLayout(playbar,a)
+        }
+        if( findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
+            hideBottomNav(a)
+        }
+
+
+        // Passing each menu ID as a set of Ids because each
+        // menu should be considered as top level destinations.
+        navView.setupWithNavController(navController)
+        playbar.setOnClickListener {
+            val navOptions = NavOptions.Builder()
+                .setEnterAnim(R.anim.fragment_enter)    // 进入动画
+                .setExitAnim(R.anim.fragment_exit)      // 退出动画
+                .setPopEnterAnim(R.anim.fragment_pop_enter)  // 弹出时的进入动画（从下往上）
+                .setPopExitAnim(R.anim.fragment_pop_exit)    // 弹出时的退出动画（从上往下）
+                .build()
+            // 跳转到播放 Fragment
+            navController.navigate(R.id.playerFragment,null,navOptions)
+
+            // 隐藏 BottomNavigationView
+            val a = findViewById<BottomNavigationView>(R.id.nav_view)
+            hideBottomNav(a)
+            hideLinearLayout(playbar,a)
+        }
+
+        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener{
+            if (controllerFuture.get().isPlaying){
+                controllerFuture.get().pause()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_play_arrow_filled)
+            } else {
+                controllerFuture.get().play()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_pause_filled)
+            }
+        }
+        controllerFuture.addListener({
+            val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    val artlurl = player.mediaMetadata?.artworkUri.toString()
+                    val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
+                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
+                        if (isPlaying) {
+                            R.drawable.ic_pause_filled
+                        } else {
+                            R.drawable.ic_play_arrow_filled
+                        }
+                    )
+                    if (artlurl.isNullOrBlank()) {
+                        ""
+                    } else {
+                        Glide.with(playbar)
+                            .load(player.mediaMetadata.artworkUri)
+                            .into(playbaricon)
+                    }
+                }
+            })
+        }, ContextCompat.getMainExecutor(this))
+
+
     }
 
     // 处理返回时的操作，确保返回时显示 BottomNavigationView
@@ -195,14 +267,15 @@ class MainActivity : AppCompatActivity() {
         // 只有当不在播放 Fragment 时才显示 BottomNavigationView
         if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
             super.onBackPressed()
-            val a = findViewById<BottomNavigationView>(R.id.nav_view)
-            showBottomNav(a)
-            val b = findViewById<LinearLayout>(R.id.player_bar)
-            showLinearLayout(b,a)
+            val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+            showBottomNav(navView)
+            val playbar = findViewById<LinearLayout>(R.id.player_bar)
+            showLinearLayout(playbar,navView)
         } else {
-            if(findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
-                val a = findViewById<BottomNavigationView>(R.id.nav_view)
-                showBottomNav(a)
+            // 只有当不在playlistDetailFragment 时才显示 BottomNavigationView
+            if( findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
+                val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+                showBottomNav(navView)
                 super.onBackPressed()
             } else {
                 super.onBackPressed()  // 调用系统的默认行为
@@ -258,7 +331,7 @@ class MainActivity : AppCompatActivity() {
                 instance.isNodeRunning = value
             }
         val controllerFuture : ListenableFuture<MediaController>
-            get() = instance.controllerFuture
+            get() = instance.viewModel.controllerFuture
         val playbar :LinearLayout
             get() = instance.findViewById<LinearLayout>(R.id.player_bar)
     }

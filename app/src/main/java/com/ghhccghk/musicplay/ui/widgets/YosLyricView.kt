@@ -76,6 +76,7 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -93,6 +94,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
+import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.ui.widgets.basic.YosWrapper
@@ -150,8 +153,8 @@ fun YosLyricView(
 ) {
     println("重组：YosLyricView")
     val context = LocalContext.current
-    val mainTextBasicColor = Color(uiConfig.mainTextBasicColor)
-    val subTextBasicColor = Color(uiConfig.subTextBasicColor)
+    val mainTextBasicColor = colorResource(id = R.color.lyric_main)
+    val subTextBasicColor = colorResource(id = R.color.lyric_sub)
     //Color(0xFF919191)
     val otherSideForLines = MediaViewModelObject.otherSideForLines
 

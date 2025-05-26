@@ -36,12 +36,6 @@
         tools:layout="@layout/fragment_lyrics"/>
 
     <fragment
-        android:id="@+id/playlisttag"
-        android:name="com.ghhccghk.musicplay.ui.playlisttag.PlayTagListFragment"
-        android:label="fragment_PlayTagList"
-        tools:layout="@layout/fragment_playlist_tag"/>
-
-    <fragment
         android:id="@+id/playlistDetailFragment"
         android:name="com.ghhccghk.musicplay.ui.playlistdetail.PlaylistDetailFragment"
         android:label="歌单详情"

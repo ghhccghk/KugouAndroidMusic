@@ -45,7 +45,7 @@ class SongAdapter (
                 item?.let { p1 -> onItemClick?.invoke(p1) }
             }
             val secureUrl = item?.trans_param?.union_cover?.replaceFirst("http://", "https://")
-                ?.replaceFirst("/{size}/", "/")
+                ?.replaceFirst("/{size}/", "/400/")
             // 使用 Glide 加载图片
             Glide.with(holder.itemView)
                 .load(secureUrl)

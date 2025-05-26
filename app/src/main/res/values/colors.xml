@@ -7,4 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="lyric_main">#FF000000</color>  <!-- 黑色主文字 -->
+    <color name="lyric_sub">#2E000000</color>   <!-- 深灰副文字 -->
 </resources>
