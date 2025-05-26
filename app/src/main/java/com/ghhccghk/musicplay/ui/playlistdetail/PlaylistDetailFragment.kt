@@ -2,6 +2,7 @@ package com.ghhccghk.musicplay.ui.playlistdetail
 
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -31,7 +32,10 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
 import kotlin.text.replaceFirst
+import androidx.core.net.toUri
+import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 
 class PlaylistDetailFragment : Fragment() {
 
@@ -90,21 +94,11 @@ class PlaylistDetailFragment : Fragment() {
                 }
                 lifecycleScope.launch {
                     val json = withContext(Dispatchers.IO) {
-                        KugouAPi.getPlayListAllSongs(playlistId)
+                        getAllSongsMergedMoshi(playlistId,30)
                     }
-                    if (json == null || json == "502" || json == "404") {
-                        Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
-                    } else {
                         try {
-                            val moshi = Moshi.Builder()
-                                .add(KotlinJsonAdapterFactory())
-                                .build()
-                            val adapter = moshi.adapter(SongListBase::class.java)
-                            val songList = adapter.fromJson(json)
-                            val songlist = songList?.data?.songs
-
                             binding.rvSongs.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-                            binding.rvSongs.adapter = SongAdapter(songlist){
+                            binding.rvSongs.adapter = SongAdapter(json){
                                 lifecycleScope.launch {
                                     val json = withContext(Dispatchers.IO) {
                                         it.hash?.let { hash -> KugouAPi.getSongsUrl(hash) }
@@ -116,11 +110,16 @@ class PlaylistDetailFragment : Fragment() {
                                             val gson = Gson()
                                             val result = gson.fromJson(json, GetSongUrlBase::class.java)
                                             val url = result.backupUrl[0].toString()
-                                            Log.d("debug",result.toString())
 
-                                            val item = it?.let { artist -> createMediaItemWithId(artist.singerinfo?.get(0)?.name,
-                                                it?.remark,
-                                                url,
+                                            // 含真实 URL 和 ID 的占位 URI
+                                            val encodedUrl = URLEncoder.encode(url, "UTF-8")
+                                            val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}".toUri().toString()
+
+                                            val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
+
+                                            val item = it?.let { artist -> createMediaItemWithId(name?.first,
+                                                name?.second,
+                                                uri,
                                                 result) }
 
                                             item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
@@ -137,7 +136,7 @@ class PlaylistDetailFragment : Fragment() {
                                 }
                             }
 
-                        }catch (e: Exception) {
+                        } catch (e: Exception) {
                             e.printStackTrace()
                             Toast.makeText(
                                 context,
@@ -148,7 +147,7 @@ class PlaylistDetailFragment : Fragment() {
                     }
                 }
             }
-            }
+
             return root
         }
 
@@ -197,6 +196,44 @@ class PlaylistDetailFragment : Fragment() {
             return abc.toMediaItem()
         }
         return MediaItem.Builder().setUri(url).build()
+    }
+
+    fun getAllSongsMergedMoshi(
+        ids: String,
+        pageSize: Int = 50
+    ): List<Song>? {
+        val moshi = Moshi.Builder()
+            .add(KotlinJsonAdapterFactory())
+            .build()
+        val adapter = moshi.adapter(SongListBase::class.java)
+
+        val allSongs = mutableListOf<Song>()
+        var currentPage = 1
+
+        while (true) {
+            val json = KugouAPi.getPlayListAllSongs(ids, currentPage, pageSize) ?: break
+            val songListBase = adapter.fromJson(json)
+            val songs = songListBase?.data?.songs ?: emptyList()
+
+            if (songs.isEmpty()) break
+
+            allSongs.addAll(songs)
+
+            if (songs.size < pageSize) break
+
+            currentPage++
+        }
+
+        return allSongs
+    }
+
+    fun splitArtistAndTitle(text: String): Pair<String, String>? {
+        val parts = text.split(" - ", limit = 2)
+        return if (parts.size == 2) {
+            parts[0].trim() to parts[1].trim() // 保证去掉首尾空格，保留中间空格
+        } else {
+            null // 无法拆分，可能格式不标准
+        }
     }
 
 

@@ -9,13 +9,13 @@ data class MediaItemEntity(
     val id: Long = 0,
     val uri: String?, // Uri 转为字符串保存
     val mediaId: String? = "",
-    val title: String?,
+    val title: String? = "",
     val writer: String? = "",
     val compilation: String? = "",
     val composer: String? = "",
-    val artists: String?,
-    val album: String?,
-    val albumArtists: String?,
+    val artists: String? = "",
+    val album: String?  = "",
+    val albumArtists: String?  = "",
     val thumb: String?, // Uri -> String
     val trackNumber: Int? = 0,
     val discNumber: Int? = 0,
@@ -32,7 +32,7 @@ data class MediaItemEntity(
     val duration: Long = 0,
     val modifiedDate: Long? = 0,
     val cdTrackNumber: Int? = 0,
-    val songHash: String?,
-    val lrcId: String?,
-    val lrcAccesskey: String?,
+    val songHash: String?  = "",
+    val lrcId: String?  = "",
+    val lrcAccesskey: String?  = "",
 )

@@ -65,7 +65,9 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.graphics.createBitmap
+import androidx.media3.datasource.cache.CacheKeyFactory
 import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 
 
 class PlayService : MediaSessionService() {
@@ -184,10 +186,26 @@ class PlayService : MediaSessionService() {
             StandaloneDatabaseProvider(this)
         )
 
+        val cacheKeyFactory = CacheKeyFactory { dataSpec ->
+            val uri = dataSpec.uri
+            val id = uri.getQueryParameter("id")
+            if (id != null) {
+                id
+            } else {
+                dataSpec.key ?: uri.toString() // fallback
+            }
+        }
+
+
+        val dhttp = DefaultHttpDataSource.Factory()
+
+        val redirectingFactory = RedirectingDataSourceFactory(dhttp)
+
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(cache)
-            .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory()) // 自动联网
+            .setUpstreamDataSourceFactory(redirectingFactory) // 自动联网
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+            .setCacheKeyFactory(cacheKeyFactory)
 
 
 
@@ -230,39 +248,18 @@ class PlayService : MediaSessionService() {
                 player.setMediaItems(mediaItems)
                 val artist = player.mediaMetadata?.artist
                 val title = player.mediaMetadata?.title
-                val artlurl = player.mediaMetadata?.artworkUri.toString()
-                val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
-
-                if (artlurl.isNullOrBlank()) {
-                    ""
-                } else {
-                    Glide.with(playbar)
-                        .load(player.mediaMetadata.artworkUri)
-                        .into(playbaricon)
-                }
 
                 playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
                 playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
             }
         }
+
         val artist = player.mediaMetadata?.artist
         val title = player.mediaMetadata?.title
-        val artlurl = player.mediaMetadata?.artworkUri.toString()
-        val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
+
 
         playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
         playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
-        if (artlurl.isNullOrBlank()) {
-            ""
-        } else {
-            Glide.with(playbar)
-                .load(player.mediaMetadata.artworkUri)
-                .into(playbaricon)
-        }
-
-
-
-
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -353,26 +350,12 @@ class PlayService : MediaSessionService() {
                     // 播放开始
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
-                    if (artlurl.isNullOrBlank()) {
-                        ""
-                    } else {
-                        Glide.with(playbar)
-                            .load(player.mediaMetadata.artworkUri)
-                            .into(playbaricon)
-                    }
                 } else {
                     serviceScope.launch {
                         saveCurrentPlaylist(player, repo)
                     }
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
-                    if (artlurl.isNullOrBlank()) {
-                        ""
-                    } else {
-                        Glide.with(playbar)
-                            .load(player.mediaMetadata.artworkUri)
-                            .into(playbaricon)
-                    }
 
 
                 }

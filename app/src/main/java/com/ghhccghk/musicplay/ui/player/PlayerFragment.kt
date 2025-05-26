@@ -4,18 +4,22 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.AnimatedVectorDrawable
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.SeekBar
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.media3.common.Player
+import androidx.media3.session.MediaController
 import androidx.navigation.fragment.findNavController
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.bumptech.glide.Glide
@@ -34,7 +38,7 @@ class PlayerFragment() : Fragment() {
     private val binding get() = _binding!!
     val handler = Handler(Looper.getMainLooper())
     private lateinit var progressDrawable: SquigglyProgress
-    val player = MainActivity.controllerFuture.get()
+    private lateinit var player : MediaController
     private var isUserTracking = false
     private lateinit var context: Context
 
@@ -88,10 +92,11 @@ class PlayerFragment() : Fragment() {
                 }
             }
 
-            if (binding.fullSongName.text  !=  MainActivity.controllerFuture.get().mediaMetadata.title){
-                binding.fullSongName.text = MainActivity.controllerFuture.get().mediaMetadata.title
+            if (binding.fullSongName.text  != player.mediaMetadata.title){
+                binding.fullSongName.text = player.mediaMetadata.title
                 binding.fullSongArtist.text =
-                    MainActivity.controllerFuture.get().mediaMetadata.artist
+                    player.mediaMetadata.artist
+                    player.mediaMetadata.artist
             }
 
             if (player.isPlaying) {
@@ -123,8 +128,8 @@ class PlayerFragment() : Fragment() {
     ): View {
         _binding = FragmentPlayerBinding.inflate(inflater, container, false)
         context = requireContext()
+        player = MainActivity.controllerFuture.get()
         val root: View = binding.root
-        playbottomam()
         val seekBarProgressWavelength =
             context.resources
                 .getDimensionPixelSize(R.dimen.media_seekbar_progress_wavelength)
@@ -180,6 +185,11 @@ class PlayerFragment() : Fragment() {
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        playbottomam()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
@@ -192,6 +202,19 @@ class PlayerFragment() : Fragment() {
     override fun onStop() {
         super.onStop()
         handler.removeCallbacks(updateRunnable)
+    }
+
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(updateRunnable)
+
+    }
+
+    override fun onPause() {
+        super.onPause()
+        handler.removeCallbacks(updateRunnable)
+
     }
 
 

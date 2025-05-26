@@ -8,6 +8,13 @@
     android:background="?attr/colorSurface"
     tools:context=".ui.lyric.LyricsFragment">
 
+    <!-- 背景图容器（模糊图） -->
+    <ImageView
+        android:id="@+id/backgroundImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop" />
+
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/lyrics_container_compose_view"
         android:layout_width="match_parent"
