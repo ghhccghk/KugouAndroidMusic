@@ -2,6 +2,7 @@ package com.ghhccghk.musicplay.ui.lyric
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.UnstableApi

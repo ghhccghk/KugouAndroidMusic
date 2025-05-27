@@ -4,7 +4,7 @@
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="welcome">欢迎</string>
-    <string name="activated">账号未登录</string>
+    <string name="activated">账号已登录</string>
     <string name="inputmobilephone">输入手机号码</string>
     <string name="sendcode">发送验证码</string>
     <string name="album_art">歌曲封面</string>
@@ -20,4 +20,6 @@
     <string name="unactivated_summary">请登录账号</string>
     <string name="user_playlist">我的歌单</string>
     <string name="play_user_creator">创建人:</string>
+    <string name="playlist_all_play">播放全部</string>
+    <string name="api_no_ok">API 未就绪</string>
 </resources>

@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
 
 plugins {
@@ -13,6 +14,7 @@ plugins {
 android {
     namespace = "com.ghhccghk.musicplay"
     compileSdk = 35
+
     val buildTime = System.currentTimeMillis()
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
@@ -27,6 +29,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // 启用按架构分包
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = true
+        }
+    }
+
 
     buildTypes {
         externalNativeBuild {
@@ -35,11 +47,14 @@ android {
             }
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -61,6 +76,16 @@ android {
     }
     ksp {
         arg("room.schemaLocation", project.layout.projectDirectory.dir("schemas").asFile.absolutePath)
+    }
+    applicationVariants.all {
+        outputs.all {
+            val outputImpl = this as BaseVariantOutputImpl
+            // 尝试获取 filters 中的 abi 架构名称
+            val abiFilter = outputImpl.filters.find { it.filterType.equals("ABI", ignoreCase = true) }
+            val abiName = abiFilter?.identifier ?: "universal"
+            outputImpl.outputFileName =
+                "Music_Player-$versionName-$versionCode-$name-$abiName-$buildTime.apk"
+        }
     }
 }
 

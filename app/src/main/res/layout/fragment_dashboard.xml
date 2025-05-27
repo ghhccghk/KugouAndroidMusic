@@ -120,7 +120,7 @@
                 app:layout_constraintStart_toStartOf="parent" />
 
             <include
-                android:id="@+id/loading_playlist"
+                android:id="@+id/loading_playlista"
                 layout="@layout/item_loading" />
 
             <com.google.android.material.tabs.TabLayout

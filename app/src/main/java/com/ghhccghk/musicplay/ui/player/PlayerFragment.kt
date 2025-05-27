@@ -18,6 +18,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.navigation.fragment.findNavController
@@ -34,7 +35,6 @@ import com.google.android.material.slider.Slider
 class PlayerFragment() : Fragment() {
 
     private var _binding: FragmentPlayerBinding? = null
-
     private val binding get() = _binding!!
     val handler = Handler(Looper.getMainLooper())
     private lateinit var progressDrawable: SquigglyProgress
@@ -65,7 +65,6 @@ class PlayerFragment() : Fragment() {
 
             override fun onStartTrackingTouch(slider: Slider) {
                 isUserTracking = true
-                playbottomam()
             }
 
             override fun onStopTrackingTouch(slider: Slider) {
@@ -73,7 +72,6 @@ class PlayerFragment() : Fragment() {
                 if (mediaId != null) {
                     player.seekTo((slider.value.toLong()))
                 }
-                playbottomam()
                 isUserTracking = false
             }
         }
@@ -87,36 +85,22 @@ class PlayerFragment() : Fragment() {
             slider.addOnChangeListener { _, value, fromUser ->
                 if (fromUser) {
                     player.seekTo(value.toLong())
-                } else {
-                    playbottomam()
                 }
             }
 
             if (binding.fullSongName.text  != player.mediaMetadata.title){
                 binding.fullSongName.text = player.mediaMetadata.title
-                binding.fullSongArtist.text =
-                    player.mediaMetadata.artist
-                    player.mediaMetadata.artist
+                binding.fullSongArtist.text = player.mediaMetadata.artist
             }
-
             if (player.isPlaying) {
-                progressDrawable.animate = true
                 seekBar.max = player.duration.toInt()
                 slider.valueTo = player.duration.toFloat() // 设置最大值
-                slider.visibility = View.GONE
-                seekBar.visibility = View.VISIBLE
                 slider.value = player.currentPosition.toFloat()
                 seekBar.progress = player.currentPosition.toInt()
-                Glide.with(binding.root)
-                    .load(player.mediaMetadata.artworkUri)
-                    .into(binding.fullSheetCover)
                 binding.position.text = formatMillis(player.currentPosition)
                 binding.duration.text = formatMillis(player.duration)
-            } else {
-                progressDrawable.animate = false
-                playbottomam()
-
             }
+
             handler.postDelayed(this, 130)
         }
     }
@@ -129,6 +113,8 @@ class PlayerFragment() : Fragment() {
         _binding = FragmentPlayerBinding.inflate(inflater, container, false)
         context = requireContext()
         player = MainActivity.controllerFuture.get()
+        val seekBar = binding.sliderSquiggly
+        val slider = binding.sliderVert
         val root: View = binding.root
         val seekBarProgressWavelength =
             context.resources
@@ -148,6 +134,7 @@ class PlayerFragment() : Fragment() {
                 .toFloat()
 
         binding.slideDown.setOnClickListener {
+            @Suppress("DEPRECATION")
             requireActivity().onBackPressed()
         }
 
@@ -156,10 +143,74 @@ class PlayerFragment() : Fragment() {
 
         }
 
+        if (player.mediaMetadata.artworkUri != null ){
+            Glide.with(binding.root)
+                .load(player.mediaMetadata.artworkUri)
+                .into(binding.fullSheetCover)
+        }
+
+
+        player.addListener(
+            object : Player.Listener {
+                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                    super.onMediaMetadataChanged(mediaMetadata)
+                    if (_binding != null ){
+                        Glide.with(binding.root)
+                            .load(player.mediaMetadata.artworkUri)
+                            .into(binding.fullSheetCover)
+                    }
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    if (_binding != null){
+                        if (player.isPlaying) {
+                            progressDrawable.animate = true
+                            Glide.with(binding.root)
+                                .load(player.mediaMetadata.artworkUri)
+                                .into(binding.fullSheetCover)
+                            if (binding.sheetMidButton.tag != 1) {
+                                binding.sheetMidButton.icon =
+                                    AppCompatResources.getDrawable(
+                                        context, R.drawable.play_anim
+                                    )
+                                binding.sheetMidButton.background =
+                                    AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
+                                binding.sheetMidButton.icon.startAnimation()
+                                binding.sheetMidButton.background.startAnimation()
+                                binding.sheetMidButton.tag = 1
+                            }
+                        } else {
+                            Glide.with(binding.root)
+                                .load(player.mediaMetadata.artworkUri)
+                                .into(binding.fullSheetCover)
+                            if (player.playbackState != Player.STATE_BUFFERING) {
+                                if (binding.sheetMidButton.tag != 2) {
+                                    binding.sheetMidButton.icon =
+                                        AppCompatResources.getDrawable(
+                                            context,
+                                            R.drawable.pause_anim
+                                        )
+                                    binding.sheetMidButton.background =
+                                        AppCompatResources.getDrawable(
+                                            context,
+                                            R.drawable.bg_pause_anim
+                                        )
+                                    binding.sheetMidButton.icon.startAnimation()
+                                    binding.sheetMidButton.background.startAnimation()
+                                    binding.sheetMidButton.tag = 2
+                                }
+                            }
+                            progressDrawable.animate = false
+
+                        }
+                    }
+                }
+            }
+        )
+
         binding.sheetMidButton.setOnClickListener {
             ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
             player.playOrPause()
-            playbottomam()
         }
 
         binding.sliderSquiggly.progressDrawable = SquigglyProgress().also {
@@ -181,13 +232,68 @@ class PlayerFragment() : Fragment() {
         binding.sliderSquiggly.setOnSeekBarChangeListener(touchListener)
         binding.sliderVert.addOnSliderTouchListener(touchListener)
 
+        seekBar.max = 0
+        slider.valueTo = 0f
+        slider.value = 0f
+        seekBar.progress = 0
+        slider.visibility = View.GONE
+        seekBar.visibility = View.VISIBLE
+
+        if (player.duration.toInt() != 0){
+            seekBar.max = player.duration.toInt()
+            slider.valueTo = player.duration.toFloat() // 设置最大值
+            slider.value = player.currentPosition.toFloat()
+            seekBar.progress = player.currentPosition.toInt()
+            binding.position.text = formatMillis(player.currentPosition)
+            binding.duration.text = formatMillis(player.duration)
+        }
+
+        if (player.isPlaying) {
+            progressDrawable.animate = true
+            if (binding.sheetMidButton.tag != 1) {
+                binding.sheetMidButton.icon =
+                    AppCompatResources.getDrawable(
+                        context, R.drawable.play_anim
+                    )
+                binding.sheetMidButton.background =
+                    AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
+                binding.sheetMidButton.icon.startAnimation()
+                binding.sheetMidButton.background.startAnimation()
+                binding.sheetMidButton.tag = 1
+            }
+        } else {
+            progressDrawable.animate = false
+            if (player.playbackState != Player.STATE_BUFFERING) {
+                if (binding.sheetMidButton.tag != 2) {
+                    binding.sheetMidButton.icon =
+                        AppCompatResources.getDrawable(
+                            context,
+                            R.drawable.pause_anim
+                        )
+                    binding.sheetMidButton.background =
+                        AppCompatResources.getDrawable(
+                            context,
+                            R.drawable.bg_pause_anim
+                        )
+                    binding.sheetMidButton.icon.startAnimation()
+                    binding.sheetMidButton.background.startAnimation()
+                    binding.sheetMidButton.tag = 2
+                }
+            }
+        }
+
+        binding.sheetNextSong.setOnClickListener {
+            player.seekToNext()
+        }
+        binding.sheetPreviousSong.setOnClickListener {
+            player.seekToPrevious()
+        }
 
         return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        playbottomam()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -217,41 +323,10 @@ class PlayerFragment() : Fragment() {
 
     }
 
-
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
         handler.removeCallbacksAndMessages(null)
-    }
-
-    fun playbottomam(){
-        if (player.isPlaying){
-            if (binding.sheetMidButton.tag != 1) {
-                binding.sheetMidButton.icon =
-                    AppCompatResources.getDrawable(context, R.drawable.play_anim
-                    )
-                binding.sheetMidButton.background =
-                    AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
-                binding.sheetMidButton.icon.startAnimation()
-                binding.sheetMidButton.background.startAnimation()
-                binding.sheetMidButton.tag = 1
-            }
-        } else {
-            if (player.playbackState != Player.STATE_BUFFERING) {
-                if (binding.sheetMidButton.tag != 2) {
-                    binding.sheetMidButton.icon =
-                        AppCompatResources.getDrawable(context,
-                            R.drawable.pause_anim
-                        )
-                    binding.sheetMidButton.background =
-                        AppCompatResources.getDrawable(context, R.drawable.bg_pause_anim)
-                    binding.sheetMidButton.icon.startAnimation()
-                    binding.sheetMidButton.background.startAnimation()
-                    binding.sheetMidButton.tag = 2
-                }
-            }
-        }
     }
 
     @SuppressLint("DefaultLocale")
