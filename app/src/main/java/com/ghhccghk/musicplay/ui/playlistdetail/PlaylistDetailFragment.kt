@@ -2,9 +2,8 @@ package com.ghhccghk.musicplay.ui.playlistdetail
 
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
-import android.net.Uri
+import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,12 +34,19 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import kotlin.text.replaceFirst
 import androidx.core.net.toUri
+import androidx.media3.session.MediaController
+import androidx.media3.session.MediaSession
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import java.util.Collections
 
 class PlaylistDetailFragment : Fragment() {
 
 
     private var _binding: FragmentPlaylistBinding? = null
+    private lateinit var player : MediaController
 
     private val binding get() = _binding!!
 
@@ -50,6 +56,7 @@ class PlaylistDetailFragment : Fragment() {
     ): View {
         _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
         val root: View = binding.root
+        player = MainActivity.controllerFuture.get()
 
         // 隐藏 BottomNavigationView
         val a = requireActivity().findViewById<BottomNavigationView>(R.id.nav_view)
@@ -92,76 +99,84 @@ class PlaylistDetailFragment : Fragment() {
 
 
                 }
+
                 lifecycleScope.launch {
                     val json = withContext(Dispatchers.IO) {
-                        getAllSongsMergedMoshi(playlistId,30)
+                        getAllSongsMergedConcurrent(playlistId,30)
                     }
-                        try {
-                            binding.rvSongs.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-                            binding.rvSongs.adapter = SongAdapter(json){
-                                lifecycleScope.launch {
-                                    val json = withContext(Dispatchers.IO) {
-                                        it.hash?.let { hash -> KugouAPi.getSongsUrl(hash) }
-                                    }
-                                    if (json == null || json == "502" || json == "404") {
-                                        Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
-                                    } else {
-                                        try {
-                                            val gson = Gson()
-                                            val result = gson.fromJson(json, GetSongUrlBase::class.java)
-                                            val url = result.backupUrl[0].toString()
+                    try {
+                        binding.playlistAllPlay.setOnClickListener {
+                            lifecycleScope.launch {
+                                withContext(Dispatchers.Main) {
+                                    player.setMediaItems(json.toMediaItemListParallel())
+                                }
+                            }
+                        }
+                        binding.rvSongs.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
+                        binding.rvSongs.adapter = SongAdapter(json){
+                            lifecycleScope.launch {
+                                val json = withContext(Dispatchers.IO) {
+                                    it.hash?.let { hash -> KugouAPi.getSongsUrl(hash) }
+                                }
+                                if (json == null || json == "502" || json == "404") {
+                                    Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
+                                } else {
+                                    try {
+                                        val gson = Gson()
+                                        val result = gson.fromJson(json, GetSongUrlBase::class.java)
+                                        val url = result.backupUrl[0].toString()
 
-                                            // 含真实 URL 和 ID 的占位 URI
-                                            val encodedUrl = URLEncoder.encode(url, "UTF-8")
-                                            val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}".toUri().toString()
+                                        // 含真实 URL 和 ID 的占位 URI
+                                        val encodedUrl = URLEncoder.encode(url, "UTF-8")
+                                        val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}".toUri().toString()
 
-                                            val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
+                                        val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
 
-                                            val item = it?.let { artist -> createMediaItemWithId(name?.first,
-                                                name?.second,
-                                                uri,
-                                                result) }
+                                        val item = it?.let { artist -> createMediaItemWithId(name?.first,
+                                            name?.second,
+                                            uri,
+                                            result) }
 
-                                            item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
+                                        item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
 
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                            Toast.makeText(
-                                                context,
-                                                "数据加载失败: ${e.message}",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        Toast.makeText(
+                                            context,
+                                            "数据加载失败: ${e.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
                             }
-
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            Toast.makeText(
-                                context,
-                                "数据加载失败: ${e.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
                         }
+
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            context,
+                            "数据加载失败: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
-
-            return root
         }
 
+        return root
+    }
 
-        private fun hideBottomNav(bottomNav: BottomNavigationView) {
-            val slideOut = ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
-            slideOut.duration = 100
-            slideOut.addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    bottomNav.visibility = View.GONE
-                }
-            })
-            slideOut.start()
-        }
+
+    private fun hideBottomNav(bottomNav: BottomNavigationView) {
+        val slideOut = ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
+        slideOut.duration = 100
+        slideOut.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                bottomNav.visibility = View.GONE
+            }
+        })
+        slideOut.start()
+    }
 
     suspend fun createMediaItemWithId(artist: String?, title: String?, url: String, result: GetSongUrlBase): MediaItem {
         val mediaId = "$artist - $title"
@@ -198,34 +213,43 @@ class PlaylistDetailFragment : Fragment() {
         return MediaItem.Builder().setUri(url).build()
     }
 
-    fun getAllSongsMergedMoshi(
+    suspend fun getAllSongsMergedConcurrent(
         ids: String,
         pageSize: Int = 50
-    ): List<Song>? {
+    ): List<Song> = coroutineScope {
         val moshi = Moshi.Builder()
             .add(KotlinJsonAdapterFactory())
             .build()
         val adapter = moshi.adapter(SongListBase::class.java)
 
-        val allSongs = mutableListOf<Song>()
-        var currentPage = 1
+        // 1. 拉取第一页，获取总条目 count
+        val firstJson = KugouAPi.getPlayListAllSongs(ids, 1, pageSize) ?: return@coroutineScope emptyList()
+        val firstPage = adapter.fromJson(firstJson) ?: return@coroutineScope emptyList()
+        val firstData = firstPage.data ?: return@coroutineScope emptyList()
 
-        while (true) {
-            val json = KugouAPi.getPlayListAllSongs(ids, currentPage, pageSize) ?: break
-            val songListBase = adapter.fromJson(json)
-            val songs = songListBase?.data?.songs ?: emptyList()
+        val totalCount = firstData.count
+        val totalPages = (totalCount + pageSize - 1) / pageSize
+        val allSongs = Collections.synchronizedList(firstData.songs.toMutableList())
 
-            if (songs.isEmpty()) break
-
-            allSongs.addAll(songs)
-
-            if (songs.size < pageSize) break
-
-            currentPage++
+        // 2. 并发拉取第2页及后续页面
+        val deferredList = (2..totalPages).map { page ->
+            async(Dispatchers.IO) {
+                try {
+                    val json = KugouAPi.getPlayListAllSongs(ids, page, pageSize) ?: return@async emptyList<Song>()
+                    val pageData = adapter.fromJson(json)
+                    pageData?.data?.songs ?: emptyList()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    emptyList<Song>()
+                }
+            }
         }
 
-        return allSongs
+        deferredList.awaitAll().forEach { allSongs.addAll(it) }
+
+        return@coroutineScope allSongs
     }
+
 
     fun splitArtistAndTitle(text: String): Pair<String, String>? {
         val parts = text.split(" - ", limit = 2)
@@ -233,6 +257,46 @@ class PlaylistDetailFragment : Fragment() {
             parts[0].trim() to parts[1].trim() // 保证去掉首尾空格，保留中间空格
         } else {
             null // 无法拆分，可能格式不标准
+        }
+    }
+
+    suspend fun List<Song>.toMediaItemListParallel(): List<MediaItem> = coroutineScope {
+        this@toMediaItemListParallel
+            .map { song ->
+                async {
+                    song.toMediaItemSuspend() // 注意是挂起函数
+                }
+            }
+            .awaitAll()
+            .filterNotNull()
+    }
+
+    suspend fun Song.toMediaItemSuspend(): MediaItem? {
+        if (this.name.isNullOrBlank() || this.hash.isNullOrBlank() || this.hash == "null" || this.shield != 0) {
+            return null
+        }
+
+        return try {
+            val json = withContext(Dispatchers.IO) {
+                KugouAPi.getSongsUrl(hash)
+            }
+
+            if (json == null || json == "502" || json == "404") {
+                null
+            } else {
+                val re = Gson().fromJson(json, GetSongUrlBase::class.java)
+                val url = re.backupUrl.getOrNull(0) ?: return null
+
+                val encodedUrl = URLEncoder.encode(url, "UTF-8")
+                val uri = "musicplay://playurl?id=${name + hash}&url=$encodedUrl".toUri().toString()
+
+                val (title, artist) = splitArtistAndTitle(name ?: "未知歌曲") ?: return null
+
+                createMediaItemWithId(title, artist, uri, re)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

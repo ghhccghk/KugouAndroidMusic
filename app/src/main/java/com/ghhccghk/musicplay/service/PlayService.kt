@@ -66,6 +66,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.graphics.createBitmap
 import androidx.media3.datasource.cache.CacheKeyFactory
+import androidx.media3.session.doUpdateNotification
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 
@@ -129,12 +130,16 @@ class PlayService : MediaSessionService() {
                                         }
 
                                         val lyricResult = lyricb.toString()
+
                                         lyric = lyricResult
+
+
                                         if (playbar.visibility != View.GONE) {
                                             playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
                                         }
 
                                         if (true) {
+                                            doUpdateNotification(mediaSession)
                                             // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                             SuperLyricPush.onSuperLyric(
                                                 SuperLyricData()
@@ -179,6 +184,7 @@ class PlayService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val repo = PlaylistRepository(MainActivity.lontext)
+        val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
 
         val cache = SimpleCache(
             File(this.getExternalFilesDir(null), "exo_music_cache"),
@@ -235,17 +241,18 @@ class PlayService : MediaSessionService() {
         )
             .build()
 
-
         run()
-
-
 
         CoroutineScope(Dispatchers.Main).launch {
             val list = repo.loadPlaylist().first()  // 只取一次
-            Log.d("debug", "数据库读取到了 ${list.size} 个项：$list")
             if (list.isNotEmpty()) {
                 val mediaItems = list.map { it.toMediaItem() }
+                val last = prefs.getInt("lastplayitem",-1)
                 player.setMediaItems(mediaItems)
+                player.prepare()
+                if (last != -1){
+                    player.seekToDefaultPosition(last)
+                }
                 val artist = player.mediaMetadata?.artist
                 val title = player.mediaMetadata?.title
 
@@ -352,7 +359,15 @@ class PlayService : MediaSessionService() {
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
                 } else {
                     serviceScope.launch {
-                        saveCurrentPlaylist(player, repo)
+                        if (player.playbackState != Player.STATE_IDLE && player.currentTimeline.isEmpty.not()) {
+                            val index = player.currentMediaItemIndex
+                            saveCurrentPlaylist(player, repo)
+                            prefs.edit().putInt("lastplayitem",index).apply()
+                            Log.d("ExoPlayer", "当前播放索引：$index")
+                        } else {
+                            Log.d("ExoPlayer", "播放列表未就绪")
+                        }
+
                     }
                     playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
                     playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
@@ -372,7 +387,7 @@ class PlayService : MediaSessionService() {
         })
 
         this.setMediaNotificationProvider(notificationProvider)
-        this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this){ lyric })
+        this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this) { lyric })
 
     }
 

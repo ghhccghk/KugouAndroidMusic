@@ -96,79 +96,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
-        TokenManager.init(this)
-
-        KugouAPi.init()
-
-        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
-        LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
-        Intent(this, NodeService::class.java).also {
-            bindService(it, connection, BIND_AUTO_CREATE)
-        }
-
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        val intent = Intent(this, NodeService::class.java)
-        startService(intent)
-
-        // 启动 Service
-        // 初始化媒体控制器
-        val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
-        viewModel.controllerFuture  = MediaController.Builder(this, sessionToken).buildAsync()
-
-
         if (isFirstRun(this)) {
             ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
+            start()
+        } else {
+            start()
         }
-
-        val navView: NavigationBarView = binding.navView
-        val navController = findNavController(R.id.nav_host_fragment_activity_main)
-
-
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        navView.setupWithNavController(navController)
-        playbar.setOnClickListener {
-            val navOptions = NavOptions.Builder()
-                .setEnterAnim(R.anim.fragment_enter)    // 进入动画
-                .setExitAnim(R.anim.fragment_exit)      // 退出动画
-                .setPopEnterAnim(R.anim.fragment_pop_enter)  // 弹出时的进入动画（从下往上）
-                .setPopExitAnim(R.anim.fragment_pop_exit)    // 弹出时的退出动画（从上往下）
-                .build()
-            // 跳转到播放 Fragment
-            navController.navigate(R.id.playerFragment,null,navOptions)
-
-            // 隐藏 BottomNavigationView
-            val a = findViewById<BottomNavigationView>(R.id.nav_view)
-            hideBottomNav(a)
-            hideLinearLayout(playbar,a)
-        }
-
-        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener{
-            if (controllerFuture.get().isPlaying){
-                controllerFuture.get().pause()
-                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_play_arrow_filled)
-            } else {
-                controllerFuture.get().play()
-                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_pause_filled)
-            }
-        }
-        controllerFuture.addListener({
-            val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
-            player.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
-                        if (isPlaying) R.drawable.ic_pause_filled else R.drawable.ic_play_arrow_filled
-                    )
-                }
-            })
-        }, ContextCompat.getMainExecutor(this))
-
     }
 
     fun isFirstRun(context: Context): Boolean {
-        val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isFirst = prefs.getBoolean("is_first_run", true)
         if (isFirst) {
             prefs.edit() { putBoolean("is_first_run", false) }
@@ -235,10 +172,22 @@ class MainActivity : AppCompatActivity() {
         }
         controllerFuture.addListener({
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+            val artlurl = player.mediaMetadata?.artworkUri.toString()
+            val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
+            if (artlurl.isNullOrBlank() || artlurl == "" || artlurl == "null") {
+                Log.d("MainActivity", "artlurl is ${artlurl.toString()} or blank")
+                Glide.with(playbar)
+                    .load(R.drawable.lycaon_icon)
+                    .into(playbaricon)
+            } else {
+                Log.d("MainActivity", "artlurl is ${artlurl.toString()}")
+                Glide.with(playbar)
+                    .load(player.mediaMetadata.artworkUri)
+                    .into(playbaricon)
+            }
+
             player.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    val artlurl = player.mediaMetadata?.artworkUri.toString()
-                    val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
                     playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
                         if (isPlaying) {
                             R.drawable.ic_pause_filled
@@ -256,6 +205,10 @@ class MainActivity : AppCompatActivity() {
                 }
             })
         }, ContextCompat.getMainExecutor(this))
+
+        binding.playerBar.findViewById<ImageButton>(R.id.playerbar_play_next).setOnClickListener {
+            controllerFuture.get().seekToNext()
+        }
 
 
     }
@@ -334,6 +287,75 @@ class MainActivity : AppCompatActivity() {
             get() = instance.viewModel.controllerFuture
         val playbar :LinearLayout
             get() = instance.findViewById<LinearLayout>(R.id.player_bar)
+    }
+
+
+    fun start(){
+        TokenManager.init(this)
+        KugouAPi.init()
+
+        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
+        LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
+        Intent(this, NodeService::class.java).also {
+            bindService(it, connection, BIND_AUTO_CREATE)
+        }
+
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        val intent = Intent(this, NodeService::class.java)
+        startService(intent)
+
+        // 启动 Service
+        // 初始化媒体控制器
+        val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
+        viewModel.controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
+
+        val navView: NavigationBarView = binding.navView
+        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+
+
+        // Passing each menu ID as a set of Ids because each
+        // menu should be considered as top level destinations.
+        navView.setupWithNavController(navController)
+        playbar.setOnClickListener {
+            val navOptions = NavOptions.Builder()
+                .setEnterAnim(R.anim.fragment_enter)    // 进入动画
+                .setExitAnim(R.anim.fragment_exit)      // 退出动画
+                .setPopEnterAnim(R.anim.fragment_pop_enter)  // 弹出时的进入动画（从下往上）
+                .setPopExitAnim(R.anim.fragment_pop_exit)    // 弹出时的退出动画（从上往下）
+                .build()
+            // 跳转到播放 Fragment
+            navController.navigate(R.id.playerFragment, null, navOptions)
+
+            // 隐藏 BottomNavigationView
+            val a = findViewById<BottomNavigationView>(R.id.nav_view)
+            hideBottomNav(a)
+            hideLinearLayout(playbar, a)
+        }
+
+        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener {
+            if (controllerFuture.get().isPlaying) {
+                controllerFuture.get().pause()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                    .setImageResource(R.drawable.ic_play_arrow_filled)
+            } else {
+                controllerFuture.get().play()
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                    .setImageResource(R.drawable.ic_pause_filled)
+            }
+        }
+        controllerFuture.addListener({
+            val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                        .setImageResource(
+                            if (isPlaying) R.drawable.ic_pause_filled else R.drawable.ic_play_arrow_filled
+                        )
+                }
+            })
+        }, ContextCompat.getMainExecutor(this))
     }
 
 }

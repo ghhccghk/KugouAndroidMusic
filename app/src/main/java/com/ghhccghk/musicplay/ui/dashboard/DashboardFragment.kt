@@ -66,8 +66,6 @@ class DashboardFragment : Fragment() {
 
 
 
-
-
         a {
             MainActivity.isNodeRunning  = it
         }
@@ -209,7 +207,7 @@ class DashboardFragment : Fragment() {
 
     fun addgetPlayListTag() {
         lifecycleScope.launch {
-            val loadView = binding.loadingPlaylist
+            val loadView = binding.loadingPlaylista
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getPlayListTag()
             }
