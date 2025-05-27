@@ -124,7 +124,7 @@ class PlaylistDetailFragment : Fragment() {
                                     try {
                                         val gson = Gson()
                                         val result = gson.fromJson(json, GetSongUrlBase::class.java)
-                                        val url = result.backupUrl[0].toString()
+                                        val url = result?.backupUrl[0].toString()
 
                                         // 含真实 URL 和 ID 的占位 URI
                                         val encodedUrl = URLEncoder.encode(url, "UTF-8")

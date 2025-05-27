@@ -20,4 +20,8 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keepnames class com.ghhccghk.musicplay.data.libraries.** { *; }
+-keep class com.ghhccghk.musicplay.data.** { *; }
+-keep class com.ghhccghk.musicplay.util.NodeBridge {
+    *;
+}
+-keep class com.hchen.superlyricapi.** { *;}
