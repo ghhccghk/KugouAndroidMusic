@@ -8,15 +8,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewPropertyAnimator
 import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.SeekBar
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.isInvisible
 import androidx.fragment.app.Fragment
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -28,6 +31,17 @@ import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
 import com.ghhccghk.musicplay.ui.components.SquigglyProgress
+import com.ghhccghk.musicplay.util.AudioFormatDetector
+import com.ghhccghk.musicplay.util.AudioFormatDetector.AudioFormatInfo
+import com.ghhccghk.musicplay.util.AudioFormatDetector.AudioQuality
+import com.ghhccghk.musicplay.util.AudioFormatDetector.SpatialFormat
+import com.ghhccghk.musicplay.util.Tools.dpToPx
+import com.ghhccghk.musicplay.util.Tools.fadInAnimation
+import com.ghhccghk.musicplay.util.Tools.fadOutAnimation
+import com.ghhccghk.musicplay.util.Tools.formatMillis
+import com.ghhccghk.musicplay.util.Tools.getAudioFormat
+import com.ghhccghk.musicplay.util.Tools.playOrPause
+import com.ghhccghk.musicplay.util.Tools.startAnimation
 import com.ghhccghk.musicplay.util.ui.CalculationUtils
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
@@ -41,6 +55,9 @@ class PlayerFragment() : Fragment() {
     private lateinit var player : MediaController
     private var isUserTracking = false
     private lateinit var context: Context
+    private var enableQualityInfo = true
+
+    private var currentFormat: AudioFormatDetector.AudioFormats? = null
 
     private val touchListener =
         object : SeekBar.OnSeekBarChangeListener, Slider.OnSliderTouchListener {
@@ -100,7 +117,6 @@ class PlayerFragment() : Fragment() {
                 binding.position.text = formatMillis(player.currentPosition)
                 binding.duration.text = formatMillis(player.duration)
             }
-
             handler.postDelayed(this, 130)
         }
     }
@@ -154,6 +170,9 @@ class PlayerFragment() : Fragment() {
             object : Player.Listener {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
+                    val format = player.getAudioFormat()
+                    updateQualityIndicators(if (enableQualityInfo)
+                        AudioFormatDetector.detectAudioFormat(format) else null)
                     if (_binding != null ){
                         Glide.with(binding.root)
                             .load(player.mediaMetadata.artworkUri)
@@ -163,6 +182,9 @@ class PlayerFragment() : Fragment() {
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     if (_binding != null){
+                        val format = player.getAudioFormat()
+                        updateQualityIndicators(if (enableQualityInfo)
+                            AudioFormatDetector.detectAudioFormat(format) else null)
                         if (player.isPlaying) {
                             progressDrawable.animate = true
                             Glide.with(binding.root)
@@ -329,28 +351,87 @@ class PlayerFragment() : Fragment() {
         handler.removeCallbacksAndMessages(null)
     }
 
-    @SuppressLint("DefaultLocale")
-    fun formatMillis(millis: Long): String {
-        val minutes = millis / 1000 / 60
-        val seconds = (millis / 1000) % 60
-        return String.format("%02d:%02d", minutes, seconds)
-    }
-
-    fun Player.playOrPause() {
-        if (playWhenReady) {
-            pause()
-        } else {
-            play()
+    private fun updateQualityIndicators(info: AudioFormatInfo?) {
+        Log.d("PlayerFragment", "updateQualityIndicators: $info")
+        val oldInfo = (binding.qualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?)
+        if (oldInfo == info) return
+        (binding.qualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
+        (binding.qualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
+        if (info == null && binding.qualityDetails.isInvisible) return
+        if (oldInfo != null)
+            applyQualityInfo(oldInfo)
+        binding.qualityDetails.setTag(R.id.quality_details, info)
+        binding.qualityDetails.fadOutAnimation(300) {
+            if (info == null)
+                return@fadOutAnimation
+            applyQualityInfo(info)
+            binding.qualityDetails.fadInAnimation(300)
         }
     }
 
-    fun Drawable.startAnimation() {
-        when (this) {
-            is AnimatedVectorDrawable -> start()
-            is AnimatedVectorDrawableCompat -> start()
-            else -> throw IllegalArgumentException()
+    private fun applyQualityInfo(info: AudioFormatInfo) {
+        val icon = when (info.spatialFormat) {
+            SpatialFormat.SURROUND_5_0,
+            SpatialFormat.SURROUND_5_1,
+            SpatialFormat.SURROUND_6_1,
+            SpatialFormat.SURROUND_7_1 -> R.drawable.ic_surround_sound
+
+            SpatialFormat.DOLBY_AC3,
+            SpatialFormat.DOLBY_AC4,
+            SpatialFormat.DOLBY_EAC3,
+            SpatialFormat.DOLBY_EAC3_JOC -> R.drawable.ic_dolby
+
+            // TODO dts icon
+
+            else -> when (info.quality) {
+                AudioQuality.HIRES -> R.drawable.ic_high_res
+                AudioQuality.HD -> R.drawable.ic_hd
+                AudioQuality.CD -> R.drawable.ic_cd
+                AudioQuality.LOSSY -> R.drawable.ic_lossy
+                else -> null
+            }
+        }
+
+        val drawable = icon?.let { iconRes ->
+            AppCompatResources.getDrawable(context, iconRes)?.apply {
+                setBounds(0, 0, 18.dpToPx(context), 18.dpToPx(context))
+            }
+        }
+        binding.qualityDetails.setCompoundDrawablesRelative(drawable, null, null, null)
+
+        binding.qualityDetails.text = buildString {
+            var hadFirst = false
+            info.bitDepth?.let {
+                hadFirst = true
+                append("${it}bit")
+            }
+            if (info.sampleRate != null) {
+                if (hadFirst)
+                    append(" / ")
+                else
+                    hadFirst = true
+                append("${info.sampleRate / 1000f}kHz")
+            }
+            if (info.sourceChannels != null) {
+                if (hadFirst)
+                    append(" / ")
+                else
+                    hadFirst = true
+                append("${info.sourceChannels}ch")
+            }
+            info.bitrate?.let {
+                if (hadFirst)
+                    append(" / ")
+                else
+                    hadFirst = true
+                append("${it / 1000}kbps")
+            }
         }
     }
+
+
+
+
 
 
 

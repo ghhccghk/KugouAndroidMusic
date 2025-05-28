@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -15,7 +16,9 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.VectorDrawable
+import android.media.AudioDeviceInfo
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
@@ -24,6 +27,8 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.OptIn
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -65,18 +70,42 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.graphics.createBitmap
+import androidx.core.os.BundleCompat
+import androidx.media3.common.Format
 import androidx.media3.datasource.cache.CacheKeyFactory
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.source.MediaLoadData
+import androidx.media3.session.CommandButton
+import androidx.media3.session.MediaController
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
+import androidx.media3.session.SessionResult
 import androidx.media3.session.doUpdateNotification
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bitrate
+import com.ghhccghk.musicplay.util.AfFormatInfo
+import com.ghhccghk.musicplay.util.AfFormatTracker
+import com.ghhccghk.musicplay.util.AudioFormatDetector
+import com.ghhccghk.musicplay.util.AudioTrackInfo
+import com.ghhccghk.musicplay.util.BtCodecInfo
+import com.ghhccghk.musicplay.util.Tools.getBitrate
+import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 
 
-class PlayService : MediaSessionService() {
+@UnstableApi
+class PlayService : MediaSessionService(),
+    MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, AnalyticsListener {
 
     companion object {
         const val CHANNEL_ID = "audio_player_channel"
         const val NOTIF_ID = 101
         private const val PENDING_INTENT_SESSION_ID = 0
+        const val SERVICE_GET_AUDIO_FORMAT = "get_audio_format"
     }
     private lateinit var mediaSession: MediaSession
     private var lyric : String = ""
@@ -85,6 +114,75 @@ class PlayService : MediaSessionService() {
 
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private lateinit var afFormatTracker: AfFormatTracker
+    private var downstreamFormat: Format? = null
+    private lateinit var handler: Handler
+    private lateinit var playbackHandler: Handler
+    private var audioSinkInputFormat: Format? = null
+    private var audioTrackInfo: AudioTrackInfo? = null
+    private var audioTrackInfoCounter = 0
+    private var audioTrackReleaseCounter = 0
+    private var btInfo: BtCodecInfo? = null
+    private var bitrate: Long? = null
+    private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
+
+    private val sessionCallback = object : MediaSession.Callback {
+        // Configure commands available to the controller in onConnect()
+        @OptIn(UnstableApi::class)
+        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo)
+                : MediaSession.ConnectionResult {
+            val availableSessionCommands =
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+            Log.d("PlayService", "onConnect: $availableSessionCommands")
+            availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
+
+
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(availableSessionCommands.build())
+                .build()
+        }
+
+        @OptIn(UnstableApi::class)
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle
+        ): ListenableFuture<SessionResult> {
+            Log.d("PlayService", "执行的onCustomCommand")
+            return Futures.immediateFuture(
+                when (customCommand.customAction) {
+                    SERVICE_GET_AUDIO_FORMAT -> {
+                        SessionResult(SessionResult.RESULT_SUCCESS).also {
+                            Log.d("PlayService", "执行的onCustomCommand ${downstreamFormat.toString()}")
+                            it.extras.putBundle("file_format", downstreamFormat?.toBundle())
+                            it.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
+                            it.extras.putParcelable("track_format", audioTrackInfo)
+                            it.extras.putParcelable("hal_format", afFormatTracker.format)
+                            bitrate?.let { value -> it.extras.putLong("bitrate", value) }
+                            if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+                                it.extras.putParcelable("bt", btInfo)
+                            }
+                        }
+                    }
+                    else -> {
+                        SessionResult(SessionError.ERROR_BAD_VALUE)
+                    }
+                })
+        }
+    }
+
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        bitrate = null
+        bitrateFetcher.launch {
+            bitrate = mediaItem?.getBitrate() // TODO subtract cover size
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+    }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     fun run() {
@@ -218,15 +316,29 @@ class PlayService : MediaSessionService() {
 
         //val factory = DataSource.Factory { assetDataSource }
 
+        playbackHandler = Handler(Looper.getMainLooper())
+
+        afFormatTracker = AfFormatTracker(this, playbackHandler)
+        afFormatTracker.formatChangedCallback = {
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+
         // 初始化 ExoPlayer
-        val player: ExoPlayer = ExoPlayer.Builder(this)
+        val player: ExoPlayer = ExoPlayer.Builder(this, GramophoneRenderFactory(
+            this, this::onAudioSinkInputFormatChanged,
+            afFormatTracker::setAudioSink
+        )
+        )
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
+        player.addAnalyticsListener(this)
 
         //通知点击返回应用
         val packageManager: PackageManager = getPackageManager()
         val it: Intent? = packageManager.getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
-
 
         mediaSession = MediaSession.Builder(
             this,
@@ -238,8 +350,7 @@ class PlayService : MediaSessionService() {
                 it,
                 FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-        )
-            .build()
+        ).setCallback(sessionCallback).build()
 
         run()
 
@@ -263,6 +374,11 @@ class PlayService : MediaSessionService() {
 
         val artist = player.mediaMetadata?.artist
         val title = player.mediaMetadata?.title
+
+        mediaSession.broadcastCustomCommand(
+            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
 
 
         playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
@@ -395,6 +511,63 @@ class PlayService : MediaSessionService() {
         return mediaSession
     }
 
+    override fun onAudioTrackInitialized(
+        eventTime: AnalyticsListener.EventTime,
+        audioTrackConfig: AudioSink.AudioTrackConfig
+    ) {
+        audioTrackInfoCounter++
+        audioTrackInfo = AudioTrackInfo.fromMedia3AudioTrackConfig(audioTrackConfig)
+        mediaSession?.broadcastCustomCommand(
+            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+    }
+
+    override fun onAudioTrackReleased(
+        eventTime: AnalyticsListener.EventTime,
+        audioTrackConfig: AudioSink.AudioTrackConfig
+    ) {
+        // Normally called after the replacement has been initialized, but if old track is released
+        // without replacement, we want to instantly know that instead of keeping stale data.
+        if (++audioTrackReleaseCounter == audioTrackInfoCounter) {
+            audioTrackInfo = null
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+    }
+
+    override fun onDownstreamFormatChanged(
+        eventTime: AnalyticsListener.EventTime,
+        mediaLoadData: MediaLoadData
+    ) {
+        downstreamFormat = mediaLoadData.trackFormat
+        mediaSession?.broadcastCustomCommand(
+            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+    }
+
+    private fun onAudioSinkInputFormatChanged(inputFormat: Format?) {
+        audioSinkInputFormat = inputFormat
+        mediaSession?.broadcastCustomCommand(
+            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+    }
+
+    override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
+        if (state == Player.STATE_IDLE) {
+            downstreamFormat = null
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+    }
+
+
     fun drawableToBase64(drawable: Drawable): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (drawable is AdaptiveIconDrawable) {
@@ -444,6 +617,8 @@ class PlayService : MediaSessionService() {
             ""
         }
     }
+
+
 
     private fun makeDrawableToBitmap(drawable: Drawable): Bitmap {
         val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
@@ -591,9 +766,4 @@ class PlayService : MediaSessionService() {
         // 批量插入数据库
         dao.savePlaylist(entities)
     }
-
-
-
-
-
 }
