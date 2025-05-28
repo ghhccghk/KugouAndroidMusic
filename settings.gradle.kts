@@ -22,5 +22,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "musicplay"
-include(":app")
+include(":hificore",":app")
  

@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.abc) apply false
     id("com.google.devtools.ksp")
+    kotlin("plugin.parcelize")
     kotlin("plugin.serialization") version "1.9.0"
 }
 
@@ -90,7 +91,7 @@ android {
 }
 
 dependencies {
-
+    implementation(project(":hificore"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -175,9 +176,10 @@ dependencies {
     implementation (libs.androidx.room.rxjava2)
     implementation( libs.androidx.room.ktx)
 
-    // 如果你也用 RxJava2 本体，确保这也有
     implementation (libs.rxjava)
     implementation(libs.rxandroid)
+
+    implementation(libs.androidx.mediarouter)
 
 
 }
