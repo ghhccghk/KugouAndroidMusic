@@ -30,6 +30,7 @@ import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
+import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.SquigglyProgress
 import com.ghhccghk.musicplay.util.AudioFormatDetector
 import com.ghhccghk.musicplay.util.AudioFormatDetector.AudioFormatInfo
@@ -165,15 +166,24 @@ class PlayerFragment() : Fragment() {
                 .into(binding.fullSheetCover)
         }
 
+        val format = player.getAudioFormat()
+
+        if(_binding != null){
+            updateQualityIndicators(
+                if (enableQualityInfo)
+                    AudioFormatDetector.detectAudioFormat(format) else null
+            )
+        }
+
 
         player.addListener(
             object : Player.Listener {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
                     val format = player.getAudioFormat()
-                    updateQualityIndicators(if (enableQualityInfo)
-                        AudioFormatDetector.detectAudioFormat(format) else null)
                     if (_binding != null ){
+                        updateQualityIndicators(if (enableQualityInfo)
+                            AudioFormatDetector.detectAudioFormat(format) else null)
                         Glide.with(binding.root)
                             .load(player.mediaMetadata.artworkUri)
                             .into(binding.fullSheetCover)
@@ -309,6 +319,10 @@ class PlayerFragment() : Fragment() {
         }
         binding.sheetPreviousSong.setOnClickListener {
             player.seekToPrevious()
+        }
+
+        binding.playlist.setOnClickListener {
+            GlobalPlaylistBottomSheetController.show()
         }
 
         return root
