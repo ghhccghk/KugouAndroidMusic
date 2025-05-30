@@ -10,55 +10,43 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.annotation.OptIn
 import com.google.android.material.navigation.NavigationBarView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import androidx.core.content.edit
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavOptions
-import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
-import com.ghhccghk.musicplay.data.getLyricCode
-import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
-import com.ghhccghk.musicplay.data.libraries.lrcId
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.service.NodeService
 import com.ghhccghk.musicplay.service.PlayService
+import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
+import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Socket
 import kotlin.getValue
 
 class MainActivity : AppCompatActivity() {
@@ -290,6 +278,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    @OptIn(UnstableApi::class)
     fun start(){
         TokenManager.init(this)
         KugouAPi.init()
@@ -345,8 +334,41 @@ class MainActivity : AppCompatActivity() {
                     .setImageResource(R.drawable.ic_pause_filled)
             }
         }
+
+        binding.playerbarPlaylist.setOnClickListener {
+            GlobalPlaylistBottomSheetController.show()
+        }
+
         controllerFuture.addListener({
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+
+            player.addListener(object : Player.Listener {
+                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                    super.onMediaMetadataChanged(mediaMetadata)
+                    val itemCount = controllerFuture.get().mediaItemCount
+                    val mediaItems = List(itemCount) { index ->  controllerFuture.get().getMediaItemAt(index) }
+
+                    binding.comui.setContent {
+                        PlaylistBottomSheet(
+                            controller = GlobalPlaylistBottomSheetController,
+                            songs = mediaItems,
+                            onDismissRequest = { GlobalPlaylistBottomSheetController._visible.value = false },
+                            onSongClick = { i, _ ->
+                                controllerFuture.get().seekTo(i, 0)
+                                controllerFuture.get().play()
+                            },
+                            onDeleteClick = { i, _ ->
+                                controllerFuture.get().removeMediaItem(i)
+                                Toast.makeText(lontext, "已删除了 ${mediaItems[i].mediaMetadata.title}", Toast.LENGTH_SHORT).show()
+                            },
+                            currentIndex = {
+                                controllerFuture.get().currentMediaItemIndex
+                            }
+                        )
+                    }
+                }
+            })
+
             player.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
