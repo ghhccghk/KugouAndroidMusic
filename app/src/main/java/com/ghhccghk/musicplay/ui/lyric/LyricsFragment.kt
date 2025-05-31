@@ -4,12 +4,13 @@ package com.ghhccghk.musicplay.ui.lyric
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Bundle
-import  android.renderscript.Allocation
+import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
@@ -19,24 +20,25 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.annotation.OptIn
-import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import androidx.fragment.app.Fragment
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.palette.graphics.Palette
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.widgets.YosLyricView
 import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
@@ -45,11 +47,10 @@ import com.ghhccghk.musicplay.util.lrc.YosUIConfig
 class LyricsFragment: Fragment() {
 
     private var _binding: FragmentLyricsBinding? = null
-
+    val play = MainActivity.controllerFuture.get()
     private val binding get() = _binding!!
 
-    val lrcEntries: MutableState<List<List<Pair<Float, String>>>> =
-        MediaViewModelObject.lrcEntries
+
 
     @OptIn(UnstableApi::class)
     override fun onCreateView(
@@ -79,12 +80,11 @@ class LyricsFragment: Fragment() {
 
         return root
     }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         testlyric()
     }
-
-
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -93,50 +93,27 @@ class LyricsFragment: Fragment() {
 
     @OptIn(UnstableApi::class)
     fun testlyric() {
-        val play = MainActivity.controllerFuture
-        val imageUrl = play.get().mediaMetadata.artworkUri
-
-        Glide.with(this)
-            .asBitmap()
-            .load(imageUrl)
-            .into(object : CustomTarget<Bitmap>() {
-                val times = 5  // 模糊叠加3次
-                val radius = 25f
-
-                override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        // 31+ 用 View 的 setRenderEffect 方式
-                        val drawable = resource.toDrawable(resources)
-                        val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, drawable.toBitmap(), radius, times)
-                        binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-                        binding.backgroundImage.setRenderEffect(
-                            RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
-                        )
-                    } else {
-
-                        // 手动模糊
-                        val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
-                        val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
-                        binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-                    }
+        play.addListener(object : Player.Listener{
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                super.onMediaMetadataChanged(mediaMetadata)
+                if (_binding != null){
+                    updatebg()
                 }
-
-                override fun onLoadCleared(placeholder: Drawable?) {}
-            })
-
-
+            }
+        })
+        updatebg()
         binding.lyricsContainerComposeView.setContent {
+            showControl.value = false
             YosLyricView(
                 uiConfig = YosUIConfig( mainTextBasicColor = MainActivity.lontext.resources.getColor(R.color.lyric_main).toLong(),
                     subTextBasicColor = MainActivity.lontext.resources.getColor(R.color.lyric_sub).toLong()),
-                lrcEntriesLambda = { lrcEntries.value },
-                liveTimeLambda = { (play.get()?.currentPosition?: 0).toInt() },
+                liveTimeLambda = { ( play.currentPosition?: 0).toInt() },
                 mediaEvent = object : YosMediaEvent {
                     override fun onSeek(position: Int) {
-                        play.get()?.seekTo(position.toLong())
+                        play.seekTo(position.toLong())
                     }
                 },
-                weightLambda = { false },
+                weightLambda = { showControl.value },
                 blurLambda = { false },
                 modifier = Modifier.drawWithCache {
                     onDrawWithContent {
@@ -150,46 +127,46 @@ class LyricsFragment: Fragment() {
 
                         val colors = if (false) {
                             listOf(
-                                Color.Transparent,
-                                Color(0x59000000),
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color(0x59000000),
-                                Color(0x21000000),
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Transparent
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color(0x59000000),
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color(0x59000000),
+                                androidx.compose.ui.graphics.Color(0x21000000),
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color.Transparent
                             )
                         } else {
                             listOf(
-                                Color.Transparent,
-                                Color(0x59000000),
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black,
-                                Color.Black
+                                androidx.compose.ui.graphics.Color.Transparent,
+                                androidx.compose.ui.graphics.Color(0x59000000),
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black,
+                                androidx.compose.ui.graphics.Color.Black
                             )
                         }
 
@@ -204,6 +181,7 @@ class LyricsFragment: Fragment() {
                     }
                 },
                 onBackClick = {
+                    showControl.value = true
                 }
             )
         }
@@ -212,6 +190,7 @@ class LyricsFragment: Fragment() {
     override fun onResume() {
         super.onResume()
         val window = requireActivity().window
+        showControl.value = false
         if (MainActivity.isNodeRunning){
             testlyric()
         }
@@ -228,6 +207,7 @@ class LyricsFragment: Fragment() {
 
     override fun onPause() {
         super.onPause()
+        showControl.value = true
         val window = requireActivity().window
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.show(WindowInsets.Type.statusBars())
@@ -265,6 +245,58 @@ class LyricsFragment: Fragment() {
         return input
     }
 
+    // Generate palette synchronously and return it.
+    fun createPaletteSync(bitmap: Bitmap): Palette = Palette.from(bitmap).generate()
+
+    fun updatebg(){
+
+        val imageUrl = play.mediaMetadata.artworkUri
+
+        Glide.with(this)
+            .asBitmap()
+            .load(imageUrl)
+            .into(object : CustomTarget<Bitmap>() {
+                val times = 5  // 模糊叠加3次
+                val radius = 25f
+                override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
+                    // 31+ 用 View 的 setRenderEffect 方式
+                    val drawable = resource.toDrawable(resources)
+                    val palette = createPaletteSync(resource)
+                    val darkMuted = palette.getDarkMutedColor(Color.BLACK)
+                    val darkVibrant = palette.getDarkVibrantColor(Color.BLACK)
+                    // fallback: 如果都为 null，可以手动选择一个更深的颜色
+                    val backgroundColor = darkMuted ?: darkVibrant ?: Color.BLACK
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (backgroundColor == Color.BLACK){
+                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, drawable.toBitmap(), radius, times)
+                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+                            binding.backgroundImage.setRenderEffect(
+                                RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
+                            )
+                        } else {
+                            binding.backgroundImage.setBackgroundColor(backgroundColor)
+                        }
+
+                    } else {
+
+                        if (backgroundColor == Color.BLACK){
+                            // 手动模糊
+                            val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
+                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
+                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+                        } else {
+                            binding.backgroundImage.setBackgroundColor(backgroundColor)
+                        }
+
+                    }
+                }
+
+                override fun onLoadCleared(placeholder: Drawable?) {}
+            })
+
+
+    }
 
 
 }
