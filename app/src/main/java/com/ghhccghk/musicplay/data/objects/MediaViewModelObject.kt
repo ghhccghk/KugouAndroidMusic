@@ -13,14 +13,11 @@ object MediaViewModelObject {
     val otherSideForLines = mutableStateListOf<Boolean>()
 
     // var mainLyricLines = mutableStateListOf<AnnotatedString>()
-
-    val bitmap: MutableState<Uri?> = mutableStateOf(null)
-
-    val isPlaying: MutableState<Boolean> = mutableStateOf(false)
+    val showControl: MutableState<Boolean> = mutableStateOf(false)
 
     val bitrate = mutableIntStateOf(0)
-    val samplingRate = mutableIntStateOf(0)
-    val isDolby = mutableStateOf(false)
+
+    val bgcolor = mutableIntStateOf(0)
 
     // val songSort = mutableStateOf(SettingData.getString("yos_player_song_sort", "MUSIC_TITLE"))
     // val enableDescending = mutableStateOf(SettingData.get("yos_player_enable_descending", false))

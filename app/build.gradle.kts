@@ -181,6 +181,8 @@ dependencies {
 
     implementation(libs.androidx.mediarouter)
 
+    implementation(libs.androidx.palette.ktx)
+
 
 
 }

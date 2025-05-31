@@ -1,34 +1,40 @@
+@file:Suppress("DEPRECATION")
+
 package com.ghhccghk.musicplay.ui.player
 
-import android.annotation.SuppressLint
+import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.drawable.AnimatedVectorDrawable
+import android.content.res.ColorStateList
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.os.Build
+import android.graphics.drawable.TransitionDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.preference.PreferenceManager
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewPropertyAnimator
-import android.view.WindowInsets
-import android.view.WindowManager
 import android.widget.SeekBar
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.scale
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.isInvisible
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.navigation.fragment.findNavController
-import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bgcolor
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.SquigglyProgress
@@ -43,9 +49,17 @@ import com.ghhccghk.musicplay.util.Tools.formatMillis
 import com.ghhccghk.musicplay.util.Tools.getAudioFormat
 import com.ghhccghk.musicplay.util.Tools.playOrPause
 import com.ghhccghk.musicplay.util.Tools.startAnimation
-import com.ghhccghk.musicplay.util.ui.CalculationUtils
+import com.ghhccghk.musicplay.util.ui.ColorUtils
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PlayerFragment() : Fragment() {
 
@@ -59,6 +73,23 @@ class PlayerFragment() : Fragment() {
     private var enableQualityInfo = true
 
     private var currentFormat: AudioFormatDetector.AudioFormats? = null
+
+    private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
+
+
+    //动态取色相关
+    private var currentJob: Job? = null
+    private var wrappedContext: Context? = null
+    private var fullPlayerFinalColor: Int = -1
+    private var colorPrimaryFinalColor: Int = -1
+    private var colorSecondaryContainerFinalColor: Int = -1
+    private var colorOnSecondaryContainerFinalColor: Int = -1
+    private var colorContrastFaintedFinalColor: Int = -1
+
+    companion object {
+        const val BACKGROUND_COLOR_TRANSITION_SEC: Long = 300
+        const val FOREGROUND_COLOR_TRANSITION_SEC: Long = 150
+    }
 
     private val touchListener =
         object : SeekBar.OnSeekBarChangeListener, Slider.OnSliderTouchListener {
@@ -122,6 +153,7 @@ class PlayerFragment() : Fragment() {
         }
     }
 
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -130,9 +162,28 @@ class PlayerFragment() : Fragment() {
         _binding = FragmentPlayerBinding.inflate(inflater, container, false)
         context = requireContext()
         player = MainActivity.controllerFuture.get()
+
         val seekBar = binding.sliderSquiggly
         val slider = binding.sliderVert
         val root: View = binding.root
+
+        fullPlayerFinalColor = MaterialColors.getColor(
+            root,
+            com.google.android.material.R.attr.colorSurface
+        )
+        colorPrimaryFinalColor = MaterialColors.getColor(
+            root,
+            com.google.android.material.R.attr.colorPrimary
+        )
+        colorOnSecondaryContainerFinalColor = MaterialColors.getColor(
+            root,
+            com.google.android.material.R.attr.colorOnSecondaryContainer
+        )
+        colorSecondaryContainerFinalColor = MaterialColors.getColor(
+            root,
+            com.google.android.material.R.attr.colorSecondaryContainer
+        )
+
         val seekBarProgressWavelength =
             context.resources
                 .getDimensionPixelSize(R.dimen.media_seekbar_progress_wavelength)
@@ -161,9 +212,19 @@ class PlayerFragment() : Fragment() {
         }
 
         if (player.mediaMetadata.artworkUri != null ){
+            val url = player.mediaMetadata.artworkUri
             Glide.with(binding.root)
                 .load(player.mediaMetadata.artworkUri)
                 .into(binding.fullSheetCover)
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    val a = Glide.with(context)
+                        .load(url)
+                        .submit()
+                        .get() // 注意：这是同步操作，需放在协程或后台线程中
+                    addColorScheme(a)
+                }
+            }
         }
 
         val format = player.getAudioFormat()
@@ -181,17 +242,29 @@ class PlayerFragment() : Fragment() {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
                     val format = player.getAudioFormat()
+                    val url = player.mediaMetadata.artworkUri
                     if (_binding != null ){
                         updateQualityIndicators(if (enableQualityInfo)
                             AudioFormatDetector.detectAudioFormat(format) else null)
                         Glide.with(binding.root)
-                            .load(player.mediaMetadata.artworkUri)
+                            .load(url)
                             .into(binding.fullSheetCover)
                     }
                 }
 
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     if (_binding != null){
+                        val url = player.mediaMetadata.artworkUri
+                        lifecycleScope.launch {
+                            withContext(Dispatchers.IO) {
+                                val a = Glide.with(context)
+                                    .load(url)
+                                    .submit()
+                                    .get() // 注意：这是同步操作，需放在协程或后台线程中
+                                addColorScheme(a)
+                            }
+                        }
+
                         val format = player.getAudioFormat()
                         updateQualityIndicators(if (enableQualityInfo)
                             AudioFormatDetector.detectAudioFormat(format) else null)
@@ -212,9 +285,19 @@ class PlayerFragment() : Fragment() {
                                 binding.sheetMidButton.tag = 1
                             }
                         } else {
+                            val url = player.mediaMetadata.artworkUri
                             Glide.with(binding.root)
                                 .load(player.mediaMetadata.artworkUri)
                                 .into(binding.fullSheetCover)
+                            lifecycleScope.launch {
+                                withContext(Dispatchers.IO) {
+                                    val a = Glide.with(context)
+                                        .load(url)
+                                        .submit()
+                                        .get() // 注意：这是同步操作，需放在协程或后台线程中
+                                    addColorScheme(a)
+                                }
+                            }
                             if (player.playbackState != Player.STATE_BUFFERING) {
                                 if (binding.sheetMidButton.tag != 2) {
                                     binding.sheetMidButton.icon =
@@ -338,23 +421,27 @@ class PlayerFragment() : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        showControl.value = true
         handler.post(updateRunnable)
     }
 
     override fun onStop() {
         super.onStop()
         handler.removeCallbacks(updateRunnable)
+        currentJob?.cancel()
     }
 
 
     override fun onResume() {
         super.onResume()
+        showControl.value = true
         handler.post(updateRunnable)
 
     }
 
     override fun onPause() {
         super.onPause()
+        currentJob?.cancel()
         handler.removeCallbacks(updateRunnable)
 
     }
@@ -362,7 +449,259 @@ class PlayerFragment() : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        currentJob?.cancel()
         handler.removeCallbacksAndMessages(null)
+    }
+
+    private fun addColorScheme(a: Drawable) {
+        currentJob?.cancel()
+        currentJob = CoroutineScope(Dispatchers.Default).launch {
+            var drawable = a
+            if (drawable is TransitionDrawable) drawable = drawable.getDrawable(1)
+            val bitmap = if (drawable is BitmapDrawable) drawable.bitmap else {
+                removeColorScheme()
+                return@launch
+            }
+            val colorAccuracy = prefs.getBoolean("color_accuracy", false)
+            val targetWidth = if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16
+            val targetHeight = if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16
+            val scaledBitmap = bitmap.scale(targetWidth, targetHeight, false)
+
+            val options = DynamicColorsOptions.Builder()
+                .setContentBasedSource(scaledBitmap)
+                .build() // <-- this is computationally expensive!
+
+            wrappedContext = DynamicColors.wrapContextIfAvailable(
+                context,
+                options
+            ).apply {
+                // TODO does https://stackoverflow.com/a/58004553 describe this or another bug? will google ever fix anything?
+                resources.configuration.uiMode = context.resources.configuration.uiMode
+            }
+
+            applyColorScheme()
+        }
+    }
+
+    private suspend fun applyColorScheme() {
+        val ctx = wrappedContext ?: context
+
+        val colorSurface = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorSurface,
+            -1
+        )
+
+        val colorOnSurface = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorOnSurface,
+            -1
+        )
+
+        val colorOnSurfaceVariant = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+            -1
+        )
+
+        val colorPrimary =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorPrimary,
+                -1
+            )
+
+        val colorSecondaryContainer =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorSecondaryContainer,
+                -1
+            )
+
+        val colorOnSecondaryContainer =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorOnSecondaryContainer,
+                -1
+            )
+
+        val selectorBackground =
+            AppCompatResources.getColorStateList(
+                ctx,
+                R.color.sl_check_button
+            )
+
+        val selectorFavBackground =
+            AppCompatResources.getColorStateList(
+                ctx,
+                R.color.sl_fav_button
+            )
+
+        val colorAccent =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorAccent,
+                -1
+            )
+
+        val backgroundProcessedColor = ColorUtils.getColor(
+            colorSurface,
+            ColorUtils.ColorType.COLOR_BACKGROUND_ELEVATED,
+            ctx
+        )
+
+        val colorContrastFainted = ColorUtils.getColor(
+            colorSecondaryContainer,
+            ColorUtils.ColorType.COLOR_CONTRAST_FAINTED,
+            ctx
+        )
+
+        val surfaceTransition = ValueAnimator.ofArgb(
+            fullPlayerFinalColor,
+            backgroundProcessedColor
+        )
+
+        val primaryTransition = ValueAnimator.ofArgb(
+            colorPrimaryFinalColor,
+            colorPrimary
+        )
+
+        val secondaryContainerTransition = ValueAnimator.ofArgb(
+            colorSecondaryContainerFinalColor,
+            colorSecondaryContainer
+        )
+
+        val onSecondaryContainerTransition = ValueAnimator.ofArgb(
+            colorOnSecondaryContainerFinalColor,
+            colorOnSecondaryContainer
+        )
+
+        val colorContrastFaintedTransition = ValueAnimator.ofArgb(
+            colorContrastFaintedFinalColor,
+            colorContrastFainted
+        )
+
+
+        primaryTransition.apply {
+            addUpdateListener { animation ->
+                val progressColor = animation.animatedValue as Int
+                binding.sliderVert.thumbTintList =
+                    ColorStateList.valueOf(progressColor)
+                binding.sliderVert.trackActiveTintList =
+                    ColorStateList.valueOf(progressColor)
+                binding.sliderSquiggly.progressTintList =
+                    ColorStateList.valueOf(progressColor)
+                binding.sliderSquiggly.thumbTintList =
+                    ColorStateList.valueOf(progressColor)
+            }
+            duration = BACKGROUND_COLOR_TRANSITION_SEC
+        }
+
+        secondaryContainerTransition.apply {
+            addUpdateListener { animation ->
+                val progressColor = animation.animatedValue as Int
+                binding.sheetMidButton.backgroundTintList =
+                    ColorStateList.valueOf(progressColor)
+            }
+            duration = BACKGROUND_COLOR_TRANSITION_SEC
+        }
+
+        onSecondaryContainerTransition.apply {
+            addUpdateListener { animation ->
+                val progressColor = animation.animatedValue as Int
+                binding.sheetMidButton.iconTint =
+                    ColorStateList.valueOf(progressColor)
+            }
+            duration = BACKGROUND_COLOR_TRANSITION_SEC
+        }
+
+        colorContrastFaintedTransition.apply {
+            addUpdateListener { animation ->
+                val progressColor = animation.animatedValue as Int
+                binding.sliderVert.trackInactiveTintList =
+                    ColorStateList.valueOf(progressColor)
+            }
+        }
+
+        surfaceTransition.apply {
+            addUpdateListener { animation ->
+                binding.root.setBackgroundColor(
+                    animation.animatedValue as Int
+                )
+            }
+            duration = BACKGROUND_COLOR_TRANSITION_SEC
+        }
+
+        withContext(Dispatchers.Main) {
+            surfaceTransition.start()
+            primaryTransition.start()
+            secondaryContainerTransition.start()
+            onSecondaryContainerTransition.start()
+            colorContrastFaintedTransition.start()
+        }
+
+        delay(FOREGROUND_COLOR_TRANSITION_SEC)
+        fullPlayerFinalColor = backgroundProcessedColor
+        colorPrimaryFinalColor = colorPrimary
+        colorSecondaryContainerFinalColor = colorSecondaryContainer
+        colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
+        colorContrastFaintedFinalColor = colorContrastFainted
+
+        currentJob = null
+        withContext(Dispatchers.Main) {
+            binding.fullSongName.setTextColor(
+                colorOnSurface
+            )
+            binding.fullSongArtist.setTextColor(
+                colorOnSurfaceVariant
+            )
+            TextViewCompat.setCompoundDrawableTintList(
+                binding.qualityDetails,
+                ColorStateList.valueOf(colorOnSurfaceVariant)
+            )
+            binding.qualityDetails.setTextColor(
+                colorOnSurfaceVariant
+            )
+            binding.albumCoverFrame.setCardBackgroundColor(
+                colorSurface
+            )
+
+            binding.timer.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+            binding.playlist.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+            binding.sheetRandom.iconTint =
+                selectorBackground
+            binding.sheetLoop.iconTint =
+                selectorBackground
+            binding.lyrics.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+            binding.favor.iconTint =
+                selectorFavBackground
+
+            binding.sheetNextSong.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+            binding.sheetPreviousSong.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+            binding.slideDown.iconTint =
+                ColorStateList.valueOf(colorOnSurface)
+
+            binding.position.setTextColor(
+                colorAccent
+            )
+            binding.duration.setTextColor(
+                colorAccent
+            )
+        }
+
+    }
+
+    private fun removeColorScheme() {
+        currentJob?.cancel()
+        wrappedContext = null
+        currentJob = CoroutineScope(Dispatchers.Default).launch {
+            applyColorScheme()
+        }
     }
 
     private fun updateQualityIndicators(info: AudioFormatInfo?) {

@@ -85,6 +85,7 @@ import androidx.media3.session.SessionResult
 import androidx.media3.session.doUpdateNotification
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
+import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bitrate
 import com.ghhccghk.musicplay.util.AfFormatInfo
 import com.ghhccghk.musicplay.util.AfFormatTracker
@@ -203,6 +204,8 @@ class PlayService : MediaSessionService(),
 
 
                             if (isPlaying == true) {
+
+                               MainViewModelObject.syncLyricIndex.intValue  = currentLyricIndex
 
                                 liveTime = mediaSession.player.currentPosition
 
