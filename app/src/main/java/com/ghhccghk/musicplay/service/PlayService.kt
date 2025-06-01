@@ -87,6 +87,7 @@ import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bitrate
+import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
 import com.ghhccghk.musicplay.util.AfFormatInfo
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioFormatDetector
@@ -96,6 +97,9 @@ import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 
 @UnstableApi
@@ -127,6 +131,7 @@ class PlayService : MediaSessionService(),
     private var btInfo: BtCodecInfo? = null
     private var bitrate: Long? = null
     private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
+    val subDir = "cache/lyrics"
 
     private val sessionCallback = object : MediaSession.Callback {
         // Configure commands available to the controller in onConnect()
@@ -205,7 +210,7 @@ class PlayService : MediaSessionService(),
 
                             if (isPlaying == true) {
 
-                               MainViewModelObject.syncLyricIndex.intValue  = currentLyricIndex
+                                MainViewModelObject.syncLyricIndex.intValue  = currentLyricIndex
 
                                 liveTime = mediaSession.player.currentPosition
 
@@ -418,7 +423,6 @@ class PlayService : MediaSessionService(),
                 val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
                 val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
 
-                val subDir = "cache/lyrics"
                 val fileName = "${mediaSession.player.currentMediaItem?.mediaId}.lrc"
 
                 val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
@@ -665,22 +669,53 @@ class PlayService : MediaSessionService(),
         }
     }
 
-
     fun convertKrcToLrc(krcContent: String): String {
         val lineRegex = Regex("""\[(\d+),(\d+)]""")  // [开始时间, 持续时间]
         val wordRegex = Regex("""<(\d+),(\d+),\d+>(.*?)(?=<|$)""")  // <偏移, 持续, ?>文字
+        var lastLineStartTime: Long = -1L  // 记录上一行的时间戳
+
+        // 解析 Base64 里的 JSON 翻译内容
+        val regex = "\\[language:(.*?)]".toRegex()
+        val matchResult = regex.find(krcContent)
+        val decodedBytes = Base64.decode(matchResult?.groups?.get(1)?.value, Base64.DEFAULT)
+
+        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+        val adapter = moshi.adapter(fanyiLyricbase::class.java)
+
+        val root: fanyiLyricbase? = adapter.fromJson(decodedBytes.toString(Charsets.UTF_8))
 
         val output = mutableListOf<String>()
 
+        // 提前获取翻译内容列表，避免重复查找
+        val translationLyricList = root?.content
+            ?.find { it.type == 1 }
+            ?.lyricContent
+
+        var lyricLineIndex = 0  // 只计数歌词行
+
         for (line in krcContent.lines()) {
+            val trimmed = line.trim()
+
+            // 判断是否是歌词行（带时间戳）
+            if (!lineRegex.containsMatchIn(trimmed)) {
+                // 不是歌词行，直接加，不加翻译，不增加索引
+                output.add(trimmed)
+                continue
+            }
+
+            // 是歌词行，解析时间和单词
             val lineMatch = lineRegex.find(line) ?: continue
-            val lineStartTime = lineMatch.groupValues[1].toLong()
+            var lineStartTime = lineMatch.groupValues[1].toLong()
+
+            if (lastLineStartTime != -1L && lineStartTime <= lastLineStartTime) {
+                lineStartTime = lastLineStartTime + 3
+            }
+            lastLineStartTime = lineStartTime
 
             val wordMatches = wordRegex.findAll(line).toList()
             if (wordMatches.isEmpty()) continue
 
             val sb = StringBuilder()
-
             for ((index, match) in wordMatches.withIndex()) {
                 val offset = match.groupValues[1].toLong()
                 val duration = match.groupValues[2].toLong()
@@ -689,18 +724,23 @@ class PlayService : MediaSessionService(),
                 val time = lineStartTime + offset
                 sb.append("[${millisToTimeStr(time)}]$word")
 
-                // 如果是最后一个词，加一个“结尾时间标签”
                 if (index == wordMatches.lastIndex) {
                     val endTime = time + duration
                     sb.append("[${millisToTimeStr(endTime)}]")
                 }
             }
-
             output.add(sb.toString())
+
+            // 添加对应翻译行，使用 lyricLineIndex
+            val translationLine = translationLyricList?.getOrNull(lyricLineIndex)?.joinToString(separator = "") ?: " "
+            output.add("[${millisToTimeStr(lineStartTime)}]$translationLine")
+
+            lyricLineIndex++  // 只在歌词行累加
         }
 
         return output.joinToString("\n")
     }
+
 
     fun millisToTimeStr(ms: Long): String {
         val totalSeconds = ms / 1000
