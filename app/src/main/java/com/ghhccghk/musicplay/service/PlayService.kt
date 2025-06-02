@@ -676,20 +676,18 @@ class PlayService : MediaSessionService(),
 
         // 解析 Base64 里的 JSON 翻译内容
         val regex = "\\[language:(.*?)]".toRegex()
-        val matchResult = regex.find(krcContent)
-        val decodedBytes = Base64.decode(matchResult?.groups?.get(1)?.value, Base64.DEFAULT)
-
-        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
-        val adapter = moshi.adapter(fanyiLyricbase::class.java)
-
-        val root: fanyiLyricbase? = adapter.fromJson(decodedBytes.toString(Charsets.UTF_8))
+        val matchResult = regex.find(krcContent)?.groups?.get(1)?.value
 
         val output = mutableListOf<String>()
 
         // 提前获取翻译内容列表，避免重复查找
-        val translationLyricList = root?.content
-            ?.find { it.type == 1 }
-            ?.lyricContent
+        val translationLyricList = if (!matchResult.isNullOrBlank()) {
+            val decodedBytes = Base64.decode(matchResult, Base64.DEFAULT)
+            val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+            val adapter = moshi.adapter(fanyiLyricbase::class.java)
+            adapter.fromJson(decodedBytes.toString(Charsets.UTF_8))
+                ?.content?.find { it.type == 1 }?.lyricContent
+        } else null
 
         var lyricLineIndex = 0  // 只计数歌词行
 
@@ -733,7 +731,7 @@ class PlayService : MediaSessionService(),
 
             // 添加对应翻译行，使用 lyricLineIndex
             val translationLine = translationLyricList?.getOrNull(lyricLineIndex)?.joinToString(separator = "") ?: " "
-            output.add("[${millisToTimeStr(lineStartTime)}]$translationLine")
+            if (translationLyricList != null){ output.add("[${millisToTimeStr(lineStartTime)}]$translationLine") }
 
             lyricLineIndex++  // 只在歌词行累加
         }
