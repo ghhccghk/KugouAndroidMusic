@@ -1,6 +1,7 @@
 package com.ghhccghk.musicplay.util.lrc
 
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.graphics.Color
 
 /**
  * YosLyricView UI 控制类
@@ -24,13 +25,13 @@ data class YosUIConfig(
     val edgeFade: Boolean = false,
     val formatText: Boolean = false,
     val noLrcText: String = "No lyrics",
-    val blankHeight: Int = 20,
+    val blankHeight: Int = 40,
     val mainTextSize: Int = 34,
     val subTextSize: Int = mainTextSize - 18,
-    val mainTextBasicColor: Long = 0xFFF2F2F2,
-    val subTextBasicColor: Long = 0xFF919191,
-    val normalMainTextAlpha: Float = 0.4f,
-    val normalSubTextAlpha: Float = 0.3f,
-    val currentMainTextAlpha: Float = 0.9f,
-    val currentSubTextAlpha: Float = 0.6f
+    val mainTextBasicColor: Color = Color(0xFFF2F2F2),
+    val subTextBasicColor: Color = Color(0xFF919191),
+    val normalMainTextAlpha: Float = 0.6f,
+    val normalSubTextAlpha: Float = 0.6f,
+    val currentMainTextAlpha: Float = 1f,
+    val currentSubTextAlpha: Float = 1f
 )

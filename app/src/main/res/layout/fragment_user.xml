@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:fitsSystemWindows="true"
     android:layout_height="match_parent"
-    tools:context=".ui.notifications.NotificationsFragment">
+    tools:context=".ui.user.NotificationsFragment">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar

@@ -43,6 +43,7 @@ import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.widgets.YosLyricView
 import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
 import com.ghhccghk.musicplay.util.lrc.YosUIConfig
+import com.google.android.material.transition.platform.MaterialSharedAxis
 
 class LyricsFragment: Fragment() {
 
@@ -60,6 +61,8 @@ class LyricsFragment: Fragment() {
     ): View {
         _binding = FragmentLyricsBinding.inflate(inflater, container, false)
         val root: View = binding.root
+        enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
+        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
 
         val window = requireActivity().window
 
@@ -97,16 +100,16 @@ class LyricsFragment: Fragment() {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                 super.onMediaMetadataChanged(mediaMetadata)
                 if (_binding != null){
-                    updatebg()
+                    //updatebg()
                 }
             }
         })
-        updatebg()
+        //updatebg()
         binding.lyricsContainerComposeView.setContent {
             showControl.value = false
             YosLyricView(
-                uiConfig = YosUIConfig( mainTextBasicColor = MainActivity.lontext.resources.getColor(R.color.lyric_main).toLong(),
-                    subTextBasicColor = MainActivity.lontext.resources.getColor(R.color.lyric_sub).toLong()),
+                uiConfig = YosUIConfig( mainTextBasicColor = androidx.compose.ui.graphics.Color(MainActivity.lontext.resources.getColor(R.color.lyric_main)),
+                    subTextBasicColor = androidx.compose.ui.graphics.Color(MainActivity.lontext.resources.getColor(R.color.lyric_sub))),
                 liveTimeLambda = { ( play.currentPosition?: 0).toInt() },
                 mediaEvent = object : YosMediaEvent {
                     override fun onSeek(position: Int) {
@@ -115,71 +118,6 @@ class LyricsFragment: Fragment() {
                 },
                 weightLambda = { showControl.value },
                 blurLambda = { false },
-                modifier = Modifier.drawWithCache {
-                    onDrawWithContent {
-                        val overlayPaint = Paint().apply {
-                            blendMode = BlendMode.Plus
-                        }
-                        val rect = Rect(0f, 0f, size.width, size.height)
-                        val canvas = this.drawContext.canvas
-
-                        canvas.saveLayer(rect, overlayPaint)
-
-                        val colors = if (false) {
-                            listOf(
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color(0x59000000),
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color(0x59000000),
-                                androidx.compose.ui.graphics.Color(0x21000000),
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color.Transparent
-                            )
-                        } else {
-                            listOf(
-                                androidx.compose.ui.graphics.Color.Transparent,
-                                androidx.compose.ui.graphics.Color(0x59000000),
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black,
-                                androidx.compose.ui.graphics.Color.Black
-                            )
-                        }
-
-                        drawContent()
-
-                        drawRect(
-                            brush = Brush.verticalGradient(colors),
-                            blendMode = BlendMode.DstIn
-                        )
-
-                        canvas.restore()
-                    }
-                },
                 onBackClick = {
                     showControl.value = true
                 }

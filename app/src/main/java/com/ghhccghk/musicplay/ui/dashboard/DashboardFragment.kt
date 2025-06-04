@@ -57,20 +57,21 @@ class DashboardFragment : Fragment() {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
         Log.d("nodejs",MainActivity.isNodeRunning.toString())
+        a {
+            MainActivity.isNodeRunning  = it
+        }
+
+        return root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()
             addgetPlayListTag()
             addsearch()
         }
-
-
-
-        a {
-            MainActivity.isNodeRunning  = it
-        }
-
-        return root
     }
 
 

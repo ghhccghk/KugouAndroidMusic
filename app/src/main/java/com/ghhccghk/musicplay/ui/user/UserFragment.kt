@@ -1,11 +1,10 @@
-package com.ghhccghk.musicplay.ui.notifications
+package com.ghhccghk.musicplay.ui.user
 
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -15,11 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.login.getLoginQr
 import com.ghhccghk.musicplay.data.updateToken.updateToken
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
-import com.ghhccghk.musicplay.databinding.FragmentNotificationsBinding
+import com.ghhccghk.musicplay.databinding.FragmentUserBinding
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
@@ -32,9 +30,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.jvm.java
 
-class NotificationsFragment : Fragment() {
+class UserFragment : Fragment() {
 
-    private var _binding: FragmentNotificationsBinding? = null
+    private var _binding: FragmentUserBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -45,10 +43,10 @@ class NotificationsFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val notificationsViewModel =
-            ViewModelProvider(this).get(NotificationsViewModel::class.java)
+        val userViewModel =
+            ViewModelProvider(this).get(UserViewModel::class.java)
 
-        _binding = FragmentNotificationsBinding.inflate(inflater, container, false)
+        _binding = FragmentUserBinding.inflate(inflater, container, false)
         val root: View = binding.root
         TokenManager.init(requireContext())
         KugouAPi.init()
