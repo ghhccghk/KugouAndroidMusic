@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
 import android.widget.ImageView
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,13 +16,17 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
+import com.ghhccghk.musicplay.R
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
@@ -81,14 +84,54 @@ fun PlaylistBottomSheet(
             ModalBottomSheet(
                 onDismissRequest = onDismissRequest,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(WindowInsets.statusBars.asPaddingValues()),
                 sheetState = sheetState,
             ) {
-                Text(
-                    "播放列表",
-                    modifier = Modifier.padding(16.dp)
+                val currentSong = songs.getOrNull(currentIndex())
+                val currentTitle = currentSong?.mediaMetadata?.title?.toString().orEmpty()
+                val currentArtwork = currentSong?.mediaMetadata?.artworkUri?.toString()
+
+                ListItem(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                    ,
+                    leadingContent = {
+                        if (currentArtwork != null) {
+                            RotatingArtwork(
+                                uri = currentSong.mediaMetadata.artworkUri,
+                                isPlaying = false
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = stringResource(id = R.string.music_icon),
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    },
+                    headlineContent = {
+                        Text(
+                            text = if (currentTitle.isNotBlank()) {
+                                stringResource(id = R.string.playlist_now_playing, currentTitle)
+                            } else {
+                                stringResource(id = R.string.playlist)
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            currentTitle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.0f)
+                    )
                 )
+
                 Divider()
 
                 LazyColumn(state = listState) {
@@ -110,12 +153,12 @@ fun PlaylistBottomSheet(
                                 if (song.mediaMetadata.artworkUri != null) {
                                     RotatingArtwork(
                                         uri = song.mediaMetadata.artworkUri,
-                                        isPlaying = isSelected
+                                        isPlaying = false
                                     )
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.MusicNote,
-                                        contentDescription = "音乐图标",
+                                        contentDescription = stringResource(id = R.string.music_icon),
                                         modifier = Modifier.size(40.dp)
                                     )
                                 }
@@ -138,7 +181,7 @@ fun PlaylistBottomSheet(
                                 IconButton(onClick = { onDeleteClick(index, song) }) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "删除"
+                                        contentDescription = stringResource(id = R.string.delete)
                                     )
                                 }
                             }

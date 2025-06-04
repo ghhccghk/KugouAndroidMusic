@@ -78,8 +78,6 @@ class PlayerFragment() : Fragment() {
     private lateinit var context: Context
     private var enableQualityInfo = true
 
-    private var currentFormat: AudioFormatDetector.AudioFormats? = null
-
     private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
 
 
@@ -167,6 +165,17 @@ class PlayerFragment() : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentPlayerBinding.inflate(inflater, container, false)
+        val root: View = binding.root
+
+        return root
+    }
+
+    fun switchToNextFragment() {
+        findNavController().navigate(R.id.lyricFragment)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         context = requireContext()
         player = MainActivity.controllerFuture.get()
 
@@ -440,21 +449,6 @@ class PlayerFragment() : Fragment() {
 
 
 
-        return root
-    }
-
-    fun switchToNextFragment() {
-        val options = NavOptions.Builder()
-            .setEnterAnim(R.anim.slide_in_right)
-            .setExitAnim(R.anim.slide_out_left)
-            .setPopEnterAnim(R.anim.slide_in_left)
-            .setPopExitAnim(R.anim.slide_out_right)
-            .build()
-        findNavController().navigate(R.id.lyricFragment)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

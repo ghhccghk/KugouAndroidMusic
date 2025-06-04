@@ -22,5 +22,9 @@
     <string name="play_user_creator">创建人:</string>
     <string name="playlist_all_play">播放全部</string>
     <string name="api_no_ok">API 未就绪</string>
+    <string name="playlist">播放列表</string>
+    <string name="music_icon">音乐图标</string>
+    <string name="delete">删除</string>
+    <string name="playlist_now_playing">正在播放</string>
 
 </resources>
