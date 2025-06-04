@@ -3,6 +3,7 @@ package com.ghhccghk.musicplay.util.adapte
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -22,6 +23,7 @@ class SongAdapter (
         val song_title: TextView = view.findViewById(R.id.song_title)
         val song_singer: TextView = view.findViewById(R.id.song_singer)
         val song_album: TextView = view.findViewById(R.id.song_album)
+        val song_button: ImageButton = view.findViewById(R.id.song_button)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongAdapterHolder {
@@ -55,6 +57,8 @@ class SongAdapter (
             holder.song_title.visibility = View.GONE
             holder.cover.visibility = View.GONE
             holder.song_singer.visibility = View.GONE
+            holder.song_button.visibility = View.GONE
+            holder.itemView.visibility = View.GONE
         }
     }
 }

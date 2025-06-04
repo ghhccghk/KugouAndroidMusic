@@ -4,6 +4,7 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -40,6 +41,12 @@ import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.chunked
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.util.Collections
 
 class PlaylistDetailFragment : Fragment() {
@@ -50,12 +57,8 @@ class PlaylistDetailFragment : Fragment() {
 
     private val binding get() = _binding!!
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
-        val root: View = binding.root
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         player = MainActivity.controllerFuture.get()
 
         // 隐藏 BottomNavigationView
@@ -101,9 +104,8 @@ class PlaylistDetailFragment : Fragment() {
                 }
 
                 lifecycleScope.launch {
-                    val json = withContext(Dispatchers.IO) {
-                        getAllSongsMergedConcurrent(playlistId,30)
-                    }
+                    val json = mutableListOf<Song>()
+
                     try {
                         binding.playlistAllPlay.setOnClickListener {
                             lifecycleScope.launch {
@@ -113,13 +115,13 @@ class PlaylistDetailFragment : Fragment() {
                             }
                         }
                         binding.rvSongs.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-                        binding.rvSongs.adapter = SongAdapter(json){
+                        val adp = SongAdapter(json){
                             lifecycleScope.launch {
                                 val json = withContext(Dispatchers.IO) {
                                     it.hash?.let { hash -> KugouAPi.getSongsUrl(hash) }
                                 }
                                 if (json == null || json == "502" || json == "404") {
-                                    Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "SongAdapter 数据加载失败", Toast.LENGTH_LONG).show()
                                 } else {
                                     try {
                                         val gson = Gson()
@@ -150,19 +152,30 @@ class PlaylistDetailFragment : Fragment() {
                                 }
                             }
                         }
+                        binding.rvSongs.adapter = adp
+
+                        getAllSongsFlow(playlistId,30).chunked(10).collect { chunk ->
+                            val start = json.size
+                            json.addAll(chunk)
+                            adp.notifyItemRangeInserted(start, chunk.size)
+                        }
 
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(
-                            context,
-                            "数据加载失败: ${e.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        Log.d("PlaylistDetailFragment", "onCreateView: ${e.message}")
                     }
                 }
             }
         }
 
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
+        val root: View = binding.root
         return root
     }
 
@@ -213,42 +226,48 @@ class PlaylistDetailFragment : Fragment() {
         return MediaItem.Builder().setUri(url).build()
     }
 
-    suspend fun getAllSongsMergedConcurrent(
+    fun getAllSongsFlow(
         ids: String,
-        pageSize: Int = 50
-    ): List<Song> = coroutineScope {
-        val moshi = Moshi.Builder()
-            .add(KotlinJsonAdapterFactory())
-            .build()
+        pageSize: Int = 50,
+        maxConcurrency: Int = 5
+    ): Flow<Song> = flow {
+        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
         val adapter = moshi.adapter(SongListBase::class.java)
 
-        // 1. 拉取第一页，获取总条目 count
-        val firstJson = KugouAPi.getPlayListAllSongs(ids, 1, pageSize) ?: return@coroutineScope emptyList()
-        val firstPage = adapter.fromJson(firstJson) ?: return@coroutineScope emptyList()
-        val firstData = firstPage.data ?: return@coroutineScope emptyList()
+        // 获取第一页
+        val firstJson = KugouAPi.getPlayListAllSongs(ids, 1, pageSize) ?: return@flow
+        val firstPage = adapter.fromJson(firstJson) ?: return@flow
+        val firstData = firstPage.data ?: return@flow
 
         val totalCount = firstData.count
         val totalPages = (totalCount + pageSize - 1) / pageSize
-        val allSongs = Collections.synchronizedList(firstData.songs.toMutableList())
 
-        // 2. 并发拉取第2页及后续页面
-        val deferredList = (2..totalPages).map { page ->
-            async(Dispatchers.IO) {
-                try {
-                    val json = KugouAPi.getPlayListAllSongs(ids, page, pageSize) ?: return@async emptyList<Song>()
-                    val pageData = adapter.fromJson(json)
-                    pageData?.data?.songs ?: emptyList()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    emptyList<Song>()
+        // 先 emit 第1页
+        firstData.songs.forEach { emit(it) }
+
+        val semaphore = Semaphore(maxConcurrency)
+
+        // 并发加载后续页面，并依次 emit 歌曲
+        coroutineScope {
+            (2..totalPages).map { page ->
+                async(Dispatchers.IO) {
+                    semaphore.withPermit {
+                        try {
+                            val json = KugouAPi.getPlayListAllSongs(ids, page, pageSize) ?: return@withPermit emptyList<Song>()
+                            val pageData = adapter.fromJson(json)
+                            pageData?.data?.songs ?: emptyList()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            emptyList()
+                        }
+                    }
                 }
+            }.forEach { deferred ->
+                val songs = deferred.await()
+                songs.forEach { emit(it) }
             }
         }
-
-        deferredList.awaitAll().forEach { allSongs.addAll(it) }
-
-        return@coroutineScope allSongs
-    }
+    }.flowOn(Dispatchers.IO)//协程网络请求
 
 
     fun splitArtistAndTitle(text: String): Pair<String, String>? {

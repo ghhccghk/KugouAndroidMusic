@@ -1,7 +1,6 @@
 package com.ghhccghk.musicplay.ui.widgets
 
 import android.os.Build
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.AnimationSpec
@@ -55,7 +54,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -95,7 +93,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
-import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
@@ -106,8 +103,6 @@ import com.ghhccghk.musicplay.util.lrc.YosUIConfig
 import com.ghhccghk.musicplay.util.others.Vibrator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -152,7 +147,6 @@ fun YosLyricView(
     //animationConfig: YosAnimationConfig = YosAnimationConfig(),
     uiConfig: YosUIConfig = YosUIConfig(),
     weightLambda: () -> Boolean,
-    modifier: Modifier,
     onBackClick: () -> Unit
 ) {
     println("重组：YosLyricView")
@@ -183,7 +177,7 @@ fun YosLyricView(
             Text(
                 text = uiConfig.noLrcText,
                 fontSize = 18.sp,
-                color = Color(uiConfig.mainTextBasicColor)
+                color = uiConfig.mainTextBasicColor
             )
         }
     } else {
@@ -312,7 +306,7 @@ fun YosLyricView(
             LazyColumn(
                 state = scrollState,
                 contentPadding = PaddingValues(vertical = 16.dp),
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxSize()
                     .clickable(
                         indication = null,
@@ -382,13 +376,14 @@ fun YosLyricView(
                                     isTop.value
                                 },
                                 mainLyric = lines.dropLast(1),
-                                translation,
-                                translationLambda(),
+                                translation = translation,
+                                showTranslation = translationLambda(),
+                                uiConfig = uiConfig,
                                 //mainTextSize = uiConfig.mainTextSize,
                                 subTextSize = uiConfig.subTextSize,
                                 blur = { blur.value },
-                                mainTextBasicColor,
-                                subTextBasicColor,
+                                mainTextBasicColor = mainTextBasicColor,
+                                subTextBasicColor = subTextBasicColor,
                                 otherSide = otherSide,
                                 liveTimeLambda = liveTimeLambda,
                                 measurer = measurer,
@@ -745,6 +740,7 @@ fun LazyItemScope.LyricItem(
     isCurrentLambda: () -> Boolean,
     isTopLambda: () -> Boolean,
     mainLyric: List<Pair<Float, String>>,
+    uiConfig: YosUIConfig,
     translation: String?,
     showTranslation: Boolean,
     //mainTextSize: Int,
@@ -760,12 +756,10 @@ fun LazyItemScope.LyricItem(
     liveTimeLambda: () -> Int,
     onClick: () -> Unit
 ) {
-    println("重组：歌词 $mainLyric")
-
     val viewAlign = if (otherSide) Alignment.End else Alignment.Start
 
-    val focusedColor = Color(0xFFFFFFFF)
-    val unfocusedColor = Color(0x2EFFFFFF)
+    val focusedColor = mainTextBasicColor
+    val unfocusedColor = subTextBasicColor
     //Color(0x33FFFFFF)
 
     //val focusedSolidBrush = SolidColor(focusedColor)
@@ -1138,9 +1132,11 @@ fun LazyItemScope.LyricItem(
                                     AnimatedVisibility(showTranslation && translation != null) {
                                         translation?.let {
                                             val translationAlpha = animateFloatAsState(
-                                                targetValue = if (isCurrentLambda()) 0.5f else 0.14f,
+                                                targetValue = if (isCurrentLambda()) uiConfig.currentSubTextAlpha else uiConfig.normalSubTextAlpha,
                                                 animationSpec = if (isCurrentLambda()) alphaTweenSpecWithDelay else alphaTweenSpecWithoutDelay
                                             )
+                                            val textColor = if (isCurrentLambda()) mainTextBasicColor else subTextBasicColor
+
 
                                             val translationOtherSidePadding = if (otherSide) {
                                                 Modifier.padding(
@@ -1157,7 +1153,7 @@ fun LazyItemScope.LyricItem(
                                             Text(
                                                 text = it,
                                                 fontSize = subTextSize.sp,
-                                                color = subTextBasicColor,
+                                                color = textColor,
                                                 fontWeight = FontWeight.Normal,
                                                 modifier = Modifier
                                                     .graphicsLayer {

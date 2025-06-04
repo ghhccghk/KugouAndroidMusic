@@ -3,6 +3,7 @@
 package com.ghhccghk.musicplay.ui.player
 
 import android.animation.ValueAnimator
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.drawable.BitmapDrawable
@@ -13,7 +14,9 @@ import android.os.Handler
 import android.os.Looper
 import android.preference.PreferenceManager
 import android.util.Log
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewPropertyAnimator
@@ -29,6 +32,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
@@ -54,12 +58,14 @@ import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
+import com.google.android.material.transition.platform.MaterialSharedAxis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 class PlayerFragment() : Fragment() {
 
@@ -154,6 +160,7 @@ class PlayerFragment() : Fragment() {
     }
 
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -207,8 +214,7 @@ class PlayerFragment() : Fragment() {
         }
 
         binding.lyrics.setOnClickListener {
-            findNavController().navigate(R.id.lyricFragment)
-
+            switchToNextFragment()
         }
 
         if (player.mediaMetadata.artworkUri != null ){
@@ -408,7 +414,43 @@ class PlayerFragment() : Fragment() {
             GlobalPlaylistBottomSheetController.show()
         }
 
+        val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                val deltaX = e1?.let { it.x - e2.x }
+                if (deltaX != null) {
+                    if (deltaX > 100 && abs(velocityX) > 200) {
+                        // 从右向左滑
+                        switchToNextFragment()
+                        return true
+                    }
+                }
+                return false
+            }
+        })
+
+        binding.root.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
+
+
         return root
+    }
+
+    fun switchToNextFragment() {
+        val options = NavOptions.Builder()
+            .setEnterAnim(R.anim.slide_in_right)
+            .setExitAnim(R.anim.slide_out_left)
+            .setPopEnterAnim(R.anim.slide_in_left)
+            .setPopExitAnim(R.anim.slide_out_right)
+            .build()
+        findNavController().navigate(R.id.lyricFragment)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -448,8 +490,8 @@ class PlayerFragment() : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null
         currentJob?.cancel()
+        _binding = null
         handler.removeCallbacksAndMessages(null)
     }
 
@@ -584,60 +626,72 @@ class PlayerFragment() : Fragment() {
 
         primaryTransition.apply {
             addUpdateListener { animation ->
-                val progressColor = animation.animatedValue as Int
-                binding.sliderVert.thumbTintList =
-                    ColorStateList.valueOf(progressColor)
-                binding.sliderVert.trackActiveTintList =
-                    ColorStateList.valueOf(progressColor)
-                binding.sliderSquiggly.progressTintList =
-                    ColorStateList.valueOf(progressColor)
-                binding.sliderSquiggly.thumbTintList =
-                    ColorStateList.valueOf(progressColor)
+                if (_binding != null) {
+                    val progressColor = animation.animatedValue as Int
+                    binding.sliderVert.thumbTintList =
+                        ColorStateList.valueOf(progressColor)
+                    binding.sliderVert.trackActiveTintList =
+                        ColorStateList.valueOf(progressColor)
+                    binding.sliderSquiggly.progressTintList =
+                        ColorStateList.valueOf(progressColor)
+                    binding.sliderSquiggly.thumbTintList =
+                        ColorStateList.valueOf(progressColor)
+                }
             }
             duration = BACKGROUND_COLOR_TRANSITION_SEC
         }
 
         secondaryContainerTransition.apply {
             addUpdateListener { animation ->
-                val progressColor = animation.animatedValue as Int
-                binding.sheetMidButton.backgroundTintList =
-                    ColorStateList.valueOf(progressColor)
+                if (_binding != null){
+                    val progressColor = animation.animatedValue as Int
+                    binding.sheetMidButton.backgroundTintList =
+                        ColorStateList.valueOf(progressColor)
+                }
             }
             duration = BACKGROUND_COLOR_TRANSITION_SEC
         }
 
         onSecondaryContainerTransition.apply {
             addUpdateListener { animation ->
-                val progressColor = animation.animatedValue as Int
-                binding.sheetMidButton.iconTint =
-                    ColorStateList.valueOf(progressColor)
+                if (_binding != null) {
+                    val progressColor = animation.animatedValue as Int
+                    binding.sheetMidButton.iconTint =
+                        ColorStateList.valueOf(progressColor)
+                }
             }
             duration = BACKGROUND_COLOR_TRANSITION_SEC
         }
 
         colorContrastFaintedTransition.apply {
             addUpdateListener { animation ->
-                val progressColor = animation.animatedValue as Int
-                binding.sliderVert.trackInactiveTintList =
-                    ColorStateList.valueOf(progressColor)
+                if (_binding != null){
+                    val progressColor = animation.animatedValue as Int
+                    binding.sliderVert.trackInactiveTintList =
+                        ColorStateList.valueOf(progressColor)
+                }
             }
         }
 
         surfaceTransition.apply {
             addUpdateListener { animation ->
-                binding.root.setBackgroundColor(
-                    animation.animatedValue as Int
-                )
+                if (_binding != null) {
+                    binding.root.setBackgroundColor(
+                        animation.animatedValue as Int
+                    )
+                }
             }
             duration = BACKGROUND_COLOR_TRANSITION_SEC
         }
 
         withContext(Dispatchers.Main) {
-            surfaceTransition.start()
-            primaryTransition.start()
-            secondaryContainerTransition.start()
-            onSecondaryContainerTransition.start()
-            colorContrastFaintedTransition.start()
+            if (_binding != null) {
+                surfaceTransition.start()
+                primaryTransition.start()
+                secondaryContainerTransition.start()
+                onSecondaryContainerTransition.start()
+                colorContrastFaintedTransition.start()
+            }
         }
 
         delay(FOREGROUND_COLOR_TRANSITION_SEC)
@@ -649,49 +703,51 @@ class PlayerFragment() : Fragment() {
 
         currentJob = null
         withContext(Dispatchers.Main) {
-            binding.fullSongName.setTextColor(
-                colorOnSurface
-            )
-            binding.fullSongArtist.setTextColor(
-                colorOnSurfaceVariant
-            )
-            TextViewCompat.setCompoundDrawableTintList(
-                binding.qualityDetails,
-                ColorStateList.valueOf(colorOnSurfaceVariant)
-            )
-            binding.qualityDetails.setTextColor(
-                colorOnSurfaceVariant
-            )
-            binding.albumCoverFrame.setCardBackgroundColor(
-                colorSurface
-            )
+            if (_binding != null) {
+                binding.fullSongName.setTextColor(
+                    colorOnSurface
+                )
+                binding.fullSongArtist.setTextColor(
+                    colorOnSurfaceVariant
+                )
+                TextViewCompat.setCompoundDrawableTintList(
+                    binding.qualityDetails,
+                    ColorStateList.valueOf(colorOnSurfaceVariant)
+                )
+                binding.qualityDetails.setTextColor(
+                    colorOnSurfaceVariant
+                )
+                binding.albumCoverFrame.setCardBackgroundColor(
+                    colorSurface
+                )
 
-            binding.timer.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            binding.playlist.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            binding.sheetRandom.iconTint =
-                selectorBackground
-            binding.sheetLoop.iconTint =
-                selectorBackground
-            binding.lyrics.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            binding.favor.iconTint =
-                selectorFavBackground
+                binding.timer.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
+                binding.playlist.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
+                binding.sheetRandom.iconTint =
+                    selectorBackground
+                binding.sheetLoop.iconTint =
+                    selectorBackground
+                binding.lyrics.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
+                binding.favor.iconTint =
+                    selectorFavBackground
 
-            binding.sheetNextSong.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            binding.sheetPreviousSong.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
-            binding.slideDown.iconTint =
-                ColorStateList.valueOf(colorOnSurface)
+                binding.sheetNextSong.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
+                binding.sheetPreviousSong.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
+                binding.slideDown.iconTint =
+                    ColorStateList.valueOf(colorOnSurface)
 
-            binding.position.setTextColor(
-                colorAccent
-            )
-            binding.duration.setTextColor(
-                colorAccent
-            )
+                binding.position.setTextColor(
+                    colorAccent
+                )
+                binding.duration.setTextColor(
+                    colorAccent
+                )
+            }
         }
 
     }
@@ -705,20 +761,21 @@ class PlayerFragment() : Fragment() {
     }
 
     private fun updateQualityIndicators(info: AudioFormatInfo?) {
-        Log.d("PlayerFragment", "updateQualityIndicators: $info")
-        val oldInfo = (binding.qualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?)
-        if (oldInfo == info) return
-        (binding.qualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
-        (binding.qualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
-        if (info == null && binding.qualityDetails.isInvisible) return
-        if (oldInfo != null)
-            applyQualityInfo(oldInfo)
-        binding.qualityDetails.setTag(R.id.quality_details, info)
-        binding.qualityDetails.fadOutAnimation(300) {
-            if (info == null)
-                return@fadOutAnimation
-            applyQualityInfo(info)
-            binding.qualityDetails.fadInAnimation(300)
+        if (_binding != null) {
+            val oldInfo = (binding.qualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?)
+            if (oldInfo == info) return
+            (binding.qualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
+            (binding.qualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
+            if (info == null && binding.qualityDetails.isInvisible) return
+            if (oldInfo != null)
+                applyQualityInfo(oldInfo)
+            binding.qualityDetails.setTag(R.id.quality_details, info)
+            binding.qualityDetails.fadOutAnimation(300) {
+                if (info == null)
+                    return@fadOutAnimation
+                applyQualityInfo(info)
+                binding.qualityDetails.fadInAnimation(300)
+            }
         }
     }
 

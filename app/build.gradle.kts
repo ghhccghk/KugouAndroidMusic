@@ -183,6 +183,8 @@ dependencies {
 
     implementation(libs.androidx.palette.ktx)
 
+    implementation(libs.cupertino.icons.extended)
+
 
 
 }

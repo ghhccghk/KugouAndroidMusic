@@ -1,5 +1,5 @@
 package com.ghhccghk.musicplay.data.songurl.getsongurl
 
 data class Ipmap(
-    val attr0: Long
+    val attr0: Long = 0
 )
