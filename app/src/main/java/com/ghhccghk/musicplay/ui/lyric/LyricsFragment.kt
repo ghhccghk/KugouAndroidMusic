@@ -2,24 +2,31 @@
 
 package com.ghhccghk.musicplay.ui.lyric
 
+import android.animation.ValueAnimator
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.TransitionDrawable
 import android.os.Build
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.annotation.OptIn
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Rect
@@ -29,29 +36,55 @@ import androidx.compose.ui.graphics.Paint
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
+import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.palette.graphics.Palette
+import androidx.transition.Fade
+import androidx.transition.Slide
+import androidx.transition.TransitionSet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
+import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.BACKGROUND_COLOR_TRANSITION_SEC
+import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.FOREGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.ui.widgets.YosLyricView
 import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
 import com.ghhccghk.musicplay.util.lrc.YosUIConfig
+import com.ghhccghk.musicplay.util.ui.ColorUtils
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.color.DynamicColorsOptions
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.transition.platform.MaterialSharedAxis
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LyricsFragment: Fragment() {
 
     private var _binding: FragmentLyricsBinding? = null
     val play = MainActivity.controllerFuture.get()
     private val binding get() = _binding!!
+    private lateinit var context: Context
 
-
+    //动态取色相关
+    private var currentJob: Job? = null
+    private var wrappedContext: Context? = null
+    private var fullPlayerFinalColor: Int = -1
+    private var colorPrimaryFinalColor: Int = -1
+    private var colorSecondaryContainerFinalColor: Int = -1
+    private var colorOnSecondaryContainerFinalColor: Int = -1
+    private var colorContrastFaintedFinalColor: Int = -1
+    private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
 
     @OptIn(UnstableApi::class)
     override fun onCreateView(
@@ -62,7 +95,16 @@ class LyricsFragment: Fragment() {
         _binding = FragmentLyricsBinding.inflate(inflater, container, false)
         val root: View = binding.root
         enterTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
-        returnTransition = MaterialSharedAxis(MaterialSharedAxis.X, false)
+        context = requireContext()
+
+        val customTransition = TransitionSet().apply {
+            addTransition(Slide(Gravity.END))
+            addTransition(Fade(Fade.IN))
+            duration = 600
+            interpolator = FastOutSlowInInterpolator()
+        }
+
+        returnTransition = customTransition
 
         val window = requireActivity().window
 
@@ -235,6 +277,156 @@ class LyricsFragment: Fragment() {
 
 
     }
+
+    private fun addColorScheme(a: Drawable) {
+        currentJob?.cancel()
+        currentJob = CoroutineScope(Dispatchers.Default).launch {
+            var drawable = a
+            if (drawable is TransitionDrawable) drawable = drawable.getDrawable(1)
+            val bitmap = if (drawable is BitmapDrawable) drawable.bitmap else {
+                removeColorScheme()
+                return@launch
+            }
+            val colorAccuracy = prefs.getBoolean("color_accuracy", false)
+            val targetWidth = if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16
+            val targetHeight = if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16
+            val scaledBitmap = bitmap.scale(targetWidth, targetHeight, false)
+
+            val options = DynamicColorsOptions.Builder()
+                .setContentBasedSource(scaledBitmap)
+                .build() // <-- this is computationally expensive!
+
+            wrappedContext = DynamicColors.wrapContextIfAvailable(
+                context,
+                options
+            ).apply {
+                // TODO does https://stackoverflow.com/a/58004553 describe this or another bug? will google ever fix anything?
+                resources.configuration.uiMode = context.resources.configuration.uiMode
+            }
+
+            applyColorScheme()
+        }
+    }
+
+    private suspend fun applyColorScheme() {
+        val ctx = wrappedContext ?: context
+
+        val colorSurface = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorSurface,
+            -1
+        )
+
+        val colorOnSurface = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorOnSurface,
+            -1
+        )
+
+        val colorOnSurfaceVariant = MaterialColors.getColor(
+            ctx,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+            -1
+        )
+
+        val colorPrimary =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorPrimary,
+                -1
+            )
+
+        val colorSecondaryContainer =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorSecondaryContainer,
+                -1
+            )
+
+        val colorOnSecondaryContainer =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorOnSecondaryContainer,
+                -1
+            )
+
+        val backgroundProcessedColor = ColorUtils.getColor(
+            colorSurface,
+            ColorUtils.ColorType.COLOR_BACKGROUND_ELEVATED,
+            ctx
+        )
+
+        val colorContrastFainted = ColorUtils.getColor(
+            colorSecondaryContainer,
+            ColorUtils.ColorType.COLOR_CONTRAST_FAINTED,
+            ctx
+        )
+
+        val surfaceTransition = ValueAnimator.ofArgb(
+            fullPlayerFinalColor,
+            backgroundProcessedColor
+        )
+
+        val primaryTransition = ValueAnimator.ofArgb(
+            colorPrimaryFinalColor,
+            colorPrimary
+        )
+
+        val secondaryContainerTransition = ValueAnimator.ofArgb(
+            colorSecondaryContainerFinalColor,
+            colorSecondaryContainer
+        )
+
+        val onSecondaryContainerTransition = ValueAnimator.ofArgb(
+            colorOnSecondaryContainerFinalColor,
+            colorOnSecondaryContainer
+        )
+
+        val colorContrastFaintedTransition = ValueAnimator.ofArgb(
+            colorContrastFaintedFinalColor,
+            colorContrastFainted
+        )
+
+        surfaceTransition.apply {
+            addUpdateListener { animation ->
+                if (_binding != null) {
+                    binding.root.setBackgroundColor(
+                        animation.animatedValue as Int
+                    )
+                }
+            }
+            duration = BACKGROUND_COLOR_TRANSITION_SEC
+        }
+
+        withContext(Dispatchers.Main) {
+            if (_binding != null) {
+                surfaceTransition.start()
+                primaryTransition.start()
+                secondaryContainerTransition.start()
+                onSecondaryContainerTransition.start()
+                colorContrastFaintedTransition.start()
+            }
+        }
+
+        delay(FOREGROUND_COLOR_TRANSITION_SEC)
+        fullPlayerFinalColor = backgroundProcessedColor
+        colorPrimaryFinalColor = colorPrimary
+        colorSecondaryContainerFinalColor = colorSecondaryContainer
+        colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
+        colorContrastFaintedFinalColor = colorContrastFainted
+
+        currentJob = null
+
+    }
+
+    private fun removeColorScheme() {
+        currentJob?.cancel()
+        wrappedContext = null
+        currentJob = CoroutineScope(Dispatchers.Default).launch {
+            applyColorScheme()
+        }
+    }
+
 
 
 }

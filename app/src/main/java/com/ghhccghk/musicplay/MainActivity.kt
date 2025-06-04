@@ -24,6 +24,9 @@ import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import com.google.android.material.navigation.NavigationBarView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
@@ -345,14 +348,18 @@ class MainActivity : AppCompatActivity() {
             player.addListener(object : Player.Listener {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
-                    val itemCount = controllerFuture.get().mediaItemCount
-                    val mediaItems = List(itemCount) { index ->  controllerFuture.get().getMediaItemAt(index) }
-
                     binding.comui.setContent {
+                        val isDarkTheme = isSystemInDarkTheme()
+
+                        val mediaItems = remember(isDarkTheme,mediaMetadata) {
+                            val itemCount = controllerFuture.get().mediaItemCount
+                            List(itemCount) { index -> controllerFuture.get().getMediaItemAt(index) }
+                        }
+
                         PlaylistBottomSheet(
                             controller = GlobalPlaylistBottomSheetController,
                             songs = mediaItems,
-                            onDismissRequest = { GlobalPlaylistBottomSheetController._visible.value = false },
+                            onDismissRequest = { GlobalPlaylistBottomSheetController._visible.value = false},
                             onSongClick = { i, _ ->
                                 controllerFuture.get().seekTo(i, 0)
                                 controllerFuture.get().play()
