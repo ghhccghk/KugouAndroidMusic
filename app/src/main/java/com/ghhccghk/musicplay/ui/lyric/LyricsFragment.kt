@@ -50,6 +50,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.BACKGROUND_COLOR_TRANSITION_SEC
@@ -79,11 +80,13 @@ class LyricsFragment: Fragment() {
     //动态取色相关
     private var currentJob: Job? = null
     private var wrappedContext: Context? = null
-    private var fullPlayerFinalColor: Int = -1
-    private var colorPrimaryFinalColor: Int = -1
-    private var colorSecondaryContainerFinalColor: Int = -1
-    private var colorOnSecondaryContainerFinalColor: Int = -1
-    private var colorContrastFaintedFinalColor: Int = -1
+    private var fullPlayerFinalColor: Int = Color.BLACK
+    private var colorPrimaryFinalColor: Int = Color.BLACK
+    private var colorSecondaryContainerFinalColor: Int = Color.BLACK
+    private var colorOnSecondaryContainerFinalColor: Int = Color.BLACK
+    private var colorContrastFaintedFinalColor: Int = Color.BLACK
+    private var colorOnSurfaceColor : Int = Color.BLACK
+    private var colorOnSurfaceVariantColor : Int = Color.BLACK
     private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
 
     @OptIn(UnstableApi::class)
@@ -105,19 +108,6 @@ class LyricsFragment: Fragment() {
         }
 
         returnTransition = customTransition
-
-        val window = requireActivity().window
-
-        // 隐藏状态栏
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.hide(WindowInsets.Type.statusBars())
-        } else {
-            @Suppress("DEPRECATION")
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-            )
-        }
 
         if (MainActivity.isNodeRunning){
             testlyric()
@@ -142,16 +132,15 @@ class LyricsFragment: Fragment() {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                 super.onMediaMetadataChanged(mediaMetadata)
                 if (_binding != null){
-                    //updatebg()
+                    updatebg()
                 }
             }
         })
-        //updatebg()
+        updatebg()
         binding.lyricsContainerComposeView.setContent {
             showControl.value = false
             YosLyricView(
-                uiConfig = YosUIConfig( mainTextBasicColor = androidx.compose.ui.graphics.Color(MainActivity.lontext.resources.getColor(R.color.lyric_main)),
-                    subTextBasicColor = androidx.compose.ui.graphics.Color(MainActivity.lontext.resources.getColor(R.color.lyric_sub))),
+                uiConfig = YosUIConfig(),
                 liveTimeLambda = { ( play.currentPosition?: 0).toInt() },
                 mediaEvent = object : YosMediaEvent {
                     override fun onSeek(position: Int) {
@@ -162,6 +151,16 @@ class LyricsFragment: Fragment() {
                 blurLambda = { false },
                 onBackClick = {
                     showControl.value = true
+                },
+                mainTextBasicColor = {
+                    androidx.compose.ui.graphics.Color(
+                        MediaViewModelObject.colorOnSecondaryContainerFinalColor.value
+                    )
+                },
+                subTextBasicColor = {
+                    androidx.compose.ui.graphics.Color(
+                        MediaViewModelObject.colorSecondaryContainerFinalColor.value
+                    )
                 }
             )
         }
@@ -169,32 +168,15 @@ class LyricsFragment: Fragment() {
 
     override fun onResume() {
         super.onResume()
-        val window = requireActivity().window
         showControl.value = false
         if (MainActivity.isNodeRunning){
             testlyric()
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.hide(WindowInsets.Type.statusBars())
-        } else {
-            @Suppress("DEPRECATION")
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-            )
         }
     }
 
     override fun onPause() {
         super.onPause()
         showControl.value = true
-        val window = requireActivity().window
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.show(WindowInsets.Type.statusBars())
-        } else {
-            @Suppress("DEPRECATION")
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        }
     }
 
     @Suppress("DEPRECATION")
@@ -229,7 +211,6 @@ class LyricsFragment: Fragment() {
     fun createPaletteSync(bitmap: Bitmap): Palette = Palette.from(bitmap).generate()
 
     fun updatebg(){
-
         val imageUrl = play.mediaMetadata.artworkUri
 
         Glide.with(this)
@@ -241,35 +222,35 @@ class LyricsFragment: Fragment() {
                 override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
                     // 31+ 用 View 的 setRenderEffect 方式
                     val drawable = resource.toDrawable(resources)
-                    val palette = createPaletteSync(resource)
-                    val darkMuted = palette.getDarkMutedColor(Color.BLACK)
-                    val darkVibrant = palette.getDarkVibrantColor(Color.BLACK)
-                    // fallback: 如果都为 null，可以手动选择一个更深的颜色
-                    val backgroundColor = darkMuted ?: darkVibrant ?: Color.BLACK
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        if (backgroundColor == Color.BLACK){
-                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, drawable.toBitmap(), radius, times)
-                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-                            binding.backgroundImage.setRenderEffect(
-                                RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
-                            )
-                        } else {
-                            binding.backgroundImage.setBackgroundColor(backgroundColor)
-                        }
-
-                    } else {
-
-                        if (backgroundColor == Color.BLACK){
-                            // 手动模糊
-                            val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
-                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
-                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-                        } else {
-                            binding.backgroundImage.setBackgroundColor(backgroundColor)
-                        }
-
-                    }
+                    addColorScheme(drawable)
+//                    val palette = createPaletteSync(resource)
+//                    val darkMuted = palette.getDarkMutedColor(Color.BLACK)
+//                    val darkVibrant = palette.getDarkVibrantColor(Color.BLACK)
+//                    // fallback: 如果都为 null，可以手动选择一个更深的颜色
+//                    val backgroundColor = darkMuted ?: darkVibrant ?: Color.BLACK
+//
+//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//                        if (backgroundColor == Color.BLACK){
+//                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, drawable.toBitmap(), radius, times)
+//                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+//                            binding.backgroundImage.setRenderEffect(
+//                                RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
+//                            )
+//                        } else {
+//                            binding.backgroundImage.setBackgroundColor(backgroundColor)
+//                        }
+//                    } else {
+//
+//                        if (backgroundColor == Color.BLACK){
+//                            // 手动模糊
+//                            val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
+//                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
+//                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+//                        } else {
+//                            binding.backgroundImage.setBackgroundColor(backgroundColor)
+//                        }
+//
+//                    }
                 }
 
                 override fun onLoadCleared(placeholder: Drawable?) {}
@@ -390,7 +371,7 @@ class LyricsFragment: Fragment() {
         surfaceTransition.apply {
             addUpdateListener { animation ->
                 if (_binding != null) {
-                    binding.root.setBackgroundColor(
+                    binding.backgroundImage.setBackgroundColor(
                         animation.animatedValue as Int
                     )
                 }
@@ -413,7 +394,11 @@ class LyricsFragment: Fragment() {
         colorPrimaryFinalColor = colorPrimary
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
+        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = colorOnSecondaryContainer
+        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = colorSecondaryContainer
         colorContrastFaintedFinalColor = colorContrastFainted
+        colorOnSurfaceColor = colorOnSurface
+        colorOnSurfaceVariantColor = colorOnSurfaceVariant
 
         currentJob = null
 

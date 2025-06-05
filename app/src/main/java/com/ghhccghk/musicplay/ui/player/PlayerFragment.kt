@@ -32,12 +32,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
-import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bgcolor
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
@@ -694,6 +693,8 @@ class PlayerFragment() : Fragment() {
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
         colorContrastFaintedFinalColor = colorContrastFainted
+        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = colorOnSecondaryContainer
+        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = colorSecondaryContainer
 
         currentJob = null
         withContext(Dispatchers.Main) {
