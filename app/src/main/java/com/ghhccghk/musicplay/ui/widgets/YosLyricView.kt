@@ -1,5 +1,6 @@
 package com.ghhccghk.musicplay.ui.widgets
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -49,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -136,6 +138,7 @@ val yosEasing = CubicBezierEasing(0.75f, 0.0f, 0.25f, 1.0f)
  * @param blurLambda 是否启用模糊效果
  * @param uiConfig YosLyricView UI 控制，仅管理在日常使用中不经常调节的选项
  */
+@SuppressLint("UnrememberedMutableState")
 @Composable
 fun YosLyricView(
     //mediaViewModel: MediaViewModel,
@@ -146,13 +149,17 @@ fun YosLyricView(
     blurLambda: () -> Boolean = { false },
     //animationConfig: YosAnimationConfig = YosAnimationConfig(),
     uiConfig: YosUIConfig = YosUIConfig(),
+    mainTextBasicColor: () -> Color = { Color(0xFFF2F2F2) },
+    subTextBasicColor: () -> Color = { Color(0xFF919191) },
     weightLambda: () -> Boolean,
     onBackClick: () -> Unit
 ) {
     println("重组：YosLyricView")
     val context = LocalContext.current
-    val mainTextBasicColor = colorResource(id = R.color.lyric_main)
-    val subTextBasicColor = colorResource(id = R.color.lyric_sub)
+
+    val mainTextBasicColor by mutableStateOf( mainTextBasicColor() )
+    val subTextBasicColor by mutableStateOf( subTextBasicColor())
+
     //Color(0xFF919191)
     val otherSideForLines = MediaViewModelObject.otherSideForLines
 
@@ -177,7 +184,7 @@ fun YosLyricView(
             Text(
                 text = uiConfig.noLrcText,
                 fontSize = 18.sp,
-                color = uiConfig.mainTextBasicColor
+                color = mainTextBasicColor
             )
         }
     } else {
@@ -226,7 +233,7 @@ fun YosLyricView(
 
         val height = rememberSaveable(key = "YosLyricView_height") { mutableIntStateOf(0) }
 
-        val targetWeight = 0.0618f
+        val targetWeight = 0.2118f
         val targetOffset = rememberSaveable(height.intValue, key = "YosLyricView_targetOffset") {
             //println("计算边距使用：${height.intValue}")
             //println("计算边距为：${height.intValue * targetWeight}")
@@ -758,13 +765,11 @@ fun LazyItemScope.LyricItem(
 ) {
     val viewAlign = if (otherSide) Alignment.End else Alignment.Start
 
-    val focusedColor = mainTextBasicColor
-    val unfocusedColor = subTextBasicColor
     //Color(0x33FFFFFF)
 
     //val focusedSolidBrush = SolidColor(focusedColor)
 
-    val unfocusedSolidBrush = SolidColor(unfocusedColor)
+    val unfocusedSolidBrush = SolidColor(subTextBasicColor)
     val isNotOneByOne = rememberSaveable(mainLyric) {
         mutableStateOf(
             mainLyric.all { it.first == mainLyric.firstOrNull()?.first }
@@ -1035,7 +1040,7 @@ fun LazyItemScope.LyricItem(
                                             return@Line onDrawWithContent {
                                                 drawText(
                                                     textLayoutResult = measureResult,
-                                                    color = focusedColor
+                                                    color = mainTextBasicColor
                                                 )
                                             }
                                         }
@@ -1047,7 +1052,7 @@ fun LazyItemScope.LyricItem(
                                                 return@Line onDrawWithContent {
                                                     drawText(
                                                         textLayoutResult = measureResult,
-                                                        color = unfocusedColor
+                                                        color = subTextBasicColor
                                                     )
                                                 }
                                         }
@@ -1098,8 +1103,8 @@ fun LazyItemScope.LyricItem(
                                                         if (thisWord == " ") {
                                                             return@DrawWord unfocusedSolidBrush
                                                         }
-                                                        val beforeColor = if (percent <= 0f) unfocusedColor else focusedColor
-                                                        val afterColor = if (percent >= 1f) focusedColor else unfocusedColor
+                                                        val beforeColor = if (percent <= 0f) subTextBasicColor else mainTextBasicColor
+                                                        val afterColor = if (percent >= 1f) mainTextBasicColor else subTextBasicColor
                                                         Brush.horizontalGradient(
                                                             0f to beforeColor,
                                                             (percent - px).coerceIn(0f, 1f) to beforeColor,

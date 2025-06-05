@@ -6,6 +6,8 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 @Stable
 object MediaViewModelObject {
@@ -17,7 +19,10 @@ object MediaViewModelObject {
 
     val bitrate = mutableIntStateOf(0)
 
-    val bgcolor = mutableIntStateOf(0)
+    val colorOnSecondaryContainerFinalColor = mutableIntStateOf(Color.Black.toArgb())
+
+    val colorSecondaryContainerFinalColor = mutableIntStateOf(Color.Black.toArgb())
+
 
     // val songSort = mutableStateOf(SettingData.getString("yos_player_song_sort", "MUSIC_TITLE"))
     // val enableDescending = mutableStateOf(SettingData.get("yos_player_enable_descending", false))
