@@ -204,9 +204,24 @@
     <string name="device_type_line_digital" translatable="false">Digital line</string>
     <string name="device_type_ble_speaker" translatable="false">Bluetooth LE Speaker</string>
     <string name="device_type_ble_broadcast" translatable="false">Bluetooth LE Broadcast</string>
+
     <string name="playlist">播放列表</string>
     <string name="music_icon">音乐图标</string>
     <string name="delete">删除</string>
     <string name="playlist_now_playing">正在播放</string>
+    <string name="user_info">用户信息</string>
+    <string name="user_fans">粉丝</string>
+    <string name="user_follows">关注</string>
+    <string name="user_visitors">访问</string>
+    <string name="user_last_time">上次登录时间：</string>
+    <string name="user_lister_music_time">听歌时间：</string>
+    <string name="fenzhong">分钟</string>
+    <string name="user_birthday">生日：</string>
+    <string name="user_occupation">职业：</string>
+    <string name="user_level">| 等级</string>
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="gender_secret">Secret</string>
+
 
 </resources>

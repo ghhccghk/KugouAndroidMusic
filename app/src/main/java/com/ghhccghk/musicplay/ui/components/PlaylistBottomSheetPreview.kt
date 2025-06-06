@@ -11,6 +11,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
@@ -18,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
@@ -31,13 +33,14 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 
 
 object GlobalPlaylistBottomSheetController : PlaylistBottomSheetController()
 
 
 open class PlaylistBottomSheetController {
-    internal val _visible = mutableStateOf(false)
+    internal val _visible = MainViewModelObject._visible
     val visible: State<Boolean> get() = _visible
 
     fun show() {
@@ -98,8 +101,7 @@ fun PlaylistBottomSheet(
                     leadingContent = {
                         if (currentArtwork != null) {
                             RotatingArtwork(
-                                uri = currentSong.mediaMetadata.artworkUri,
-                                isPlaying = false
+                                uri = currentSong.mediaMetadata.artworkUri
                             )
                         } else {
                             Icon(
@@ -152,8 +154,7 @@ fun PlaylistBottomSheet(
                             leadingContent = {
                                 if (song.mediaMetadata.artworkUri != null) {
                                     RotatingArtwork(
-                                        uri = song.mediaMetadata.artworkUri,
-                                        isPlaying = false
+                                        uri = song.mediaMetadata.artworkUri
                                     )
                                 } else {
                                     Icon(
@@ -194,22 +195,16 @@ fun PlaylistBottomSheet(
 }
 
 @Composable
-fun RotatingArtwork(uri: Uri?, isPlaying: Boolean) {
-    val rotation = rememberInfiniteTransition()
-    val angle by rotation.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing))
-    )
-
+fun RotatingArtwork(uri: Uri?) {
     Box(
         modifier = Modifier
             .size(40.dp)
             .graphicsLayer {
-                rotationZ = if (isPlaying) angle else 0f
+                rotationZ = 0f
             }
+            .clip(RoundedCornerShape(8.dp)) // 👈 设置圆角半径
     ) {
-        GlideComposeImage(url = uri.toString(), modifier = Modifier.fillMaxSize(), circleCrop = true)
+        GlideComposeImage(url = uri.toString(), modifier = Modifier.fillMaxSize(), circleCrop = false)
     }
 }
 

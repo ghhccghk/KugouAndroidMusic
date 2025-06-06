@@ -9,4 +9,7 @@
     <color name="white">#FFFFFFFF</color>
     <color name="lyric_main">#FF000000</color>  <!-- 黑色主文字 -->
     <color name="lyric_sub">#2E000000</color>   <!-- 深灰副文字 -->
+
+    <color name="lyric_main_bg">#FF000000</color>  <!-- 黑色主文字 -->
+    <color name="lyric_sub_bg">#2E000000</color>   <!-- 深灰副文字 -->
 </resources>

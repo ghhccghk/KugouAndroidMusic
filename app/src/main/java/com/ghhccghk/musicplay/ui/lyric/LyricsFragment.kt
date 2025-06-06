@@ -4,7 +4,7 @@ package com.ghhccghk.musicplay.ui.lyric
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.content.res.ColorStateList
+import android.content.Context.MODE_PRIVATE
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RenderEffect
@@ -14,7 +14,6 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.TransitionDrawable
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
@@ -23,20 +22,10 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
-import android.view.WindowManager
 import androidx.annotation.OptIn
-import androidx.appcompat.content.res.AppCompatResources
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Paint
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
-import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.media3.common.MediaMetadata
@@ -49,7 +38,6 @@ import androidx.transition.TransitionSet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
-import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
@@ -80,14 +68,14 @@ class LyricsFragment: Fragment() {
     //动态取色相关
     private var currentJob: Job? = null
     private var wrappedContext: Context? = null
-    private var fullPlayerFinalColor: Int = Color.BLACK
+    private var fullPlayerFinalColor: Int = MediaViewModelObject.surfaceTransition.intValue
     private var colorPrimaryFinalColor: Int = Color.BLACK
     private var colorSecondaryContainerFinalColor: Int = Color.BLACK
     private var colorOnSecondaryContainerFinalColor: Int = Color.BLACK
     private var colorContrastFaintedFinalColor: Int = Color.BLACK
     private var colorOnSurfaceColor : Int = Color.BLACK
     private var colorOnSurfaceVariantColor : Int = Color.BLACK
-    private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
+    private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
 
     @OptIn(UnstableApi::class)
     override fun onCreateView(
@@ -217,40 +205,34 @@ class LyricsFragment: Fragment() {
             .asBitmap()
             .load(imageUrl)
             .into(object : CustomTarget<Bitmap>() {
-                val times = 5  // 模糊叠加3次
+                val times = 4  // 模糊叠加3次
                 val radius = 25f
                 override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
                     // 31+ 用 View 的 setRenderEffect 方式
                     val drawable = resource.toDrawable(resources)
-                    addColorScheme(drawable)
-//                    val palette = createPaletteSync(resource)
-//                    val darkMuted = palette.getDarkMutedColor(Color.BLACK)
-//                    val darkVibrant = palette.getDarkVibrantColor(Color.BLACK)
-//                    // fallback: 如果都为 null，可以手动选择一个更深的颜色
-//                    val backgroundColor = darkMuted ?: darkVibrant ?: Color.BLACK
-//
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//                        if (backgroundColor == Color.BLACK){
-//                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, drawable.toBitmap(), radius, times)
-//                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-//                            binding.backgroundImage.setRenderEffect(
-//                                RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
-//                            )
-//                        } else {
-//                            binding.backgroundImage.setBackgroundColor(backgroundColor)
-//                        }
-//                    } else {
-//
-//                        if (backgroundColor == Color.BLACK){
-//                            // 手动模糊
-//                            val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
-//                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
-//                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
-//                        } else {
-//                            binding.backgroundImage.setBackgroundColor(backgroundColor)
-//                        }
-//
-//                    }
+                    if (false){
+                        addColorScheme(drawable)
+                    } else {
+                        addColorScheme(drawable)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val heavilyBlurredBitmap = blurMultipleTimes(
+                                MainActivity.lontext,
+                                drawable.toBitmap(),
+                                radius,
+                                times
+                            )
+                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+                            binding.backgroundImage.setRenderEffect(
+                                RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
+                            )
+                        } else {
+                            // 手动模糊
+                            val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
+                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
+                            binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+
+                        }
+                    }
                 }
 
                 override fun onLoadCleared(placeholder: Drawable?) {}
@@ -371,9 +353,12 @@ class LyricsFragment: Fragment() {
         surfaceTransition.apply {
             addUpdateListener { animation ->
                 if (_binding != null) {
-                    binding.backgroundImage.setBackgroundColor(
-                        animation.animatedValue as Int
-                    )
+                    MediaViewModelObject.surfaceTransition.intValue = animation.animatedValue as Int
+                    if (false){
+                        binding.backgroundImage.setBackgroundColor(
+                            animation.animatedValue as Int
+                        )
+                    }
                 }
             }
             duration = BACKGROUND_COLOR_TRANSITION_SEC
@@ -411,7 +396,5 @@ class LyricsFragment: Fragment() {
             applyColorScheme()
         }
     }
-
-
 
 }

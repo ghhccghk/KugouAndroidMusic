@@ -10,9 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -22,15 +20,10 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
-import com.google.android.material.navigation.NavigationBarView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
-import androidx.navigation.findNavController
-import androidx.navigation.ui.setupWithNavController
-import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import androidx.core.content.edit
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.MediaMetadata
@@ -39,7 +32,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavOptions
+import androidx.navigation.findNavController
+import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
+import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import com.ghhccghk.musicplay.service.NodeService
 import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
@@ -49,21 +46,22 @@ import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.navigation.NavigationBarView
 import com.google.common.util.concurrent.ListenableFuture
-import kotlin.getValue
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var nodeService: NodeService? = null
-    var isNodeRunning = false
     var bound = false
     private val viewModel by viewModels<MainViewModel>()
+    var isNodeRunning = false
 
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == NodeBridge.ACTION_NODE_READY) {
                 isNodeRunning = true
+                viewModel.noderun = isNodeRunning
             }
         }
     }
@@ -78,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         override fun onServiceDisconnected(name: ComponentName) {
             bound = false
             isNodeRunning = false
+            viewModel.noderun = isNodeRunning
             nodeService = null
         }
     }
@@ -116,7 +115,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         val navView: NavigationBarView = binding.navView
-
+        isNodeRunning = viewModel.noderun
         val a = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
         if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
@@ -346,30 +345,44 @@ class MainActivity : AppCompatActivity() {
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
 
             player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    super.onIsPlayingChanged(isPlaying)
+                    val itemCount = player.mediaItemCount
+                    mediaItems.value = List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                }
+
+                override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) {
+                    super.onPlaylistMetadataChanged(mediaMetadata)
+                    val itemCount = player.mediaItemCount
+                    mediaItems.value = List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+
+                }
+
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
                     binding.comui.setContent {
                         val isDarkTheme = isSystemInDarkTheme()
 
-                        val mediaItems = remember(isDarkTheme,mediaMetadata) {
-                            val itemCount = controllerFuture.get().mediaItemCount
-                            List(itemCount) { index -> controllerFuture.get().getMediaItemAt(index) }
+                        mediaItems.value = remember(isDarkTheme, mediaMetadata) {
+                            val itemCount = player.mediaItemCount
+                            List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
                         }
+
 
                         PlaylistBottomSheet(
                             controller = GlobalPlaylistBottomSheetController,
-                            songs = mediaItems,
+                            songs = mediaItems.value,
                             onDismissRequest = { GlobalPlaylistBottomSheetController._visible.value = false},
                             onSongClick = { i, _ ->
-                                controllerFuture.get().seekTo(i, 0)
-                                controllerFuture.get().play()
+                                player.seekTo(i, 0)
+                                player.play()
                             },
                             onDeleteClick = { i, _ ->
-                                controllerFuture.get().removeMediaItem(i)
-                                Toast.makeText(lontext, "已删除了 ${mediaItems[i].mediaMetadata.title}", Toast.LENGTH_SHORT).show()
+                                player.removeMediaItem(i)
+                                Toast.makeText(lontext, "已删除了 ${mediaItems.value[i].mediaMetadata.title}", Toast.LENGTH_SHORT).show()
                             },
                             currentIndex = {
-                                controllerFuture.get().currentMediaItemIndex
+                                player.currentMediaItemIndex
                             }
                         )
                     }
