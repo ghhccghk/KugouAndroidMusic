@@ -13,6 +13,7 @@ object MainViewModelObject {
 
     val syncLyricIndex = mutableIntStateOf(-1)
     val _visible = mutableStateOf(false)
+    val isdark = mutableStateOf(false)
 
     // val nowPage = mutableStateOf(NowPlayingPage.Album)
 }

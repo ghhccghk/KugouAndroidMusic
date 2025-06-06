@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -21,8 +22,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -118,16 +117,16 @@ class MainActivity : AppCompatActivity() {
         isNodeRunning = viewModel.noderun
         val a = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
             // 隐藏 BottomNavigationView
             hideBottomNav(a)
-            hideLinearLayout(playbar,a)
+            hideLinearLayout(playbar, a)
         }
-        if(findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.lyricFragment ) {
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.lyricFragment) {
             hideBottomNav(a)
-            hideLinearLayout(playbar,a)
+            hideLinearLayout(playbar, a)
         }
-        if( findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
             hideBottomNav(a)
         }
 
@@ -143,21 +142,23 @@ class MainActivity : AppCompatActivity() {
                 .setPopExitAnim(R.anim.fragment_pop_exit)    // 弹出时的退出动画（从上往下）
                 .build()
             // 跳转到播放 Fragment
-            navController.navigate(R.id.playerFragment,null,navOptions)
+            navController.navigate(R.id.playerFragment, null, navOptions)
 
             // 隐藏 BottomNavigationView
             val a = findViewById<BottomNavigationView>(R.id.nav_view)
             hideBottomNav(a)
-            hideLinearLayout(playbar,a)
+            hideLinearLayout(playbar, a)
         }
 
-        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener{
-            if (controllerFuture.get().isPlaying){
+        playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener {
+            if (controllerFuture.get().isPlaying) {
                 controllerFuture.get().pause()
-                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_play_arrow_filled)
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                    .setImageResource(R.drawable.ic_play_arrow_filled)
             } else {
                 controllerFuture.get().play()
-                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(R.drawable.ic_pause_filled)
+                playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                    .setImageResource(R.drawable.ic_pause_filled)
             }
         }
         controllerFuture.addListener({
@@ -175,6 +176,33 @@ class MainActivity : AppCompatActivity() {
                     .load(player.mediaMetadata.artworkUri)
                     .into(playbaricon)
             }
+
+            binding.comui.setContent {
+                PlaylistBottomSheet(
+                    controller = GlobalPlaylistBottomSheetController,
+                    songs = mediaItems.value,
+                    onDismissRequest = {
+                        GlobalPlaylistBottomSheetController._visible.value = false
+                    },
+                    onSongClick = { i, _ ->
+                        player.seekTo(i, 0)
+                        player.play()
+                    },
+                    onDeleteClick = { i, _ ->
+                        player.removeMediaItem(i)
+                        Toast.makeText(
+                            lontext,
+                            "已删除了 ${mediaItems.value[i].mediaMetadata.title}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    currentIndex = {
+                        player.currentMediaItemIndex
+                    }
+                )
+            }
+
+
 
             player.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -208,15 +236,15 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         // 只有当不在播放 Fragment 时才显示 BottomNavigationView
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment ) {
+        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
             super.onBackPressed()
             val navView = findViewById<BottomNavigationView>(R.id.nav_view)
             showBottomNav(navView)
             val playbar = findViewById<LinearLayout>(R.id.player_bar)
-            showLinearLayout(playbar,navView)
+            showLinearLayout(playbar, navView)
         } else {
             // 只有当不在playlistDetailFragment 时才显示 BottomNavigationView
-            if( findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment ) {
+            if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
                 val navView = findViewById<BottomNavigationView>(R.id.nav_view)
                 showBottomNav(navView)
                 super.onBackPressed()
@@ -228,14 +256,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun showBottomNav(bottomNav: BottomNavigationView) {
         bottomNav.visibility = View.VISIBLE
-        val slideIn = ObjectAnimator.ofFloat(bottomNav, "translationY", bottomNav.height.toFloat(), 0f)
+        val slideIn =
+            ObjectAnimator.ofFloat(bottomNav, "translationY", bottomNav.height.toFloat(), 0f)
         slideIn.duration = 100
         slideIn.start()
 
     }
 
     private fun hideBottomNav(bottomNav: BottomNavigationView) {
-        val slideOut = ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
+        val slideOut =
+            ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
         slideOut.duration = 100
         slideOut.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) {
@@ -245,15 +275,25 @@ class MainActivity : AppCompatActivity() {
         slideOut.start()
     }
 
-    private fun showLinearLayout(bottomNav: LinearLayout,play: BottomNavigationView) {
+    private fun showLinearLayout(bottomNav: LinearLayout, play: BottomNavigationView) {
         bottomNav.visibility = View.VISIBLE
-        val slideIn = ObjectAnimator.ofFloat(bottomNav, "translationY", bottomNav.height.toFloat() + play.height.toFloat(), 0f)
+        val slideIn = ObjectAnimator.ofFloat(
+            bottomNav,
+            "translationY",
+            bottomNav.height.toFloat() + play.height.toFloat(),
+            0f
+        )
         slideIn.duration = 100
         slideIn.start()
     }
 
-    private fun hideLinearLayout(bottomNav: LinearLayout,play: BottomNavigationView) {
-        val slideOut = ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat() + play.height.toFloat())
+    private fun hideLinearLayout(bottomNav: LinearLayout, play: BottomNavigationView) {
+        val slideOut = ObjectAnimator.ofFloat(
+            bottomNav,
+            "translationY",
+            0f,
+            bottomNav.height.toFloat() + play.height.toFloat()
+        )
         slideOut.duration = 100
         slideOut.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) {
@@ -268,20 +308,20 @@ class MainActivity : AppCompatActivity() {
         private lateinit var instance: MainActivity
         val lontext: Context
             get() = instance.applicationContext
-        var isNodeRunning : Boolean
+        var isNodeRunning: Boolean
             get() = instance.isNodeRunning
             set(value) {
                 instance.isNodeRunning = value
             }
-        val controllerFuture : ListenableFuture<MediaController>
+        val controllerFuture: ListenableFuture<MediaController>
             get() = instance.viewModel.controllerFuture
-        val playbar :LinearLayout
+        val playbar: LinearLayout
             get() = instance.findViewById<LinearLayout>(R.id.player_bar)
     }
 
 
     @OptIn(UnstableApi::class)
-    fun start(){
+    fun start() {
         TokenManager.init(this)
         KugouAPi.init()
 
@@ -348,38 +388,42 @@ class MainActivity : AppCompatActivity() {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     super.onIsPlayingChanged(isPlaying)
                     val itemCount = player.mediaItemCount
-                    mediaItems.value = List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                    mediaItems.value =
+                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
                 }
 
                 override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onPlaylistMetadataChanged(mediaMetadata)
                     val itemCount = player.mediaItemCount
-                    mediaItems.value = List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                    mediaItems.value =
+                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
 
                 }
 
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
+                    val itemCount = player.mediaItemCount
+                    mediaItems.value =
+                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+
                     binding.comui.setContent {
-                        val isDarkTheme = isSystemInDarkTheme()
-
-                        mediaItems.value = remember(isDarkTheme, mediaMetadata) {
-                            val itemCount = player.mediaItemCount
-                            List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-                        }
-
-
                         PlaylistBottomSheet(
                             controller = GlobalPlaylistBottomSheetController,
                             songs = mediaItems.value,
-                            onDismissRequest = { GlobalPlaylistBottomSheetController._visible.value = false},
+                            onDismissRequest = {
+                                GlobalPlaylistBottomSheetController._visible.value = false
+                            },
                             onSongClick = { i, _ ->
                                 player.seekTo(i, 0)
                                 player.play()
                             },
                             onDeleteClick = { i, _ ->
                                 player.removeMediaItem(i)
-                                Toast.makeText(lontext, "已删除了 ${mediaItems.value[i].mediaMetadata.title}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    lontext,
+                                    "已删除了 ${mediaItems.value[i].mediaMetadata.title}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             currentIndex = {
                                 player.currentMediaItemIndex
@@ -399,5 +443,12 @@ class MainActivity : AppCompatActivity() {
             })
         }, ContextCompat.getMainExecutor(this))
     }
+
+    fun isDarkMode(context: Context): Boolean {
+        val uiMode = context.resources.configuration.uiMode
+        val nightMode = uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightMode == Configuration.UI_MODE_NIGHT_YES
+    }
+
 
 }
