@@ -5,6 +5,7 @@ package com.ghhccghk.musicplay.ui.player
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.content.res.ColorStateList
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -12,8 +13,6 @@ import android.graphics.drawable.TransitionDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.preference.PreferenceManager
-import android.util.Log
 import android.view.GestureDetector
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -57,7 +56,6 @@ import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.slider.Slider
-import com.google.android.material.transition.platform.MaterialSharedAxis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -76,8 +74,7 @@ class PlayerFragment() : Fragment() {
     private var isUserTracking = false
     private lateinit var context: Context
     private var enableQualityInfo = true
-
-    private val prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.lontext)
+    private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
 
 
     //动态取色相关
@@ -258,6 +255,15 @@ class PlayerFragment() : Fragment() {
                     val format = player.getAudioFormat()
                     val url = player.mediaMetadata.artworkUri
                     if (_binding != null ){
+                        lifecycleScope.launch {
+                            withContext(Dispatchers.IO) {
+                                val a = Glide.with(context)
+                                    .load(url)
+                                    .submit()
+                                    .get() // 注意：这是同步操作，需放在协程或后台线程中
+                                addColorScheme(a)
+                            }
+                        }
                         updateQualityIndicators(if (enableQualityInfo)
                             AudioFormatDetector.detectAudioFormat(format) else null)
                         Glide.with(binding.root)
@@ -669,6 +675,7 @@ class PlayerFragment() : Fragment() {
         surfaceTransition.apply {
             addUpdateListener { animation ->
                 if (_binding != null) {
+                    MediaViewModelObject.surfaceTransition.intValue = animation.animatedValue as Int
                     binding.root.setBackgroundColor(
                         animation.animatedValue as Int
                     )
@@ -693,8 +700,10 @@ class PlayerFragment() : Fragment() {
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
         colorContrastFaintedFinalColor = colorContrastFainted
-        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = colorOnSecondaryContainer
-        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = colorSecondaryContainer
+            MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue =
+                colorOnSecondaryContainer
+            MediaViewModelObject.colorSecondaryContainerFinalColor.intValue =
+                colorSecondaryContainer
 
         currentJob = null
         withContext(Dispatchers.Main) {

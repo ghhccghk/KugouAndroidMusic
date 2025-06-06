@@ -24,11 +24,8 @@ import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import android.view.View
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.OptIn
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -70,27 +67,20 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.graphics.createBitmap
-import androidx.core.os.BundleCompat
 import androidx.media3.common.Format
 import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.MediaLoadData
-import androidx.media3.session.CommandButton
-import androidx.media3.session.MediaController
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import androidx.media3.session.doUpdateNotification
-import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.bitrate
 import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
-import com.ghhccghk.musicplay.util.AfFormatInfo
 import com.ghhccghk.musicplay.util.AfFormatTracker
-import com.ghhccghk.musicplay.util.AudioFormatDetector
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
 import com.ghhccghk.musicplay.util.Tools.getBitrate
@@ -98,7 +88,6 @@ import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 
@@ -131,64 +120,9 @@ class PlayService : MediaSessionService(),
     private var btInfo: BtCodecInfo? = null
     private var bitrate: Long? = null
     private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
+    private lateinit var repo : PlaylistRepository
+    private var prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     val subDir = "cache/lyrics"
-
-    private val sessionCallback = object : MediaSession.Callback {
-        // Configure commands available to the controller in onConnect()
-        @OptIn(UnstableApi::class)
-        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo)
-                : MediaSession.ConnectionResult {
-            val availableSessionCommands =
-                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-            Log.d("PlayService", "onConnect: $availableSessionCommands")
-            availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
-
-
-            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                .setAvailableSessionCommands(availableSessionCommands.build())
-                .build()
-        }
-
-        @OptIn(UnstableApi::class)
-        override fun onCustomCommand(
-            session: MediaSession,
-            controller: MediaSession.ControllerInfo,
-            customCommand: SessionCommand,
-            args: Bundle
-        ): ListenableFuture<SessionResult> {
-            Log.d("PlayService", "执行的onCustomCommand")
-            return Futures.immediateFuture(
-                when (customCommand.customAction) {
-                    SERVICE_GET_AUDIO_FORMAT -> {
-                        SessionResult(SessionResult.RESULT_SUCCESS).also {
-                            Log.d("PlayService", "执行的onCustomCommand ${downstreamFormat.toString()}")
-                            it.extras.putBundle("file_format", downstreamFormat?.toBundle())
-                            it.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
-                            it.extras.putParcelable("track_format", audioTrackInfo)
-                            it.extras.putParcelable("hal_format", afFormatTracker.format)
-                            bitrate?.let { value -> it.extras.putLong("bitrate", value) }
-                            if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
-                                it.extras.putParcelable("bt", btInfo)
-                            }
-                        }
-                    }
-                    else -> {
-                        SessionResult(SessionError.ERROR_BAD_VALUE)
-                    }
-                })
-        }
-    }
-
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        bitrate = null
-        bitrateFetcher.launch {
-            bitrate = mediaItem?.getBitrate() // TODO subtract cover size
-            mediaSession?.broadcastCustomCommand(
-                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                Bundle.EMPTY
-            )
-        }
-    }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     fun run() {
@@ -289,8 +223,8 @@ class PlayService : MediaSessionService(),
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
-        val repo = PlaylistRepository(MainActivity.lontext)
-        val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
+         repo = PlaylistRepository(MainActivity.lontext)
+
 
         val cache = SimpleCache(
             File(this.getExternalFilesDir(null), "exo_music_cache"),
@@ -342,6 +276,7 @@ class PlayService : MediaSessionService(),
         )
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
+
         player.addAnalyticsListener(this)
 
         //通知点击返回应用
@@ -358,7 +293,7 @@ class PlayService : MediaSessionService(),
                 it,
                 FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
-        ).setCallback(sessionCallback).build()
+        ).setCallback(this).build()
 
         run()
 
@@ -416,102 +351,157 @@ class PlayService : MediaSessionService(),
 
         notificationProvider.setSmallIcon(R.drawable.ic_cd)
 
-        player.addListener(object : Player.Listener {
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                super.onMediaItemTransition(mediaItem, reason)
-
-                val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
-                val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
-
-                val fileName = "${mediaSession.player.currentMediaItem?.mediaId}.lrc"
-
-                val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
-
-                if (cachedData != null) {
-                    Log.d("Cache", "子目录缓存命中: $cachedData")
-                    MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedData)
-                } else {
-                    if ( MainActivity.isNodeRunning ) {
-                        serviceScope.launch {
-                            val json = withContext(Dispatchers.IO) {
-                                KugouAPi.getSongLyrics(
-                                    id = lyricid, accesskey = lyricAccess,
-                                    fmt = "krc", decode = true
-                                )
-                            }
-                            try {
-                                val gson = Gson()
-                                val result = gson.fromJson(json, getLyricCode::class.java)
-                                val lyric = result.decodeContent
-                                val out = convertKrcToLrc(lyric)
-                                writeToSubdirCache(
-                                    MainActivity.lontext,
-                                    subDir,
-                                    fileName,
-                                    out.toString()
-                                )
-                                writeToSubdirCache(
-                                    MainActivity.lontext,
-                                    subDir,
-                                    "ghhcc.lrc",
-                                    lyric.toString()
-                                )
-                                val cachedDataa = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
-                                if (cachedDataa != null) {
-                                    MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedDataa)
-                                }
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                                Toast.makeText(
-                                    MainActivity.lontext,
-                                    "数据加载失败: ${e.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-
-                        }
-                    }
-                }
-
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) {
-                    // 播放开始
-                    playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
-                    playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
-                } else {
-                    serviceScope.launch {
-                        if (player.playbackState != Player.STATE_IDLE && player.currentTimeline.isEmpty.not()) {
-                            val index = player.currentMediaItemIndex
-                            saveCurrentPlaylist(player, repo)
-                            prefs.edit().putInt("lastplayitem",index).apply()
-                            Log.d("ExoPlayer", "当前播放索引：$index")
-                        } else {
-                            Log.d("ExoPlayer", "播放列表未就绪")
-                        }
-
-                    }
-                    playbar.findViewById<TextView>(R.id.playbar_artist).text = player.mediaMetadata.artist
-                    playbar.findViewById<TextView>(R.id.playbar_title).text = player.mediaMetadata.title
-
-
-                }
-            }
-
-            override fun onPlaybackStateChanged(state: Int) {
-                when (state) {
-                    Player.STATE_IDLE -> println("空闲")
-                    Player.STATE_BUFFERING -> println("缓冲中")
-                    Player.STATE_READY -> println("准备好")
-                    Player.STATE_ENDED -> println("播放结束")
-                }
-            }
-        })
+        player.addListener(this)
 
         this.setMediaNotificationProvider(notificationProvider)
         this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this) { lyric })
 
+    }
+
+    // Configure commands available to the controller in onConnect()
+    override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo)
+            : MediaSession.ConnectionResult {
+        val availableSessionCommands =
+            MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+        Log.d("PlayService", "onConnect: $availableSessionCommands")
+        availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
+
+
+        return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+            .setAvailableSessionCommands(availableSessionCommands.build())
+            .build()
+    }
+
+    override fun onCustomCommand(
+        session: MediaSession,
+        controller: MediaSession.ControllerInfo,
+        customCommand: SessionCommand,
+        args: Bundle
+    ): ListenableFuture<SessionResult> {
+        return Futures.immediateFuture(
+            when (customCommand.customAction) {
+                SERVICE_GET_AUDIO_FORMAT -> {
+                    SessionResult(SessionResult.RESULT_SUCCESS).also {
+                        it.extras.putBundle("file_format", downstreamFormat?.toBundle())
+                        it.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
+                        it.extras.putParcelable("track_format", audioTrackInfo)
+                        it.extras.putParcelable("hal_format", afFormatTracker.format)
+                        bitrate?.let { value -> it.extras.putLong("bitrate", value) }
+                        if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
+                            it.extras.putParcelable("bt", btInfo)
+                        }
+                    }
+                }
+                else -> {
+                    SessionResult(SessionError.ERROR_BAD_VALUE)
+                }
+            })
+    }
+
+
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        super<Player.Listener>.onMediaItemTransition(mediaItem, reason)
+
+
+        bitrate = null
+        bitrateFetcher.launch {
+            bitrate = mediaItem?.getBitrate() // TODO subtract cover size
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+
+
+        playbar.findViewById<TextView>(R.id.playbar_artist).text = mediaSession.player.mediaMetadata.artist
+        playbar.findViewById<TextView>(R.id.playbar_title).text = mediaSession.player.mediaMetadata.title
+
+        val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
+        val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
+
+        val fileName = sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
+
+        val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+
+        if (cachedData != null) {
+            Log.d("Cache", "子目录缓存命中: $cachedData")
+            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedData)
+        } else {
+            if ( MainActivity.isNodeRunning ) {
+                serviceScope.launch {
+                    val json = withContext(Dispatchers.IO) {
+                        KugouAPi.getSongLyrics(
+                            id = lyricid, accesskey = lyricAccess,
+                            fmt = "krc", decode = true
+                        )
+                    }
+                    try {
+                        val gson = Gson()
+                        val result = gson.fromJson(json, getLyricCode::class.java)
+                        val lyric = result.decodeContent
+                        val out = convertKrcToLrc(lyric)
+                        writeToSubdirCache(
+                            MainActivity.lontext,
+                            subDir,
+                            fileName,
+                            out.toString()
+                        )
+                        writeToSubdirCache(
+                            MainActivity.lontext,
+                            subDir,
+                            "ghhcc.lrc",
+                            lyric.toString()
+                        )
+                        val cachedDataa = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+                        if (cachedDataa != null) {
+                            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedDataa)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            MainActivity.lontext,
+                            "数据加载失败: ${e.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+                }
+            }
+        }
+
+    }
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        if (isPlaying) {
+            // 播放开始
+            playbar.findViewById<TextView>(R.id.playbar_artist).text = mediaSession.player.mediaMetadata.artist
+            playbar.findViewById<TextView>(R.id.playbar_title).text = mediaSession.player.mediaMetadata.title
+        } else {
+            serviceScope.launch {
+                if (mediaSession.player.playbackState != Player.STATE_IDLE && mediaSession.player.currentTimeline.isEmpty.not()) {
+                    val index = mediaSession.player.currentMediaItemIndex
+                    saveCurrentPlaylist(mediaSession.player, repo)
+                    prefs.edit().putInt("lastplayitem",index).apply()
+                    Log.d("ExoPlayer", "当前播放索引：$index")
+                } else {
+                    Log.d("ExoPlayer", "播放列表未就绪")
+                }
+
+            }
+            playbar.findViewById<TextView>(R.id.playbar_artist).text =  mediaSession.player.mediaMetadata.artist
+            playbar.findViewById<TextView>(R.id.playbar_title).text =  mediaSession.player.mediaMetadata.title
+
+
+        }
+    }
+
+    override fun onPlaybackStateChanged(state: Int) {
+        when (state) {
+            Player.STATE_IDLE -> println("空闲")
+            Player.STATE_BUFFERING -> println("缓冲中")
+            Player.STATE_READY -> println("准备好")
+            Player.STATE_ENDED -> println("播放结束")
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
@@ -646,7 +636,7 @@ class PlayService : MediaSessionService(),
 
     fun getExternalSubdirFile(context: Context, subDir: String, fileName: String): File? {
         val baseDir = context.getExternalFilesDir(null)
-        val targetDir = File(baseDir, subDir)
+        val targetDir = File(baseDir, "$subDir")
 
         if (!targetDir.exists()) {
             targetDir.mkdirs()  // 确保子目录存在
@@ -659,6 +649,11 @@ class PlayService : MediaSessionService(),
         val file = getExternalSubdirFile(context, subDir, fileName)
         file?.writeText(data)
     }
+
+    fun sanitizeFileName(fileName: String): String {
+        return fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+    }
+
 
     fun readFromSubdirCache(context: Context, subDir: String, fileName: String): String? {
         val file = getExternalSubdirFile(context, subDir, fileName)
@@ -713,20 +708,33 @@ class PlayService : MediaSessionService(),
             val wordMatches = wordRegex.findAll(line).toList()
             if (wordMatches.isEmpty()) continue
 
+
             val sb = StringBuilder()
+            var pendingRole: String? = null
+
             for ((index, match) in wordMatches.withIndex()) {
                 val offset = match.groupValues[1].toLong()
                 val duration = match.groupValues[2].toLong()
                 val word = match.groupValues[3]
-
                 val time = lineStartTime + offset
-                sb.append("[${millisToTimeStr(time)}]$word")
+
+                if (pendingRole != null) {
+                    sb.append("[${millisToTimeStr(time)}]$pendingRole：")
+                    pendingRole = null
+                } else if (word.length == 1 && index + 1 < wordMatches.size &&
+                    wordMatches[index + 1].groupValues[3] == "：") {
+                    pendingRole = word
+                    continue
+                } else if (word != "：") {
+                    sb.append("[${millisToTimeStr(time)}]$word")
+                }
 
                 if (index == wordMatches.lastIndex) {
                     val endTime = time + duration
                     sb.append("[${millisToTimeStr(endTime)}]")
                 }
             }
+
             output.add(sb.toString())
 
             // 添加对应翻译行，使用 lyricLineIndex
@@ -794,7 +802,7 @@ class PlayService : MediaSessionService(),
         return linesCopy.joinToString("\n")
     }
 
-    suspend fun saveCurrentPlaylist(player: ExoPlayer, dao: PlaylistRepository) {
+    suspend fun saveCurrentPlaylist(player: Player, dao: PlaylistRepository) {
         val itemCount = player.mediaItemCount
         val entities = mutableListOf<MediaItemEntity>()
 
