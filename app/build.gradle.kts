@@ -103,6 +103,7 @@ dependencies {
     implementation(libs.androidx.animation.core.android)
     implementation(libs.androidx.media3.common.ktx)
     implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.preference.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

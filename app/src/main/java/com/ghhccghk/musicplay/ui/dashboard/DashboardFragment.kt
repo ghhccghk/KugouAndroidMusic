@@ -27,11 +27,11 @@ import com.ghhccghk.musicplay.data.SearchBase
 import com.ghhccghk.musicplay.data.SongDataBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
-import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.ghhccghk.musicplay.util.hotsearch.HotGroupAdapter
 import com.ghhccghk.musicplay.util.adapte.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.adapte.playlist.PlayMusicSceneAdapter
 import com.ghhccghk.musicplay.util.adapte.search.RecommendationAdapter
+import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.hotsearch.HotGroupAdapter
 import com.google.android.material.tabs.TabLayoutMediator
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -69,8 +69,8 @@ class DashboardFragment : Fragment() {
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()
-            addgetPlayListTag()
             addsearch()
+            addgetPlayListTag()
         }
     }
 
@@ -101,7 +101,6 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("nodejs",MainActivity.isNodeRunning.toString())
         if (MainActivity.isNodeRunning) {
             addgetSearchhotView()
             addgetPlayListTheme()

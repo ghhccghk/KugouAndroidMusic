@@ -39,6 +39,7 @@ zxingAndroidEmbedded = "4.3.0"
 animationCoreAndroid = "1.8.2"
 media3CommonKtx = "1.7.1"
 lifecycleService = "2.9.0"
+preferenceKtx = "1.2.1"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -95,6 +96,7 @@ zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", ve
 androidx-animation-core-android = { group = "androidx.compose.animation", name = "animation-core-android", version.ref = "animationCoreAndroid" }
 androidx-media3-common-ktx = { group = "androidx.media3", name = "media3-common-ktx", version.ref = "media3CommonKtx" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
