@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.BitmapDrawable
@@ -26,6 +27,7 @@ import androidx.annotation.OptIn
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.media3.common.MediaMetadata
@@ -213,7 +215,6 @@ class LyricsFragment: Fragment() {
                     if (false){
                         addColorScheme(drawable)
                     } else {
-                        addColorScheme(drawable)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val heavilyBlurredBitmap = blurMultipleTimes(
                                 MainActivity.lontext,
@@ -222,6 +223,10 @@ class LyricsFragment: Fragment() {
                                 times
                             )
                             binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+                            binding.backgroundImage.setColorFilter(
+                                "#66000000".toColorInt(), // 半透明黑色，66 是透明度（十六进制）
+                                PorterDuff.Mode.DARKEN // 或者使用 MULTIPLY 效果也不错
+                            )
                             binding.backgroundImage.setRenderEffect(
                                 RenderEffect.createBlurEffect(25f, 25f, Shader.TileMode.CLAMP)
                             )
@@ -230,6 +235,10 @@ class LyricsFragment: Fragment() {
                             val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
                             val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
                             binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
+                            binding.backgroundImage.setColorFilter(
+                                "#66000000".toColorInt(), // 半透明黑色，66 是透明度（十六进制）
+                                PorterDuff.Mode.DARKEN // 或者使用 MULTIPLY 效果也不错
+                            )
 
                         }
                     }

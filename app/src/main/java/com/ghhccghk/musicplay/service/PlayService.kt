@@ -5,9 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -17,6 +18,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.VectorDrawable
 import android.media.AudioDeviceInfo
+import android.os.Binder
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -27,37 +29,64 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
+import androidx.media3.session.SessionResult
+import androidx.media3.session.doUpdateNotification
 import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.MainActivity.Companion.playbar
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
+import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.objects.MainViewModelObject
+import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
+import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
+import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
 import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
+import com.ghhccghk.musicplay.util.AfFormatTracker
+import com.ghhccghk.musicplay.util.AudioTrackInfo
+import com.ghhccghk.musicplay.util.BtCodecInfo
+import com.ghhccghk.musicplay.util.NodeBridge
+import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
 import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toEntity
 import com.ghhccghk.musicplay.util.others.toMediaItem
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.SuperLyricPush
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -66,29 +95,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
-import androidx.core.graphics.createBitmap
-import androidx.media3.common.Format
-import androidx.media3.datasource.cache.CacheKeyFactory
-import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.exoplayer.audio.AudioSink
-import androidx.media3.exoplayer.source.MediaLoadData
-import androidx.media3.session.MediaLibraryService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionError
-import androidx.media3.session.SessionResult
-import androidx.media3.session.doUpdateNotification
-import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
-import com.ghhccghk.musicplay.data.objects.MainViewModelObject
-import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
-import com.ghhccghk.musicplay.util.AfFormatTracker
-import com.ghhccghk.musicplay.util.AudioTrackInfo
-import com.ghhccghk.musicplay.util.BtCodecInfo
-import com.ghhccghk.musicplay.util.Tools.getBitrate
-import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 
 @UnstableApi
@@ -105,6 +111,19 @@ class PlayService : MediaSessionService(),
     private var lyric : String = ""
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
+
+
+    //Node js 服务相关
+    var isNodeRunning = false
+    var isNodeRunError : String = ""
+    private val nodeReadyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == NodeBridge.ACTION_NODE_READY) {
+                isNodeRunning = true
+                Log.d("NodeService", "Node.js 已完全启动")
+            }
+        }
+    }
 
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -220,11 +239,33 @@ class PlayService : MediaSessionService(),
     }
 
 
+    inner class LocalBinder : Binder() {
+        fun getService(): PlayService = this@PlayService
+    }
+
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
-         repo = PlaylistRepository(MainActivity.lontext)
+        repo = PlaylistRepository(MainActivity.lontext)
 
+        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
+        LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
+
+        Log.d("PlayService", "服务创建，准备启动 Node.js")
+
+        serviceScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    NodeBridge.startNode() // 这里调用 native 方法
+                    Log.d("PlayService", "Node.js 启动完成")
+                    isNodeRunning = true
+                } catch (e: Exception) {
+                    Log.e("PlayService", "启动 Node.js 失败", e)
+                    isNodeRunning = false
+                    isNodeRunError = e.toString()
+                }
+            }
+        }
 
         val cache = SimpleCache(
             File(this.getExternalFilesDir(null), "exo_music_cache"),
@@ -358,6 +399,11 @@ class PlayService : MediaSessionService(),
 
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        isNodeRunning = false
+    }
+
     // Configure commands available to the controller in onConnect()
     override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo)
             : MediaSession.ConnectionResult {
@@ -397,7 +443,6 @@ class PlayService : MediaSessionService(),
                 }
             })
     }
-
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super<Player.Listener>.onMediaItemTransition(mediaItem, reason)
@@ -472,6 +517,11 @@ class PlayService : MediaSessionService(),
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+        val itemCount = mediaSession.player.mediaItemCount
+        mediaItems.value =
+            List(itemCount) { index -> mediaSession.player.getMediaItemAt(index) }.toMutableList()
+        currentMediaItemIndex.value = mediaSession.player.currentMediaItemIndex
+
         if (isPlaying) {
             // 播放开始
             playbar.findViewById<TextView>(R.id.playbar_artist).text = mediaSession.player.mediaMetadata.artist

@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.updateToken.updateToken
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentUserBinding
@@ -28,7 +27,6 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.jvm.java
 
 class UserFragment : Fragment() {
 
@@ -76,6 +74,9 @@ class UserFragment : Fragment() {
     fun setui() {
         lifecycleScope.launch {
             val gson = Gson()
+            withContext(Dispatchers.IO) {
+                KugouAPi.getlitevip()
+            }
             val json = withContext(Dispatchers.IO) {
                 val a = KugouAPi.getUserPlayList()
                 Log.d("test", a.toString())

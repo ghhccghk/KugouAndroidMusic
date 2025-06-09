@@ -4,35 +4,57 @@ import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Build
 import android.widget.ImageView
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
-import com.ghhccghk.musicplay.R
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 
 
@@ -56,7 +78,7 @@ open class PlaylistBottomSheetController {
 @Composable
 fun PlaylistBottomSheet(
     controller: PlaylistBottomSheetController = remember { PlaylistBottomSheetController() },
-    songs: List<MediaItem>,
+    songs: () -> List<MediaItem>,
     onDismissRequest: () -> Unit,
     onSongClick: (index: Int, song: MediaItem) -> Unit,
     onDeleteClick: (index: Int, song: MediaItem) -> Unit,
@@ -90,7 +112,14 @@ fun PlaylistBottomSheet(
                     .padding(WindowInsets.statusBars.asPaddingValues()),
                 sheetState = sheetState,
             ) {
-                val currentSong = songs.getOrNull(currentIndex())
+                val currentSong by remember {
+                    derivedStateOf {
+                        val index = currentIndex()
+                        songs().getOrNull(index)
+                    }
+                }
+                val songs = songs()
+
                 val currentTitle = currentSong?.mediaMetadata?.title?.toString().orEmpty()
                 val currentArtwork = currentSong?.mediaMetadata?.artworkUri?.toString()
 
@@ -101,7 +130,7 @@ fun PlaylistBottomSheet(
                     leadingContent = {
                         if (currentArtwork != null) {
                             RotatingArtwork(
-                                uri = currentSong.mediaMetadata.artworkUri
+                                uri = currentSong?.mediaMetadata?.artworkUri
                             )
                         } else {
                             Icon(

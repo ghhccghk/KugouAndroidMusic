@@ -1,6 +1,5 @@
 package com.ghhccghk.musicplay.data.objects
 
-import android.net.Uri
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.mutableIntStateOf
@@ -24,9 +23,9 @@ object MediaViewModelObject {
     val bitrate = mutableIntStateOf(0)
 
     //选中字体颜色
-    val colorOnSecondaryContainerFinalColor = mutableIntStateOf(ContextCompat.getColor(MainActivity.lontext,R.color.lyric_main))
+    val colorOnSecondaryContainerFinalColor = mutableIntStateOf(ContextCompat.getColor(MainActivity.lontext,R.color.lyric_main_bg))
     //未选中字体颜色
-    val colorSecondaryContainerFinalColor = mutableIntStateOf(ContextCompat.getColor(MainActivity.lontext,R.color.lyric_sub))
+    val colorSecondaryContainerFinalColor = mutableIntStateOf(ContextCompat.getColor(MainActivity.lontext,R.color.lyric_sub_bg))
     //背景色
     val surfaceTransition = mutableIntStateOf(Color.Black.toArgb())
 

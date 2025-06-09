@@ -173,6 +173,7 @@ class PlayerFragment() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         context = requireContext()
+        //MainActivity.controllerFuture.addListener({  })
         player = MainActivity.controllerFuture.get()
 
         val seekBar = binding.sliderSquiggly
@@ -700,11 +701,12 @@ class PlayerFragment() : Fragment() {
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
         colorContrastFaintedFinalColor = colorContrastFainted
+        if (false){
             MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue =
                 colorOnSecondaryContainer
             MediaViewModelObject.colorSecondaryContainerFinalColor.intValue =
                 colorSecondaryContainer
-
+        }
         currentJob = null
         withContext(Dispatchers.Main) {
             if (_binding != null) {

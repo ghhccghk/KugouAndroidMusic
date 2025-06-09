@@ -2,16 +2,17 @@ package com.ghhccghk.musicplay.ui.playlistdetail
 
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.session.MediaController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
@@ -20,6 +21,7 @@ import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.data.songurl.getsongurl.GetSongUrlBase
 import com.ghhccghk.musicplay.data.user.playListDetail.PlayListDetail
+import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.SongListBase
 import com.ghhccghk.musicplay.databinding.FragmentPlaylistBinding
 import com.ghhccghk.musicplay.util.adapte.SongAdapter
@@ -30,14 +32,6 @@ import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import kotlin.text.replaceFirst
-import androidx.core.net.toUri
-import androidx.media3.session.MediaController
-import androidx.media3.session.MediaSession
-import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -45,9 +39,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.chunked
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import java.util.Collections
+import kotlinx.coroutines.withContext
+import java.net.URLEncoder
 
 class PlaylistDetailFragment : Fragment() {
 
@@ -304,7 +300,7 @@ class PlaylistDetailFragment : Fragment() {
                 null
             } else {
                 val re = Gson().fromJson(json, GetSongUrlBase::class.java)
-                val url = re.backupUrl.getOrNull(0) ?: return null
+                val url = re?.backupUrl[0].toString()
 
                 val encodedUrl = URLEncoder.encode(url, "UTF-8")
                 val uri = "musicplay://playurl?id=${name + hash}&url=$encodedUrl".toUri().toString()
