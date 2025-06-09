@@ -30,6 +30,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".ui.setting.MainSettingsActivity"
+            android:exported="false" />
+
         <service android:name=".service.PlayService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false"

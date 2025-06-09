@@ -51,10 +51,10 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
 import com.google.common.util.concurrent.ListenableFuture
 
-@UnstableApi
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    @SuppressLint("UnsafeOptInUsageError")
     private var nodeService: PlayService? = null
     var bound = false
     private val viewModel by viewModels<MainViewModel>()

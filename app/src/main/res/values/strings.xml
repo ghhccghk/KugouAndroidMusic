@@ -23,55 +23,55 @@
     <string name="playlist_all_play">播放全部</string>
     <string name="api_no_ok">API 未就绪</string>
 
-    <string name="spk_channel_out_mono" translatable="false">Mono</string>
-    <string name="spk_channel_out_stereo" translatable="false">Stereo</string>
-    <string name="spk_channel_out_quad" translatable="false">Quad</string>
-    <string name="spk_channel_out_surround" translatable="false">Surround (4.0)</string>
-    <string name="spk_channel_out_7point1_surround" translatable="false">Surround (7.1)</string>
-    <string name="spk_channel_out_5point1" translatable="false">5.1</string>
-    <string name="spk_channel_out_6point1" translatable="false">6.1</string>
-    <string name="spk_channel_out_5point1point2" translatable="false">5.1.2</string>
-    <string name="spk_channel_out_5point1point4" translatable="false">5.1.4</string>
-    <string name="spk_channel_out_7point1point2" translatable="false">7.1.2</string>
-    <string name="spk_channel_out_7point1point4" translatable="false">7.1.4</string>
-    <string name="spk_channel_out_9point1point4" translatable="false">9.1.4</string>
-    <string name="spk_channel_out_9point1point6" translatable="false">9.1.6</string>
-    <string name="spk_channel_out_front_left" translatable="false">Front Left</string>
-    <string name="spk_channel_out_front_right" translatable="false">Front Right</string>
-    <string name="spk_channel_out_front_center" translatable="false">Front Center</string>
-    <string name="spk_channel_out_low_frequency" translatable="false">Low Frequency</string>
-    <string name="spk_channel_out_back_left" translatable="false">Back Left</string>
-    <string name="spk_channel_out_back_right" translatable="false">Back Right</string>
-    <string name="spk_channel_out_front_left_of_center" translatable="false">Front Left of Center</string>
-    <string name="spk_channel_out_front_right_of_center" translatable="false">Front Right of Center</string>
-    <string name="spk_channel_out_back_center" translatable="false">Back Center</string>
-    <string name="spk_channel_out_side_left" translatable="false">Side Left</string>
-    <string name="spk_channel_out_side_right" translatable="false">Side Right</string>
-    <string name="spk_channel_out_top_center" translatable="false">Top Center</string>
-    <string name="spk_channel_out_top_front_left" translatable="false">Top Front Left</string>
-    <string name="spk_channel_out_top_front_center" translatable="false">Top Front Center</string>
-    <string name="spk_channel_out_top_front_right" translatable="false">Top Front Right</string>
-    <string name="spk_channel_invalid" translatable="false">Invalid</string>
-    <string name="spk_channel_out_top_back_left" translatable="false">Top Back Left</string>
-    <string name="spk_channel_out_top_back_center" translatable="false">Top Back Center</string>
-    <string name="spk_channel_out_top_back_right" translatable="false">Top Back Right</string>
-    <string name="spk_channel_out_top_side_left" translatable="false">Top Side Left</string>
-    <string name="spk_channel_out_top_side_right" translatable="false">Top Side Right</string>
-    <string name="spk_channel_out_bottom_front_left" translatable="false">Bottom Front Left</string>
-    <string name="spk_channel_out_bottom_front_center" translatable="false">Bottom Front Center</string>
-    <string name="spk_channel_out_bottom_front_right" translatable="false">Bottom Front Right</string>
-    <string name="spk_channel_out_low_frequency_2" translatable="false">Low Frequency 2</string>
-    <string name="spk_channel_out_front_wide_left" translatable="false">Front Wide Left</string>
-    <string name="spk_channel_out_front_wide_right" translatable="false">Front Wide Right</string>
-    <string name="spk_encoding_invalid" translatable="false">Invalid</string>
-    <string name="spk_encoding_pcm_8bit" translatable="false">8-bit PCM</string>
-    <string name="spk_encoding_pcm_16bit" translatable="false">16-bit PCM</string>
-    <string name="spk_encoding_pcm_16bit_big_endian" translatable="false">16-bit PCM (big endian)</string>
-    <string name="spk_encoding_pcm_24bit" translatable="false">24-bit PCM</string>
-    <string name="spk_encoding_pcm_24bit_big_endian" translatable="false">24-bit PCM (big endian)</string>
-    <string name="spk_encoding_pcm_32bit" translatable="false">32-bit (int) PCM</string>
-    <string name="spk_encoding_pcm_32bit_big_endian" translatable="false">32-bit (int) PCM (big endian)</string>
-    <string name="spk_encoding_pcm_float" translatable="false">32-bit (float) PCM</string>
+    <string name="spk_channel_out_mono">Mono</string>
+    <string name="spk_channel_out_stereo">Stereo</string>
+    <string name="spk_channel_out_quad">Quad</string>
+    <string name="spk_channel_out_surround">Surround (4.0)</string>
+    <string name="spk_channel_out_7point1_surround">Surround (7.1)</string>
+    <string name="spk_channel_out_5point1">5.1</string>
+    <string name="spk_channel_out_6point1">6.1</string>
+    <string name="spk_channel_out_5point1point2">5.1.2</string>
+    <string name="spk_channel_out_5point1point4">5.1.4</string>
+    <string name="spk_channel_out_7point1point2">7.1.2</string>
+    <string name="spk_channel_out_7point1point4">7.1.4</string>
+    <string name="spk_channel_out_9point1point4">9.1.4</string>
+    <string name="spk_channel_out_9point1point6">9.1.6</string>
+    <string name="spk_channel_out_front_left">Front Left</string>
+    <string name="spk_channel_out_front_right">Front Right</string>
+    <string name="spk_channel_out_front_center">Front Center</string>
+    <string name="spk_channel_out_low_frequency">Low Frequency</string>
+    <string name="spk_channel_out_back_left">Back Left</string>
+    <string name="spk_channel_out_back_right">Back Right</string>
+    <string name="spk_channel_out_front_left_of_center">Front Left of Center</string>
+    <string name="spk_channel_out_front_right_of_center">Front Right of Center</string>
+    <string name="spk_channel_out_back_center">Back Center</string>
+    <string name="spk_channel_out_side_left">Side Left</string>
+    <string name="spk_channel_out_side_right">Side Right</string>
+    <string name="spk_channel_out_top_center">Top Center</string>
+    <string name="spk_channel_out_top_front_left">Top Front Left</string>
+    <string name="spk_channel_out_top_front_center">Top Front Center</string>
+    <string name="spk_channel_out_top_front_right">Top Front Right</string>
+    <string name="spk_channel_invalid">Invalid</string>
+    <string name="spk_channel_out_top_back_left">Top Back Left</string>
+    <string name="spk_channel_out_top_back_center">Top Back Center</string>
+    <string name="spk_channel_out_top_back_right">Top Back Right</string>
+    <string name="spk_channel_out_top_side_left">Top Side Left</string>
+    <string name="spk_channel_out_top_side_right">Top Side Right</string>
+    <string name="spk_channel_out_bottom_front_left">Bottom Front Left</string>
+    <string name="spk_channel_out_bottom_front_center">Bottom Front Center</string>
+    <string name="spk_channel_out_bottom_front_right">Bottom Front Right</string>
+    <string name="spk_channel_out_low_frequency_2">Low Frequency 2</string>
+    <string name="spk_channel_out_front_wide_left">Front Wide Left</string>
+    <string name="spk_channel_out_front_wide_right">Front Wide Right</string>
+    <string name="spk_encoding_invalid">Invalid</string>
+    <string name="spk_encoding_pcm_8bit">8-bit PCM</string>
+    <string name="spk_encoding_pcm_16bit">16-bit PCM</string>
+    <string name="spk_encoding_pcm_16bit_big_endian">16-bit PCM (big endian)</string>
+    <string name="spk_encoding_pcm_24bit">24-bit PCM</string>
+    <string name="spk_encoding_pcm_24bit_big_endian">24-bit PCM (big endian)</string>
+    <string name="spk_encoding_pcm_32bit">32-bit (int) PCM</string>
+    <string name="spk_encoding_pcm_32bit_big_endian">32-bit (int) PCM (big endian)</string>
+    <string name="spk_encoding_pcm_float">32-bit (float) PCM</string>
     <string name="spk_encoding_mp3" translatable="false">MP3</string>
     <string name="spk_encoding_aac_lc" translatable="false">AAC-LC</string>
     <string name="spk_encoding_aac_he_v1" translatable="false">HE-AAC v1</string>
@@ -222,6 +222,69 @@
     <string name="gender_male">Male</string>
     <string name="gender_female">Female</string>
     <string name="gender_secret">Secret</string>
+    <string name="more">更多</string>
+    <string name="setting">设置</string>
+    <string name="update_token">更新登录Token</string>
+    <string name="token_update_error">Token 更新失败</string>
+
+
+    <string name="settings_title_center">标题居中</string>
+    <string name="settings_title_center_summary">使播放器的标题居中</string>
+    <string name="settings_player_ui">播放器界面</string>
+    <string name="settings_player_ui_summary">播放器界面、歌词</string>
+    <string name="settings_appearance_summary">应用外观、主题</string>
+    <string name="settings_about_app">关于</string>
+    <string name="settings_about_gramophone">关于应用</string>
+    <string name="settings_behavior_summary">过滤器、启动行为</string>
+    <string name="settings_category_links">链接</string>
+    <string name="settings_library">媒体库</string>
+    <string name="settings_library_summary">管理媒体库</string>
+    <string name="settings_player_options">音频</string>
+    <string name="settings_player_options_summary">音频输出质量、播放器行为</string>
+    <string name="settings_customization">自定义</string>
+    <string name="settings_customization_summary">管理自定义选项</string>
+    <string name="settings_album_round_corner_summary">在播放器中启用圆角</string>
+    <string name="settings_album_round_corner">专辑圆角</string>
+    <string name="settings_audio">音频</string>
+    <string name="settings_title_bold">粗体标题</string>
+    <string name="settings_title_bold_summary">在播放器的标题上使用粗体</string>
+    <string name="settings_experimental_settings">实验性内容</string>
+    <string name="settings_color_accuracy">精确颜色</string>
+    <string name="settings_color_accuracy_summary">使颜色生成准确</string>
+    <string name="settings_experimental_settings_summary">实验性功能、其他内容</string>
+    <string name="sort_by_add_date">添加日期</string>
+    <string name="sort_by_modified_date">修改日期</string>
+    <string name="settings_lyric">歌词</string>
+    <string name="settings_lyrics_configuration">歌词设置</string>
+    <string name="settings_lyrics_configuration_summary">设置歌词外观</string>
+    <string name="settings_lyrics_bold">粗体歌词</string>
+    <string name="settings_lyrics_bold_summary">使歌词使用更大的字重显示</string>
+    <string name="settings_lyrics_center">中心对齐</string>
+    <string name="settings_lyrics_center_summary">使歌词中心对齐</string>
+    <string name="settings_play_on_launch">启动时播放</string>
+    <string name="settings_play_on_launch_summary">在启动时播放歌曲</string>
+    <string name="settings_blacklist_folder">排除的文件夹</string>
+    <string name="settings_blacklist">排除列表</string>
+    <string name="settings_category_misc">杂项</string>
+    <string name="preference_category_quality">质量</string>
+    <string name="settings_category_basic_info">基本信息</string>
+    <string name="settings_category_filters">过滤器</string>
+    <string name="settings_blacklist_folder_summary">从某些文件夹中过滤歌曲</string>
+    <string name="settings_category_full_player">播放器</string>
+    <string name="settings_preference_category_application">应用</string>
+    <string name="settings_crash_application">崩溃测试</string>
+    <string name="settings_crash_application_summary">Crash-O-Matic 3000</string>
+    <string name="settings_status_bar_lyrics_title">状态栏歌词</string>
+    <string name="settings_status_bar_lyrics_summary">启用魅族状态栏歌词（仅适用于部分设备）</string>
+    <string name="settings_default_progress_bar">启用默认进度条</string>
+    <string name="settings_default_progress_bar_summary">使用 Material Design 默认样式的进度条</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_category_behavior">行为</string>
+    <string name="settings_mediastore_filter">歌曲最小长度（秒）</string>
+    <string name="settings_repository">仓库地址</string>
+    <string name="settings_category_appearance">外观</string>
+    <string name="back">返回</string>
+    <string name="seekbar">seekbar\n</string>
 
 
 </resources>

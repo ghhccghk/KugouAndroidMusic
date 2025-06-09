@@ -1,11 +1,14 @@
 package com.ghhccghk.musicplay.ui.user
 
+import android.content.Context.MODE_PRIVATE
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -17,6 +20,7 @@ import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentUserBinding
+import com.ghhccghk.musicplay.ui.setting.MainSettingsActivity
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
@@ -24,9 +28,12 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.util.Locale
 
 class UserFragment : Fragment() {
 
@@ -35,6 +42,8 @@ class UserFragment : Fragment() {
     // This property is only valid between onCreateView and
     // onDestroyView.
     private val binding get() = _binding!!
+    private var prefs =
+        MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,7 +54,93 @@ class UserFragment : Fragment() {
             ViewModelProvider(this).get(UserViewModel::class.java)
 
         _binding = FragmentUserBinding.inflate(inflater, container, false)
+        val vipupdate = prefs.getString("vipupdate", "")
+
+        val calendar = Calendar.getInstance()
+        val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val today = format.format(calendar.time)
+        lifecycleScope.launch {
+            if (today != vipupdate) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val a = KugouAPi.getlitevip()
+                        if (a == null || a == "502" || a == "404") {
+                            Toast.makeText(
+                                MainActivity.lontext,
+                                R.string.token_update_error,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            MainActivity.lontext,
+                            R.string.token_update_error,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        null
+                    }
+                }
+                prefs.edit { putString("vipupdate", today) }
+            }
+        }
+
         val root: View = binding.root
+        binding.toolbar.inflateMenu(R.menu.toolbar_menu_user)
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_update_token -> {
+                    lifecycleScope.launch {
+                        if (today != vipupdate) {
+                            withContext(Dispatchers.IO) {
+                                try {
+                                    val a = KugouAPi.getlitevip()
+                                    if (a == null || a == "502" || a == "404") {
+                                        Toast.makeText(
+                                            MainActivity.lontext,
+                                            R.string.token_update_error,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    Toast.makeText(
+                                        MainActivity.lontext,
+                                        R.string.token_update_error,
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                    null
+                                }
+                            }
+                            prefs.edit { putString("vipupdate", today) }
+                        }
+                        withContext(Dispatchers.IO) {
+                            try {
+                                KugouAPi.updateToken(
+                                    TokenManager.getToken().toString(),
+                                    TokenManager.getUserId().toString()
+                                ).toString()
+                            } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(
+                            MainActivity.lontext,
+                            R.string.token_update_error,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        null
+                    }
+                        }
+                    }; true
+
+                }
+                R.id.action_settings -> {
+                    requireActivity().startActivity(Intent(requireActivity(), MainSettingsActivity::class.java))
+                    true
+                }
+
+                else -> false
+            }
+        }
         TokenManager.init(requireContext())
         KugouAPi.init()
         if (MainActivity.isNodeRunning) {
@@ -74,9 +169,6 @@ class UserFragment : Fragment() {
     fun setui() {
         lifecycleScope.launch {
             val gson = Gson()
-            withContext(Dispatchers.IO) {
-                KugouAPi.getlitevip()
-            }
             val json = withContext(Dispatchers.IO) {
                 val a = KugouAPi.getUserPlayList()
                 Log.d("test", a.toString())
