@@ -1,5 +1,6 @@
 package com.ghhccghk.musicplay
 
+import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
@@ -10,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -22,6 +24,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -34,9 +37,9 @@ import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.databinding.ActivityMainBinding
-import com.ghhccghk.musicplay.service.NodeService
 import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
@@ -48,10 +51,11 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
 import com.google.common.util.concurrent.ListenableFuture
 
+@UnstableApi
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var nodeService: NodeService? = null
+    private var nodeService: PlayService? = null
     var bound = false
     private val viewModel by viewModels<MainViewModel>()
     var isNodeRunning = false
@@ -66,8 +70,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val connection = object : ServiceConnection {
+        @UnstableApi
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            val binder = service as NodeService.LocalBinder
+            val binder = service as PlayService.LocalBinder
             nodeService = binder.getService()
             bound = true
         }
@@ -177,29 +182,17 @@ class MainActivity : AppCompatActivity() {
                     .into(playbaricon)
             }
 
+            val maxHeight = (Resources.getSystem().displayMetrics.heightPixels * 0.8).toInt()
+            binding.comui.layoutParams.height = maxHeight
+
+
+            val itemCount = player.mediaItemCount
+            mediaItems.value =
+                List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+
+
             binding.comui.setContent {
-                PlaylistBottomSheet(
-                    controller = GlobalPlaylistBottomSheetController,
-                    songs = mediaItems.value,
-                    onDismissRequest = {
-                        GlobalPlaylistBottomSheetController._visible.value = false
-                    },
-                    onSongClick = { i, _ ->
-                        player.seekTo(i, 0)
-                        player.play()
-                    },
-                    onDeleteClick = { i, _ ->
-                        player.removeMediaItem(i)
-                        Toast.makeText(
-                            lontext,
-                            "已删除了 ${mediaItems.value[i].mediaMetadata.title}",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    currentIndex = {
-                        player.currentMediaItemIndex
-                    }
-                )
+                Setplaylistui(player)
             }
 
 
@@ -268,7 +261,7 @@ class MainActivity : AppCompatActivity() {
             ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
         slideOut.duration = 100
         slideOut.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
+            override fun onAnimationEnd(animation: Animator) {
                 bottomNav.visibility = View.GONE
             }
         })
@@ -296,7 +289,7 @@ class MainActivity : AppCompatActivity() {
         )
         slideOut.duration = 100
         slideOut.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
+            override fun onAnimationEnd(animation: Animator) {
                 bottomNav.visibility = View.GONE
                 play.visibility = View.GONE
             }
@@ -327,15 +320,12 @@ class MainActivity : AppCompatActivity() {
 
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
-        Intent(this, NodeService::class.java).also {
+        Intent(this, PlayService::class.java).also {
             bindService(it, connection, BIND_AUTO_CREATE)
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val intent = Intent(this, NodeService::class.java)
-        startService(intent)
 
         // 启动 Service
         // 初始化媒体控制器
@@ -384,12 +374,22 @@ class MainActivity : AppCompatActivity() {
         controllerFuture.addListener({
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
 
+            val itemCount = player.mediaItemCount
+            mediaItems.value =
+                List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+            currentMediaItemIndex.value = player.currentMediaItemIndex
+
+            binding.comui.setContent {
+                Setplaylistui(player)
+            }
+
             player.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     super.onIsPlayingChanged(isPlaying)
                     val itemCount = player.mediaItemCount
                     mediaItems.value =
                         List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                    currentMediaItemIndex.value = player.currentMediaItemIndex
                 }
 
                 override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -397,6 +397,7 @@ class MainActivity : AppCompatActivity() {
                     val itemCount = player.mediaItemCount
                     mediaItems.value =
                         List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                    currentMediaItemIndex.value = player.currentMediaItemIndex
 
                 }
 
@@ -405,31 +406,8 @@ class MainActivity : AppCompatActivity() {
                     val itemCount = player.mediaItemCount
                     mediaItems.value =
                         List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
+                    currentMediaItemIndex.value = player.currentMediaItemIndex
 
-                    binding.comui.setContent {
-                        PlaylistBottomSheet(
-                            controller = GlobalPlaylistBottomSheetController,
-                            songs = mediaItems.value,
-                            onDismissRequest = {
-                                GlobalPlaylistBottomSheetController._visible.value = false
-                            },
-                            onSongClick = { i, _ ->
-                                player.seekTo(i, 0)
-                                player.play()
-                            },
-                            onDeleteClick = { i, _ ->
-                                player.removeMediaItem(i)
-                                Toast.makeText(
-                                    lontext,
-                                    "已删除了 ${mediaItems.value[i].mediaMetadata.title}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            currentIndex = {
-                                player.currentMediaItemIndex
-                            }
-                        )
-                    }
                 }
             })
 
@@ -448,6 +426,32 @@ class MainActivity : AppCompatActivity() {
         val uiMode = context.resources.configuration.uiMode
         val nightMode = uiMode and Configuration.UI_MODE_NIGHT_MASK
         return nightMode == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    @Composable
+    fun Setplaylistui(player: Player){
+        PlaylistBottomSheet(
+            controller = GlobalPlaylistBottomSheetController,
+            songs = { mediaItems.value },
+            onDismissRequest = {
+                GlobalPlaylistBottomSheetController._visible.value = false
+            },
+            onSongClick = { i, _ ->
+                player.seekTo(i, 0)
+                player.play()
+            },
+            onDeleteClick = { i, _ ->
+                player.removeMediaItem(i)
+                Toast.makeText(
+                    lontext,
+                    "已删除了 ${mediaItems.value[i].mediaMetadata.title}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            },
+            currentIndex = {
+                currentMediaItemIndex.value
+            }
+        )
     }
 
 

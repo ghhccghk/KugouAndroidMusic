@@ -30,10 +30,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".service.NodeService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="false"
-            tools:ignore="ForegroundServicePermission" />
         <service android:name=".service.PlayService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="false"
