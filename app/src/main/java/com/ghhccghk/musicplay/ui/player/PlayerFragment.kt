@@ -73,8 +73,9 @@ class PlayerFragment() : Fragment() {
     private lateinit var player : MediaController
     private var isUserTracking = false
     private lateinit var context: Context
-    private var enableQualityInfo = true
     private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private var enableQualityInfo = prefs.getBoolean("audio_quality_info",false)
+    private var defaultprogressbar = prefs.getBoolean("default_progress_bar",false)
 
 
     //动态取色相关
@@ -372,8 +373,14 @@ class PlayerFragment() : Fragment() {
         slider.valueTo = 0f
         slider.value = 0f
         seekBar.progress = 0
-        slider.visibility = View.GONE
-        seekBar.visibility = View.VISIBLE
+        if (defaultprogressbar) {
+            slider.visibility = View.VISIBLE
+            seekBar.visibility = View.GONE
+        } else {
+            slider.visibility = View.GONE
+            seekBar.visibility = View.VISIBLE
+        }
+
 
         if (player.duration.toInt() != 0){
             seekBar.max = player.duration.toInt()
