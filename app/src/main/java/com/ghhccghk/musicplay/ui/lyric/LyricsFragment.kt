@@ -24,6 +24,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.OptIn
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
@@ -40,6 +41,7 @@ import androidx.transition.TransitionSet
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
+import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
@@ -78,6 +80,9 @@ class LyricsFragment: Fragment() {
     private var colorOnSurfaceColor : Int = Color.BLACK
     private var colorOnSurfaceVariantColor : Int = Color.BLACK
     private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private val colorbg = prefs.getBoolean("setting_color_background_set",false)
+    private val setting_blur = prefs.getBoolean("setting_blur",false)
+    private val translation = prefs.getBoolean("setting_translation",true)
 
     @OptIn(UnstableApi::class)
     override fun onCreateView(
@@ -99,16 +104,14 @@ class LyricsFragment: Fragment() {
 
         returnTransition = customTransition
 
-        if (MainActivity.isNodeRunning){
-            testlyric()
-        }
-
         return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        testlyric()
+        if (MainActivity.isNodeRunning){
+            testlyric()
+        }
     }
 
     override fun onDestroyView() {
@@ -138,7 +141,8 @@ class LyricsFragment: Fragment() {
                     }
                 },
                 weightLambda = { showControl.value },
-                blurLambda = { false },
+                translationLambda = { translation },
+                blurLambda = { setting_blur },
                 onBackClick = {
                     showControl.value = true
                 },
@@ -159,9 +163,6 @@ class LyricsFragment: Fragment() {
     override fun onResume() {
         super.onResume()
         showControl.value = false
-        if (MainActivity.isNodeRunning){
-            testlyric()
-        }
     }
 
     override fun onPause() {
@@ -212,9 +213,13 @@ class LyricsFragment: Fragment() {
                 override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
                     // 31+ 用 View 的 setRenderEffect 方式
                     val drawable = resource.toDrawable(resources)
-                    if (false){
+                    if (colorbg){
                         addColorScheme(drawable)
                     } else {
+                        //选中字体颜色
+                        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = ContextCompat.getColor(MainActivity.lontext,R.color.lyric_main_bg)
+                        //未选中字体颜色
+                        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = ContextCompat.getColor(MainActivity.lontext,R.color.lyric_sub_bg)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val heavilyBlurredBitmap = blurMultipleTimes(
                                 MainActivity.lontext,
@@ -363,7 +368,7 @@ class LyricsFragment: Fragment() {
             addUpdateListener { animation ->
                 if (_binding != null) {
                     MediaViewModelObject.surfaceTransition.intValue = animation.animatedValue as Int
-                    if (false){
+                    if (colorbg){
                         binding.backgroundImage.setBackgroundColor(
                             animation.animatedValue as Int
                         )

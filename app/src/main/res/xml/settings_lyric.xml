@@ -40,19 +40,29 @@
 
     <SwitchPreferenceCompat
         android:defaultValue="false"
-        android:key="setting_edge_fade"
+        android:key="setting_blur"
         android:layout="@layout/preference_switch"
-        android:summary="@string/setting_edge_fade_summary"
-        android:title="@string/setting_edge_fade"
+        android:summary="@string/setting_blur_summary"
+        android:title="@string/setting_blur"
+        android:widgetLayout="@layout/preference_switch_widget"
+        app:iconSpaceReserved="false" />
+
+
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="setting_translation"
+        android:layout="@layout/preference_switch"
+        android:summary="@string/setting_translation_summary"
+        android:title="@string/setting_translation"
         android:widgetLayout="@layout/preference_switch_widget"
         app:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat
         android:defaultValue="false"
-        android:key="setting_format_text"
+        android:key="setting_color_background_set"
         android:layout="@layout/preference_switch"
-        android:summary="@string/setting_format_text_summary"
-        android:title="@string/setting_format_text"
+        android:summary="@string/setting_color_background_set_summary"
+        android:title="@string/setting_color_background_set"
         android:widgetLayout="@layout/preference_switch_widget"
         app:iconSpaceReserved="false" />
 

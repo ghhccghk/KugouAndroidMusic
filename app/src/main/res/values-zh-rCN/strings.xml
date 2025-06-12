@@ -123,10 +123,6 @@
     <string name="settings_lyric">歌词</string>
     <string name="settings_lyrics_configuration">歌词设置</string>
     <string name="settings_lyrics_configuration_summary">设置歌词外观</string>
-    <string name="settings_lyrics_bold">粗体歌词</string>
-    <string name="settings_lyrics_bold_summary">使歌词使用更大的字重显示</string>
-    <string name="settings_lyrics_center">中心对齐</string>
-    <string name="settings_lyrics_center_summary">使歌词中心对齐</string>
     <string name="settings_play_on_launch">启动时播放</string>
     <string name="settings_play_on_launch_summary">在启动时播放歌曲</string>
     <string name="settings_blacklist_folder">排除的文件夹</string>
@@ -154,12 +150,14 @@
     <string name="settings_lyric_line_balance">歌词平衡行模式</string>
     <string name="settings_lyric_line_balance_summary">切换为平衡换行策略</string>
     <string name="settings_lyric_font_weight_summary">修改歌词字体字重</string>
-    <string name="settings_lyric_font_weight">歌词字体字重</string>
-    <string name="setting_edge_fade">歌词界面边缘渐隐效果</string>
-    <string name="setting_edge_fade_summary">启用歌词界面边缘渐隐效果</string>
-    <string name="setting_format_text_summary">启用后会将歌词的格式规整。例如，将歌词中的多个连续空格替换为单个空格，去除歌词首尾空格等</string>
-    <string name="setting_format_text">歌词规整功能</string>
+    <string name="settings_lyric_font_weight">字体字重</string>
     <string name="settings_audio_quality_info">音频质量信息</string>
     <string name="settings_audio_quality_info_summary">在播放器界面展示音频质量、格式信息</string>
+    <string name="setting_color_background_set_summary">切换歌词背景为动态模糊封面还是封面莫奈取色</string>
+    <string name="setting_color_background_set">背景动态模糊和莫奈取色切换</string>
+    <string name="setting_blur_summary">启用模糊效果</string>
+    <string name="setting_blur">模糊效果</string>
+    <string name="setting_translation">显示翻译</string>
+    <string name="setting_translation_summary">是否显示翻译歌词</string>
 
 </resources>
