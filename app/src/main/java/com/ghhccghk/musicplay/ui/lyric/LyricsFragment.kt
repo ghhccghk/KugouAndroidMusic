@@ -19,6 +19,7 @@ import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -29,6 +30,7 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.media3.common.MediaMetadata
@@ -79,6 +81,9 @@ class LyricsFragment: Fragment() {
     private var colorContrastFaintedFinalColor: Int = Color.BLACK
     private var colorOnSurfaceColor : Int = Color.BLACK
     private var colorOnSurfaceVariantColor : Int = Color.BLACK
+    private var originalStatusBarColor: Int = 0
+    private var originalLightStatusBar: Boolean = true
+
     private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     private val colorbg = prefs.getBoolean("setting_color_background_set",false)
     private val setting_blur = prefs.getBoolean("setting_blur",false)
@@ -109,9 +114,13 @@ class LyricsFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        if (MainActivity.isNodeRunning){
-            testlyric()
-        }
+        val window = requireActivity().window
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        // 保存原始状态
+        originalStatusBarColor = window.statusBarColor
+        originalLightStatusBar = controller.isAppearanceLightStatusBars
+        testlyric()
+
     }
 
     override fun onDestroyView() {
@@ -165,10 +174,36 @@ class LyricsFragment: Fragment() {
         showControl.value = false
     }
 
+    override fun onStop() {
+        super.onStop()
+        showControl.value = true
+        val window = requireActivity().window
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        // 恢复原来的状态栏颜色和图标颜色
+        window.statusBarColor = originalStatusBarColor
+        controller.isAppearanceLightStatusBars = originalLightStatusBar
+    }
+
     override fun onPause() {
         super.onPause()
         showControl.value = true
+        val window = requireActivity().window
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        // 恢复原来的状态栏颜色和图标颜色
+        window.statusBarColor = originalStatusBarColor
+        controller.isAppearanceLightStatusBars = originalLightStatusBar
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d("Lyric","onDestroy")
+        val window = requireActivity().window
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        // 恢复原来的状态栏颜色和图标颜色
+        window.statusBarColor = originalStatusBarColor
+        controller.isAppearanceLightStatusBars = originalLightStatusBar
+    }
+
 
     @Suppress("DEPRECATION")
     fun blurBitmapLegacy(context: Context, bitmap: Bitmap, radius: Float): Bitmap {
@@ -216,6 +251,17 @@ class LyricsFragment: Fragment() {
                     if (colorbg){
                         addColorScheme(drawable)
                     } else {
+                        val window = requireActivity().window
+                        val controller = WindowCompat.getInsetsController(window, window.decorView)
+                        // 保存原始状态
+                        originalStatusBarColor = window.statusBarColor
+                        originalLightStatusBar = controller.isAppearanceLightStatusBars
+                        //强制状态栏为白色
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            requireActivity().window.statusBarColor = Color.WHITE
+                        } else {
+                            controller.isAppearanceLightStatusBars = false
+                        }
                         //选中字体颜色
                         MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = ContextCompat.getColor(MainActivity.lontext,R.color.lyric_main_bg)
                         //未选中字体颜色
