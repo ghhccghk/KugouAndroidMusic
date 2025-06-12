@@ -23,6 +23,34 @@
     <string name="playlist_all_play">播放全部</string>
     <string name="api_no_ok">API 未就绪</string>
 
+    <string name="settings_audio_quality_info">Audio quality info</string>
+    <string name="settings_audio_quality_info_summary">Show audio quality/format information on the player screen</string>
+
+    <string-array name="font_weight_entries">
+        <item>极细</item>        <!-- Thin -->
+        <item>超细</item>        <!-- ExtraLight -->
+        <item>细体</item>        <!-- Light -->
+        <item>常规</item>        <!-- Regular -->
+        <item>中等</item>        <!-- Medium -->
+        <item>偏粗</item>        <!-- SemiBold -->
+        <item>加粗</item>        <!-- Bold -->
+        <item>特粗</item>        <!-- ExtraBold -->
+        <item>极粗</item>        <!-- Black -->
+    </string-array>
+
+    <string-array name="font_weight_values">
+        <item>Thin</item>
+        <item>ExtraLight</item>
+        <item>Light</item>
+        <item>Regular</item>
+        <item>Medium</item>
+        <item>SemiBold</item>
+        <item>Bold</item>
+        <item>ExtraBold</item>
+        <item>Black</item>
+    </string-array>
+
+
     <string name="spk_channel_out_mono">Mono</string>
     <string name="spk_channel_out_stereo">Stereo</string>
     <string name="spk_channel_out_quad">Quad</string>
@@ -285,6 +313,14 @@
     <string name="settings_category_appearance">外观</string>
     <string name="back">返回</string>
     <string name="seekbar">seekbar\n</string>
+    <string name="settings_lyric_line_balance">歌词平衡行模式</string>
+    <string name="settings_lyric_line_balance_summary">切换为平衡换行策略</string>
+    <string name="settings_lyric_font_weight_summary">修改歌词字体字重</string>
+    <string name="settings_lyric_font_weight">歌词字体字重</string>
+    <string name="setting_edge_fade">歌词界面边缘渐隐效果</string>
+    <string name="setting_edge_fade_summary">启用歌词界面边缘渐隐效果</string>
+    <string name="setting_format_text_summary">启用后会将歌词的格式规整。例如，将歌词中的多个连续空格替换为单个空格，去除歌词首尾空格等</string>
+    <string name="setting_format_text">歌词规整功能</string>
 
 
 </resources>

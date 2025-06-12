@@ -151,5 +151,15 @@
     <string name="settings_category_appearance">外观</string>
     <string name="back">返回</string>
     <string name="seekbar">seekbar\n</string>
+    <string name="settings_lyric_line_balance">歌词平衡行模式</string>
+    <string name="settings_lyric_line_balance_summary">切换为平衡换行策略</string>
+    <string name="settings_lyric_font_weight_summary">修改歌词字体字重</string>
+    <string name="settings_lyric_font_weight">歌词字体字重</string>
+    <string name="setting_edge_fade">歌词界面边缘渐隐效果</string>
+    <string name="setting_edge_fade_summary">启用歌词界面边缘渐隐效果</string>
+    <string name="setting_format_text_summary">启用后会将歌词的格式规整。例如，将歌词中的多个连续空格替换为单个空格，去除歌词首尾空格等</string>
+    <string name="setting_format_text">歌词规整功能</string>
+    <string name="settings_audio_quality_info">音频质量信息</string>
+    <string name="settings_audio_quality_info_summary">在播放器界面展示音频质量、格式信息</string>
 
 </resources>

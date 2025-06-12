@@ -1,7 +1,14 @@
 package com.ghhccghk.musicplay.util.lrc
 
+import android.content.Context.MODE_PRIVATE
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
+import com.ghhccghk.musicplay.MainActivity
+
+val perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+val edgeFadeBoolean = perfs.getBoolean("setting_edge_fade", false)
+val formatTextBoolean = perfs.getBoolean("setting_format_text", false)
+
 
 /**
  * YosLyricView UI 控制类
@@ -22,8 +29,8 @@ import androidx.compose.ui.graphics.Color
  */
 @Stable
 data class YosUIConfig(
-    val edgeFade: Boolean = false,
-    val formatText: Boolean = false,
+    val edgeFade: Boolean = edgeFadeBoolean,
+    val formatText: Boolean = formatTextBoolean,
     val noLrcText: String = "No lyrics",
     val blankHeight: Int = 40,
     val mainTextSize: Int = 34,

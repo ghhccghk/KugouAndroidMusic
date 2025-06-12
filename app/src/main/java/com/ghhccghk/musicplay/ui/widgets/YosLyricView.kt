@@ -1,6 +1,7 @@
 package com.ghhccghk.musicplay.ui.widgets
 
 import android.annotation.SuppressLint
+import android.content.Context.MODE_PRIVATE
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -77,7 +78,6 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -95,7 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
-import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.lrcEntries
@@ -110,23 +110,21 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 val yosEasing = CubicBezierEasing(0.75f, 0.0f, 0.25f, 1.0f)
+val perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
 
 
+/**
+ * 歌词平衡行模式
+ */
 
-    /**
-     * 歌词平衡行模式
-     */
-
-    const val LyricLineBalance : Boolean = false
-
+val LyricLineBalance = perfs.getBoolean("lyric_line_balance", false)
 
 
-    /**
-     * 歌词字体字重
-     */
+/**
+ * 歌词字体字重
+ */
 
-    const val LyricFontWeight : String = "Bold"
-
+val LyricFontWeight = perfs.getString("lyric_font_weight", "Bold")
 
 
 /**
@@ -157,8 +155,8 @@ fun YosLyricView(
     println("重组：YosLyricView")
     val context = LocalContext.current
 
-    val mainTextBasicColor by mutableStateOf( mainTextBasicColor() )
-    val subTextBasicColor by mutableStateOf( subTextBasicColor())
+    val mainTextBasicColor by mutableStateOf(mainTextBasicColor())
+    val subTextBasicColor by mutableStateOf(subTextBasicColor())
 
     //Color(0xFF919191)
     val otherSideForLines = MediaViewModelObject.otherSideForLines
@@ -343,13 +341,14 @@ fun YosLyricView(
                         derivedStateOf { index == currentLyricIndex.intValue - 1 }
                     }
 
-                    val showStateAnimation = remember(currentLyricIndex.intValue, scrollState.firstVisibleItemIndex) {
-                        derivedStateOf {
-                            currentLyricIndex.intValue in
-                                    scrollState.layoutInfo.visibleItemsInfo.map { it.index } &&
-                                    currentLyricIndex.intValue >= 0 && enableLyricScroll.value
+                    val showStateAnimation =
+                        remember(currentLyricIndex.intValue, scrollState.firstVisibleItemIndex) {
+                            derivedStateOf {
+                                currentLyricIndex.intValue in
+                                        scrollState.layoutInfo.visibleItemsInfo.map { it.index } &&
+                                        currentLyricIndex.intValue >= 0 && enableLyricScroll.value
+                            }
                         }
-                    }
 
                     val isLyricEmpty = rememberSaveable(lines) {
                         mutableStateOf(lines.all { it.second.isEmpty() })
@@ -424,7 +423,8 @@ fun YosLyricView(
                                 if (visibleItems.value.isEmpty()) return@LaunchedEffect
 
                                 if (index >= currentLyricIndex.intValue - 1 && showStateAnimation.value && show.value) {
-                                    val weight = 1f - ((index - nowFirst.value).toFloat() / visibleItems.value.size)
+                                    val weight =
+                                        1f - ((index - nowFirst.value).toFloat() / visibleItems.value.size)
                                     delay((550 * (1f - weight)).toLong())
                                     thisTargetHeight.value = thisScrollDistance * weight + space
                                     delay(((550 / 1.95f) * weight).toLong())
@@ -834,7 +834,7 @@ fun LazyItemScope.LyricItem(
             }
 
             val tweenSpecWithoutDelay: AnimationSpec<Float> = remember(mainLyric) {
-                TweenSpec(durationMillis = /*270*/ 300, easing = yosEasing,delay = 45)
+                TweenSpec(durationMillis = /*270*/ 300, easing = yosEasing, delay = 45)
             }
 
             val scale = animateFloatAsState(
@@ -859,7 +859,9 @@ fun LazyItemScope.LyricItem(
                     val percent = remember(mainLyric) {
                         derivedStateOf {
                             val m = mainLyric.first().first
-                            ((liveTime.intValue - m).coerceAtLeast(0f) / (nextTime() - m)).coerceAtMost(1f)
+                            ((liveTime.intValue - m).coerceAtLeast(0f) / (nextTime() - m)).coerceAtMost(
+                                1f
+                            )
                         }
                     }
                     val show = remember(mainLyric) {
@@ -867,11 +869,13 @@ fun LazyItemScope.LyricItem(
                     }
                     AnimatedVisibility(
                         show.value,
-                        enter = fadeIn(animationSpec = TweenSpec(
-                            durationMillis = 550,
-                            easing = yosEasing,
-                            delay = 300
-                        )) + scaleIn(
+                        enter = fadeIn(
+                            animationSpec = TweenSpec(
+                                durationMillis = 550,
+                                easing = yosEasing,
+                                delay = 300
+                            )
+                        ) + scaleIn(
                             initialScale = 0.85f,
                             transformOrigin = otherSideAnimate,
                             animationSpec = TweenSpec(
@@ -1048,13 +1052,13 @@ fun LazyItemScope.LyricItem(
                                         if (!isCurrentLambda()) {
                                             // 是逐字 但不是当前行
                                             // 是否已播放完？
-                                                // 不高亮
-                                                return@Line onDrawWithContent {
-                                                    drawText(
-                                                        textLayoutResult = measureResult,
-                                                        color = subTextBasicColor
-                                                    )
-                                                }
+                                            // 不高亮
+                                            return@Line onDrawWithContent {
+                                                drawText(
+                                                    textLayoutResult = measureResult,
+                                                    color = subTextBasicColor
+                                                )
+                                            }
                                         }
 
                                         // 以下为逐字处理
@@ -1069,14 +1073,22 @@ fun LazyItemScope.LyricItem(
                                             val thisWord = word.second
                                             if (thisWord.isEmpty()) return@fastForEachIndexed
 
-                                            val previousTime = if (wordIndex == 0) word.first else mainLyric[wordIndex - 1].first
-                                            val duration = (word.first - previousTime) / thisWord.length
+                                            val previousTime =
+                                                if (wordIndex == 0) word.first else mainLyric[wordIndex - 1].first
+                                            val duration =
+                                                (word.first - previousTime) / thisWord.length
 
-                                            val groupPercent = if ((word.first - previousTime) == 0f) {
-                                                0f
-                                            } else {
-                                                ((liveTime.intValue - previousTime).coerceAtLeast(0f) / (word.first - previousTime)).coerceIn(0f, 1f)
-                                            }
+                                            val groupPercent =
+                                                if ((word.first - previousTime) == 0f) {
+                                                    0f
+                                                } else {
+                                                    ((liveTime.intValue - previousTime).coerceAtLeast(
+                                                        0f
+                                                    ) / (word.first - previousTime)).coerceIn(
+                                                        0f,
+                                                        1f
+                                                    )
+                                                }
                                             val easedPercent = easing.transform(groupPercent)
                                             val topLeftWeight = 4 * easedPercent
 
@@ -1085,12 +1097,19 @@ fun LazyItemScope.LyricItem(
                                                 val charStr = char.toString()
                                                 val layout = measurer.measure(
                                                     text = charStr,
-                                                    style = if (otherSide) MainTextStyle.copy(textAlign = TextAlign.End) else MainTextStyle,
+                                                    style = if (otherSide) MainTextStyle.copy(
+                                                        textAlign = TextAlign.End
+                                                    ) else MainTextStyle,
                                                     constraints = measureResult.layoutInput.constraints
                                                 )
 
-                                                val bboxIndex = sum.coerceAtMost(mainLyric.sumOf { it.second.length } - 1).coerceAtLeast(0)
-                                                val topLeft = measureResult.getBoundingBox(bboxIndex).topLeft.minus(Offset(0f, topLeftWeight))
+                                                val bboxIndex =
+                                                    sum.coerceAtMost(mainLyric.sumOf { it.second.length } - 1)
+                                                        .coerceAtLeast(0)
+                                                val topLeft =
+                                                    measureResult.getBoundingBox(bboxIndex).topLeft.minus(
+                                                        Offset(0f, topLeftWeight)
+                                                    )
 
                                                 val thisCharStartTime = lastTime
 
@@ -1103,17 +1122,28 @@ fun LazyItemScope.LyricItem(
                                                         if (thisWord == " ") {
                                                             return@DrawWord unfocusedSolidBrush
                                                         }
-                                                        val beforeColor = if (percent <= 0f) subTextBasicColor else mainTextBasicColor
-                                                        val afterColor = if (percent >= 1f) mainTextBasicColor else subTextBasicColor
+                                                        val beforeColor =
+                                                            if (percent <= 0f) subTextBasicColor else mainTextBasicColor
+                                                        val afterColor =
+                                                            if (percent >= 1f) mainTextBasicColor else subTextBasicColor
                                                         Brush.horizontalGradient(
                                                             0f to beforeColor,
-                                                            (percent - px).coerceIn(0f, 1f) to beforeColor,
-                                                            (percent + px).coerceIn(0f, 1f) to afterColor,
+                                                            (percent - px).coerceIn(
+                                                                0f,
+                                                                1f
+                                                            ) to beforeColor,
+                                                            (percent + px).coerceIn(
+                                                                0f,
+                                                                1f
+                                                            ) to afterColor,
                                                         )
                                                     },
                                                     percent = {
                                                         if (thisWord == " ") return@DrawWord 0f
-                                                        ((liveTime.intValue - thisCharStartTime) / duration).coerceIn(0f, 1f)
+                                                        ((liveTime.intValue - thisCharStartTime) / duration).coerceIn(
+                                                            0f,
+                                                            1f
+                                                        )
                                                     }
                                                 )
 
@@ -1140,7 +1170,8 @@ fun LazyItemScope.LyricItem(
                                                 targetValue = if (isCurrentLambda()) uiConfig.currentSubTextAlpha else uiConfig.normalSubTextAlpha,
                                                 animationSpec = if (isCurrentLambda()) alphaTweenSpecWithDelay else alphaTweenSpecWithoutDelay
                                             )
-                                            val textColor = if (isCurrentLambda()) mainTextBasicColor else subTextBasicColor
+                                            val textColor =
+                                                if (isCurrentLambda()) mainTextBasicColor else subTextBasicColor
 
 
                                             val translationOtherSidePadding = if (otherSide) {
@@ -1252,8 +1283,8 @@ fun CountdownAnimation(progress: () -> Float, colorLambda: () -> Color) {
                 )*/
 
                 val average = 1f / 3f
-                val beforePadding = (i-1) * average
-                val thisPercent = (progress() - beforePadding)  / ((i * average) - beforePadding)
+                val beforePadding = (i - 1) * average
+                val thisPercent = (progress() - beforePadding) / ((i * average) - beforePadding)
                 val alpha = 0.2f + (0.8f * thisPercent).coerceIn(0f, 0.8f)
 
                 Box(

@@ -33,6 +33,12 @@
         <activity
             android:name=".ui.setting.MainSettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.setting.LyricSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.setting.PlayerSettingsActivity"
+            android:exported="false" />
 
         <service android:name=".service.PlayService"
             android:foregroundServiceType="mediaPlayback"
