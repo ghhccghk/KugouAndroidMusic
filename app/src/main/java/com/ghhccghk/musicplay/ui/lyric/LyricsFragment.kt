@@ -249,7 +249,13 @@ class LyricsFragment: Fragment() {
                     // 31+ 用 View 的 setRenderEffect 方式
                     val drawable = resource.toDrawable(resources)
                     if (colorbg){
-                        addColorScheme(drawable)
+                        if (DynamicColors.isDynamicColorAvailable() &&
+                            prefs.getBoolean("content_based_color", true)
+                        ) {
+                            addColorScheme(drawable)
+                        } else {
+                            removeColorScheme()
+                        }
                     } else {
                         val window = requireActivity().window
                         val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -310,7 +316,7 @@ class LyricsFragment: Fragment() {
                 removeColorScheme()
                 return@launch
             }
-            val colorAccuracy = prefs.getBoolean("color_accuracy", false)
+            val colorAccuracy = prefs.getBoolean("content_based_color", false)
             val targetWidth = if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16
             val targetHeight = if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16
             val scaledBitmap = bitmap.scale(targetWidth, targetHeight, false)

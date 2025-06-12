@@ -131,7 +131,7 @@ class DashboardFragment : Fragment() {
                             keywords = listItem.keywords.take(5).mapIndexed { index, keywordItem ->
                                 KeywordItem(
                                     keyword = "${index + 1}. ${keywordItem.keyword}",
-                                    keywordItem.reason
+                                    keywordItem.keyword
                                 )
                             }
                         )

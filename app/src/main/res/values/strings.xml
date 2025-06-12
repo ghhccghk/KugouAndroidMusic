@@ -26,30 +26,6 @@
     <string name="settings_audio_quality_info">Audio quality info</string>
     <string name="settings_audio_quality_info_summary">Show audio quality/format information on the player screen</string>
 
-    <string-array name="font_weight_entries">
-        <item>极细</item>        <!-- Thin -->
-        <item>超细</item>        <!-- ExtraLight -->
-        <item>细体</item>        <!-- Light -->
-        <item>常规</item>        <!-- Regular -->
-        <item>中等</item>        <!-- Medium -->
-        <item>偏粗</item>        <!-- SemiBold -->
-        <item>加粗</item>        <!-- Bold -->
-        <item>特粗</item>        <!-- ExtraBold -->
-        <item>极粗</item>        <!-- Black -->
-    </string-array>
-
-    <string-array name="font_weight_values">
-        <item>Thin</item>
-        <item>ExtraLight</item>
-        <item>Light</item>
-        <item>Regular</item>
-        <item>Medium</item>
-        <item>SemiBold</item>
-        <item>Bold</item>
-        <item>ExtraBold</item>
-        <item>Black</item>
-    </string-array>
-
 
     <string name="spk_channel_out_mono">Mono</string>
     <string name="spk_channel_out_stereo">Stereo</string>
@@ -319,6 +295,12 @@
     <string name="setting_blur">模糊效果</string>
     <string name="setting_translation">显示翻译</string>
     <string name="setting_translation_summary">是否显示翻译歌词</string>
+    <string name="settings_content_based_color_summary">Enable album based color generation</string>
+    <string name="settings_content_based_color">Content based colors</string>
+    <string name="follow_system">Follow system</string>
+    <string name="dark">Dark</string>
+    <string name="light">Light</string>
+    <string name="settings_app_theme">App theme</string>
 
 
 </resources>

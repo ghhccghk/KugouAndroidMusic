@@ -235,7 +235,13 @@ class PlayerFragment() : Fragment() {
                         .load(url)
                         .submit()
                         .get() // 注意：这是同步操作，需放在协程或后台线程中
-                    addColorScheme(a)
+                    if (DynamicColors.isDynamicColorAvailable() &&
+                        prefs.getBoolean("content_based_color", true)
+                    ) {
+                        addColorScheme(a)
+                    } else {
+                        removeColorScheme()
+                    }
                 }
             }
         }
@@ -263,7 +269,13 @@ class PlayerFragment() : Fragment() {
                                     .load(url)
                                     .submit()
                                     .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                addColorScheme(a)
+                                if (DynamicColors.isDynamicColorAvailable() &&
+                                    prefs.getBoolean("content_based_color", true)
+                                ) {
+                                    addColorScheme(a)
+                                } else {
+                                    removeColorScheme()
+                                }
                             }
                         }
                         updateQualityIndicators(if (enableQualityInfo)
@@ -283,7 +295,13 @@ class PlayerFragment() : Fragment() {
                                     .load(url)
                                     .submit()
                                     .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                addColorScheme(a)
+                                if (DynamicColors.isDynamicColorAvailable() &&
+                                    prefs.getBoolean("content_based_color", true)
+                                ) {
+                                    addColorScheme(a)
+                                } else {
+                                    removeColorScheme()
+                                }
                             }
                         }
 
@@ -317,7 +335,13 @@ class PlayerFragment() : Fragment() {
                                         .load(url)
                                         .submit()
                                         .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                    addColorScheme(a)
+                                    if (DynamicColors.isDynamicColorAvailable() &&
+                                        prefs.getBoolean("content_based_color", true)
+                                    ) {
+                                        addColorScheme(a)
+                                    } else {
+                                        removeColorScheme()
+                                    }
                                 }
                             }
                             if (player.playbackState != Player.STATE_BUFFERING) {
@@ -511,7 +535,7 @@ class PlayerFragment() : Fragment() {
                 removeColorScheme()
                 return@launch
             }
-            val colorAccuracy = prefs.getBoolean("color_accuracy", false)
+            val colorAccuracy = prefs.getBoolean("content_based_color", false)
             val targetWidth = if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16
             val targetHeight = if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16
             val scaledBitmap = bitmap.scale(targetWidth, targetHeight, false)

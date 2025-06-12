@@ -14,6 +14,7 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.IBinder
+import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -24,6 +25,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
@@ -96,6 +98,34 @@ class MainActivity : AppCompatActivity() {
         } else {
             start()
         }
+        val prefs = this.applicationContext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+        when (prefs.getString("theme_mode", "0")) {
+            "0" -> {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
+            }
+
+            "1" -> {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
+            }
+
+            "2" -> {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
+            }
+        }
+    }
+
+    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+        return super.onCreateView(name, context, attrs)
+        if (isFirstRun(this)) {
+            ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
+            start()
+        } else {
+            start()
+        }
+
     }
 
     fun isFirstRun(context: Context): Boolean {

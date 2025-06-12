@@ -159,5 +159,11 @@
     <string name="setting_blur">模糊效果</string>
     <string name="setting_translation">显示翻译</string>
     <string name="setting_translation_summary">是否显示翻译歌词</string>
+    <string name="settings_content_based_color">启用基于内容生成的颜色</string>
+    <string name="settings_content_based_color_summary">启用基于专辑封面生成的颜色方案</string>
+    <string name="follow_system">跟随系统</string>
+    <string name="dark">深色</string>
+    <string name="light">浅色</string>
+    <string name="settings_app_theme">应用主题</string>
 
 </resources>
