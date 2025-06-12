@@ -42,6 +42,15 @@
 
     </PreferenceCategory>
 
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:icon="@drawable/ic_colors"
+        android:key="content_based_color"
+        android:layout="@layout/preference_switch"
+        android:summary="@string/settings_content_based_color_summary"
+        android:title="@string/settings_content_based_color"
+        android:widgetLayout="@layout/preference_switch_widget" />
+
     <PreferenceCategory
         android:layout="@layout/preference_category_md"
         android:title="@string/settings_category_misc">

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="theme_switch" translatable="false">>
+        <item>@string/follow_system</item>
+        <item>@string/dark</item>
+        <item>@string/light</item>
+    </string-array>
+
+    <string-array name="theme_switch_val" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    <string-array name="font_weight_entries">
+        <item>极细</item>        <!-- Thin -->
+        <item>超细</item>        <!-- ExtraLight -->
+        <item>细体</item>        <!-- Light -->
+        <item>常规</item>        <!-- Regular -->
+        <item>中等</item>        <!-- Medium -->
+        <item>偏粗</item>        <!-- SemiBold -->
+        <item>加粗</item>        <!-- Bold -->
+        <item>特粗</item>        <!-- ExtraBold -->
+        <item>极粗</item>        <!-- Black -->
+    </string-array>
+
+    <string-array name="font_weight_values">
+        <item>Thin</item>
+        <item>ExtraLight</item>
+        <item>Light</item>
+        <item>Regular</item>
+        <item>Medium</item>
+        <item>SemiBold</item>
+        <item>Bold</item>
+        <item>ExtraBold</item>
+        <item>Black</item>
+    </string-array>
+
+</resources>

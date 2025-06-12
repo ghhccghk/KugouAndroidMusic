@@ -17,47 +17,38 @@
 
 package com.ghhccghk.musicplay.ui.setting
 
+import android.content.SharedPreferences
 import android.os.Bundle
-import androidx.preference.Preference
+import androidx.appcompat.app.AppCompatDelegate
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.ui.preference.BasePreferenceFragment
 
-class MainSettingsActivity : BaseSettingsActivity(R.string.setting,
-    { MainSettingsFragment() })
+class AppearanceSettingsActivity : BaseSettingsActivity(R.string.settings_category_appearance,
+    { AppearanceSettingsFragment() })
 
-class MainSettingsFragment : BasePreferenceFragment() {
+class AppearanceSettingsFragment : BasePreferenceFragment() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferencesName = "play_setting_prefs"
-        setPreferencesFromResource(R.xml.settings_top, rootKey)
+        setPreferencesFromResource(R.xml.settings_appearance, rootKey)
     }
 
-    override fun onPreferenceTreeClick(preference: Preference): Boolean {
-        when (preference.key) {
-            "appearance" -> {
-                startActivity(AppearanceSettingsActivity::class.java)
-            }
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        when (key) {
+            "theme_mode" -> {
+                when (sharedPreferences?.getString("theme_mode", "0")) {
+                    "0" -> {
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                    }
 
-            "behavior" -> {
-                //startActivity(BehaviorSettingsActivity::class.java)
-            }
+                    "1" -> {
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                    }
 
-            "about" -> {
-                //startActivity(AboutSettingsActivity::class.java)
-            }
-
-            "player" -> {
-                startActivity(PlayerSettingsActivity::class.java)
-            }
-
-            "audio" -> {
-                //startActivity(AudioSettingsActivity::class.java)
-            }
-
-            "experimental" -> {
-                //startActivity(ExperimentalSettingsActivity::class.java)
+                    "2" -> {
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                    }
+                }
             }
         }
-        return super.onPreferenceTreeClick(preference)
     }
-
 }
