@@ -47,6 +47,7 @@ import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.TokenManager
+import com.ghhccghk.musicplay.util.UrlCacheManager
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -92,6 +93,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
+        UrlCacheManager.init(this)
         if (isFirstRun(this)) {
             ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
             start()

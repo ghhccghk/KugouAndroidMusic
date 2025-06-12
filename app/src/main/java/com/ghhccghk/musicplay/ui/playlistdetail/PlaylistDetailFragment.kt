@@ -35,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.chunked
 import kotlinx.coroutines.flow.flow
@@ -122,11 +123,13 @@ class PlaylistDetailFragment : Fragment() {
                                     try {
                                         val gson = Gson()
                                         val result = gson.fromJson(json, GetSongUrlBase::class.java)
-                                        val url = result?.backupUrl[0].toString()
+                                        val re = result
+                                        val url = re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
+
 
                                         // 含真实 URL 和 ID 的占位 URI
                                         val encodedUrl = URLEncoder.encode(url, "UTF-8")
-                                        val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}".toUri().toString()
+                                        val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}&hash=${it?.hash}".toUri().toString()
 
                                         val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
 
@@ -200,8 +203,8 @@ class PlaylistDetailFragment : Fragment() {
         } else {
             val gson = Gson()
             val resulta = gson.fromJson(b, searchLyricBase::class.java)
-            val accesskey = resulta.candidates[0].accesskey
-            val id = resulta.candidates[0].id
+            val accesskey = resulta.candidates.getOrNull(0)?.accesskey
+            val id = resulta.candidates.getOrNull(0)?.id
 
             val abc = MediaItemEntity(
                 mediaId = mediaId,
@@ -248,6 +251,7 @@ class PlaylistDetailFragment : Fragment() {
             (2..totalPages).map { page ->
                 async(Dispatchers.IO) {
                     semaphore.withPermit {
+                        delay(200)
                         try {
                             val json = KugouAPi.getPlayListAllSongs(ids, page, pageSize) ?: return@withPermit emptyList<Song>()
                             val pageData = adapter.fromJson(json)
@@ -279,6 +283,7 @@ class PlaylistDetailFragment : Fragment() {
         this@toMediaItemListParallel
             .map { song ->
                 async {
+                    delay(100)
                     song.toMediaItemSuspend() // 注意是挂起函数
                 }
             }
@@ -300,10 +305,10 @@ class PlaylistDetailFragment : Fragment() {
                 null
             } else {
                 val re = Gson().fromJson(json, GetSongUrlBase::class.java)
-                val url = re?.backupUrl[0].toString()
+                val url = re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
 
                 val encodedUrl = URLEncoder.encode(url, "UTF-8")
-                val uri = "musicplay://playurl?id=${name + hash}&url=$encodedUrl".toUri().toString()
+                val uri = "musicplay://playurl?id=${name + hash}&url=$encodedUrl&hash=${hash}".toUri().toString()
 
                 val (title, artist) = splitArtistAndTitle(name ?: "未知歌曲") ?: return null
 
