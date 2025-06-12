@@ -25,12 +25,14 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.View
 import androidx.core.graphics.drawable.toDrawable
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.ghhccghk.musicplay.util.Tools.allowDiskAccessInStrictMode
 import com.ghhccghk.musicplay.util.Tools.dpToPx
 import com.ghhccghk.musicplay.util.Tools.enableEdgeToEdgePaddingListener
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * BasePreferenceFragment:
@@ -48,6 +50,31 @@ abstract class BasePreferenceFragment : PreferenceFragmentCompat(),
         view.findViewById<RecyclerView>(androidx.preference.R.id.recycler_view).apply {
             setPadding(paddingLeft, paddingTop + 12.dpToPx(context), paddingRight, paddingBottom)
             enableEdgeToEdgePaddingListener()
+        }
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (preference is CustomSingleSelectPreference) {
+            val entries = preference.entries
+            val entryValues = preference.entryValues
+
+            // 获取当前选中项的值
+            val selected = preference.getPersistedValue()
+            // 找到当前选中项的索引，没有则-1
+            val checkedItem = entryValues.indexOf(selected)
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(preference.title)
+                .setSingleChoiceItems(entries, checkedItem) { dialog, which ->
+                    // 选中时，直接保存并关闭对话框
+                    preference.setSelectedValue(entryValues[which])
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+
+        } else {
+            super.onDisplayPreferenceDialog(preference)
         }
     }
 

@@ -2,7 +2,6 @@ package com.ghhccghk.musicplay.ui.lyric
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.util.UnstableApi
@@ -14,8 +13,6 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.isManualNotificationUpdate
 import com.ghhccghk.musicplay.R
 import com.google.common.collect.ImmutableList
-import kotlin.also
-import kotlin.apply
 
 private const val FLAG_ALWAYS_SHOW_TICKER = 0x01000000
 private const val FLAG_ONLY_UPDATE_TICKER = 0x02000000

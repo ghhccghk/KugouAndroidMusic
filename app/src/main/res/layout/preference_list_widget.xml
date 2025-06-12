@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingEnd="16dp">
+
+    <!-- 显示当前选中的项 -->
+    <TextView
+        android:id="@+id/md3_list_summary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?android:attr/textColorSecondary"
+        android:ellipsize="end"
+        android:maxLines="1" />
+
+    <!-- 下拉箭头图标 -->
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_arrow_back"
+        app:tint="?android:attr/textColorSecondary" />
+</LinearLayout>

@@ -148,6 +148,7 @@ class PlayService : MediaSessionService(),
         val base64 = drawableToBase64(getDrawable(R.drawable.ic_cd)!!)
         val handler by lazy { Handler(Looper.getMainLooper()) }
 
+
         val updateLyricsRunnable = object : Runnable {
             override fun run() {
                 runCatching {
@@ -237,7 +238,6 @@ class PlayService : MediaSessionService(),
             handler.post(updateLyricsRunnable)
         }
     }
-
 
     inner class LocalBinder : Binder() {
         fun getService(): PlayService = this@PlayService

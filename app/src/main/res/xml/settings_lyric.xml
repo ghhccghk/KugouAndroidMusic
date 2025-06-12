@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~     Copyright (C) 2024 Akane Foundation
+  ~
+  ~     Gramophone is free software: you can redistribute it and/or modify
+  ~     it under the terms of the GNU General Public License as published by
+  ~     the Free Software Foundation, either version 3 of the License, or
+  ~     (at your option) any later version.
+  ~
+  ~     Gramophone is distributed in the hope that it will be useful,
+  ~     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~     GNU General Public License for more details.
+  ~
+  ~     You should have received a copy of the GNU General Public License
+  ~     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  -->
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <com.ghhccghk.musicplay.ui.preference.CustomSingleSelectPreference
+        android:defaultValue="Regular"
+        android:layout="@layout/preference_switch"
+        android:entries="@array/font_weight_entries"
+        android:entryValues="@array/font_weight_values"
+        android:key="lyric_font_weight"
+        android:summary="@string/settings_lyric_font_weight_summary"
+        android:title="@string/settings_lyric_font_weight"
+        app:iconSpaceReserved="false" />
+
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="lyric_line_balance"
+        android:layout="@layout/preference_switch"
+        android:summary="@string/settings_lyric_line_balance_summary"
+        android:title="@string/settings_lyric_line_balance"
+        android:widgetLayout="@layout/preference_switch_widget"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="setting_edge_fade"
+        android:layout="@layout/preference_switch"
+        android:summary="@string/setting_edge_fade_summary"
+        android:title="@string/setting_edge_fade"
+        android:widgetLayout="@layout/preference_switch_widget"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="setting_format_text"
+        android:layout="@layout/preference_switch"
+        android:summary="@string/setting_format_text_summary"
+        android:title="@string/setting_format_text"
+        android:widgetLayout="@layout/preference_switch_widget"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>
