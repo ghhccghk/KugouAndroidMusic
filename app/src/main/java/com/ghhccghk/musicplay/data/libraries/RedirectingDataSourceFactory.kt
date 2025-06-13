@@ -1,6 +1,7 @@
 package com.ghhccghk.musicplay.data.libraries
 
 import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
@@ -47,12 +48,14 @@ class RedirectingDataSource(
             val url = dataSpec.uri.getQueryParameter("url") ?: ""
             val hash = dataSpec.uri.getQueryParameter("hash") ?: ""
             id = (cid + quality)
+
             currentUri = runBlocking {
                 resolveUrl(hash, url)
             }
             if (currentUri == null || currentUri.toString() == "") {
                 currentUri = url.toUri()
             }
+            Log.d("RedirectingDataSource", "cid: $cid, url: $url, hash: $hash")
         } else {
             currentUri = dataSpec.uri
         }
