@@ -55,6 +55,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 
 
@@ -120,7 +121,7 @@ fun PlaylistBottomSheet(
                 }
                 val songs = songs()
 
-                val currentTitle = currentSong?.mediaMetadata?.title?.toString().orEmpty()
+                val currentTitle = currentSong?.songtitle?.toString().orEmpty()
                 val currentArtwork = currentSong?.mediaMetadata?.artworkUri?.toString()
 
                 ListItem(
@@ -195,7 +196,7 @@ fun PlaylistBottomSheet(
                             },
                             headlineContent = {
                                 Text(
-                                    song.mediaMetadata.title.toString(),
+                                    song.songtitle.toString(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

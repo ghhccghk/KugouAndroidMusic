@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.ghhccghk.musicplay.data.libraries.MediaItemDao
 import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 
-@Database(entities = [MediaItemEntity::class], version = 1, exportSchema = true)
+@Database(entities = [MediaItemEntity::class], version = 2, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun mediaItemDao(): MediaItemDao
 
@@ -17,9 +17,9 @@ abstract class AppDatabase : RoomDatabase() {
         fun getDatabase(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java, "playlist.db"
-                ).build().also { instance = it }
+                                context.applicationContext,
+                                AppDatabase::class.java, "playlist.db"
+                            ).fallbackToDestructiveMigration(false).build().also { instance = it }
             }
     }
 }

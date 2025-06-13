@@ -65,6 +65,7 @@ import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
@@ -205,6 +206,16 @@ class PlayService : MediaSessionService(),
                                         }
 
                                         if (true) {
+
+                                            val sessionMetadata = mediaSession.player.mediaMetadata
+                                            val sessionMediaItem = mediaSession.player.currentMediaItem
+
+                                            val newdata = sessionMetadata.buildUpon().setTitle(lyric).build()
+                                            val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+
+                                            mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
+                                                newmedia!!
+                                            )
                                             manuallyUpdateMediaNotification(mediaSession)
                                             // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                             SuperLyricPush.onSuperLyric(
@@ -232,6 +243,17 @@ class PlayService : MediaSessionService(),
                                     sendLyric()
                                 }
 
+                            } else {
+                                val sessionMetadata = mediaSession.player.mediaMetadata
+                                val sessionMediaItem = mediaSession.player.currentMediaItem
+                                val t = sessionMediaItem?.songtitle?.toString()
+
+                                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+
+                                mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
+                                    newmedia!!
+                                )
                             }
                         }
                     }
@@ -470,6 +492,21 @@ class PlayService : MediaSessionService(),
         super<Player.Listener>.onMediaItemTransition(mediaItem, reason)
 
 
+        val prevIndex = mediaSession.player.getPreviousMediaItemIndex()
+        if (prevIndex != C.INDEX_UNSET) {
+            val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
+            val sessionMetadata = previousItem.mediaMetadata
+            val sessionMediaItem = previousItem
+            val t = sessionMediaItem?.songtitle?.toString()
+
+            val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+            val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+            mediaSession.player.replaceMediaItem(prevIndex,
+                newmedia!!
+            )
+        }
+
+
         bitrate = null
         bitrateFetcher.launch {
             bitrate = mediaItem?.getBitrate() // TODO subtract cover size
@@ -483,7 +520,7 @@ class PlayService : MediaSessionService(),
         playbar.findViewById<TextView>(R.id.playbar_artist).text =
             mediaSession.player.mediaMetadata.artist
         playbar.findViewById<TextView>(R.id.playbar_title).text =
-            mediaSession.player.mediaMetadata.title
+            mediaSession.player.currentMediaItem?.songtitle
 
         val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
         val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
@@ -543,6 +580,7 @@ class PlayService : MediaSessionService(),
 
     }
 
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         val itemCount = mediaSession.player.mediaItemCount
         mediaItems.value =
@@ -554,7 +592,7 @@ class PlayService : MediaSessionService(),
             playbar.findViewById<TextView>(R.id.playbar_artist).text =
                 mediaSession.player.mediaMetadata.artist
             playbar.findViewById<TextView>(R.id.playbar_title).text =
-                mediaSession.player.mediaMetadata.title
+                mediaSession.player.currentMediaItem?.songtitle
         } else {
             serviceScope.launch {
                 if (mediaSession.player.playbackState != Player.STATE_IDLE && mediaSession.player.currentTimeline.isEmpty.not()) {
@@ -570,7 +608,7 @@ class PlayService : MediaSessionService(),
             playbar.findViewById<TextView>(R.id.playbar_artist).text =
                 mediaSession.player.mediaMetadata.artist
             playbar.findViewById<TextView>(R.id.playbar_title).text =
-                mediaSession.player.mediaMetadata.title
+                mediaSession.player.currentMediaItem?.songtitle
 
 
         }
@@ -581,7 +619,19 @@ class PlayService : MediaSessionService(),
             Player.STATE_IDLE -> println("空闲")
             Player.STATE_BUFFERING -> println("缓冲中")
             Player.STATE_READY -> println("准备好")
-            Player.STATE_ENDED -> println("播放结束")
+            Player.STATE_ENDED -> {
+                val sessionMetadata = mediaSession.player.mediaMetadata
+                val sessionMediaItem = mediaSession.player.currentMediaItem
+                val t = sessionMediaItem?.songtitle?.toString()
+
+                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+
+                mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
+                    newmedia!!
+                )
+                println("播放结束")
+            }
         }
     }
 

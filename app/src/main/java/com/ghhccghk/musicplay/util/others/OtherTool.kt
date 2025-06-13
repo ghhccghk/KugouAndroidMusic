@@ -1,12 +1,39 @@
 package com.ghhccghk.musicplay.util.others
 
-import android.os.Bundle
-import androidx.media3.common.MediaItem
-import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
-import com.ghhccghk.musicplay.data.libraries.*
 import android.net.Uri
-import androidx.media3.common.MediaMetadata
+import android.os.Bundle
 import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
+import com.ghhccghk.musicplay.data.libraries.addDate
+import com.ghhccghk.musicplay.data.libraries.album
+import com.ghhccghk.musicplay.data.libraries.albumArtists
+import com.ghhccghk.musicplay.data.libraries.albumId
+import com.ghhccghk.musicplay.data.libraries.artistId
+import com.ghhccghk.musicplay.data.libraries.artistsName
+import com.ghhccghk.musicplay.data.libraries.author
+import com.ghhccghk.musicplay.data.libraries.cdTrackNumber
+import com.ghhccghk.musicplay.data.libraries.compilation
+import com.ghhccghk.musicplay.data.libraries.composer
+import com.ghhccghk.musicplay.data.libraries.discNumber
+import com.ghhccghk.musicplay.data.libraries.duration
+import com.ghhccghk.musicplay.data.libraries.genre
+import com.ghhccghk.musicplay.data.libraries.genreId
+import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
+import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.libraries.modifiedDate
+import com.ghhccghk.musicplay.data.libraries.recordingDay
+import com.ghhccghk.musicplay.data.libraries.recordingMonth
+import com.ghhccghk.musicplay.data.libraries.recordingYear
+import com.ghhccghk.musicplay.data.libraries.releaseYear
+import com.ghhccghk.musicplay.data.libraries.songHash
+import com.ghhccghk.musicplay.data.libraries.songtitle
+import com.ghhccghk.musicplay.data.libraries.thumb
+import com.ghhccghk.musicplay.data.libraries.title
+import com.ghhccghk.musicplay.data.libraries.trackNumber
+import com.ghhccghk.musicplay.data.libraries.uri
+import com.ghhccghk.musicplay.data.libraries.writer
 
 fun MediaItem.toEntity(): MediaItemEntity {
     return MediaItemEntity(
@@ -37,7 +64,9 @@ fun MediaItem.toEntity(): MediaItemEntity {
         cdTrackNumber = this.cdTrackNumber,
         songHash = this.songHash?.toString(),
         lrcId = this.lrcId,
-        lrcAccesskey = this.lrcAccesskey
+        lrcAccesskey = this.lrcAccesskey,
+        songtitle = this.songtitle
+
     )
 }
 
@@ -71,6 +100,7 @@ fun MediaItemEntity.toMediaItem(): MediaItem {
             songHash?.toIntOrNull()?.let { putInt("songHash", it) }
             putString("lrcId", lrcId)
             putString("lrcAccesskey", lrcAccesskey)
+            putString("songtitle",songtitle)
         })
         .build()
 

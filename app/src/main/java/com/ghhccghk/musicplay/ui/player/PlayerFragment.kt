@@ -35,6 +35,7 @@ import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentPlayerBinding
@@ -138,8 +139,8 @@ class PlayerFragment() : Fragment() {
                 }
             }
 
-            if (binding.fullSongName.text  != player.mediaMetadata.title){
-                binding.fullSongName.text = player.mediaMetadata.title
+            if (binding.fullSongName.text  != player.currentMediaItem?.songtitle){
+                binding.fullSongName.text = player.currentMediaItem?.songtitle
                 binding.fullSongArtist.text = player.mediaMetadata.artist
             }
             if (player.isPlaying) {
