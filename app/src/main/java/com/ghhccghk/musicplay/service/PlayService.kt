@@ -302,8 +302,10 @@ class PlayService : MediaSessionService(),
         )
 
         val cacheKeyFactory = CacheKeyFactory { dataSpec ->
+            val quality = prefs.getString("song_quality","128").toString()
             val uri = dataSpec.uri
-            val id = uri.getQueryParameter("id")
+            val ida = uri.getQueryParameter("id")
+            val id = ( ida + quality)
             if (id != null) {
                 id
             } else {
@@ -322,8 +324,6 @@ class PlayService : MediaSessionService(),
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             .setCacheKeyFactory(cacheKeyFactory)
 
-
-        //val factory = DataSource.Factory { assetDataSource }
 
         playbackHandler = Handler(Looper.getMainLooper())
 
