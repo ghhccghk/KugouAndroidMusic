@@ -1,0 +1,3 @@
+[submodule "media"]
+	path = media
+	url = https://github.com/nift4/media

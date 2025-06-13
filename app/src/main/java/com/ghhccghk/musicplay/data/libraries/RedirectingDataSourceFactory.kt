@@ -50,7 +50,6 @@ class RedirectingDataSource(
             currentUri = runBlocking {
                 resolveUrl(hash, fallbackUrl)
             }
-
             if (currentUri == null) currentUri == url.toUri()
 
         } else {
@@ -112,7 +111,7 @@ class RedirectingDataSource(
                 UrlCacheManager.put(hash, finalUrl)
             } else {
                 // 失败，使用 fallback 或旧缓存
-                finalUrl = fallbackUrl?.ifEmpty { UrlCacheManager.get(hash)?.url }
+                finalUrl = fallbackUrl
             }
         }
 
