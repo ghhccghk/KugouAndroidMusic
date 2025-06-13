@@ -36,4 +36,25 @@
         <item>Black</item>
     </string-array>
 
+    <string-array name="quality_entries">
+        <item>128 码率 mp3 格式</item>
+        <item>320 码率 mp3 格式</item>
+        <item>flac 格式音频</item>
+        <item>无损格式音频</item>
+        <item>蝰蛇全景声，仅部分音乐支持</item>
+        <item>蝰蛇超清音质</item>
+        <item>蝰蛇母带</item>
+    </string-array>
+
+    <string-array name="quality_values">
+        <item>128</item>
+        <item>320</item>
+        <item>flac</item>
+        <item>high</item>
+        <item>viper_atmos</item>
+        <item>viper_clear</item>
+        <item>viper_tape</item>
+    </string-array>
+
+
 </resources>

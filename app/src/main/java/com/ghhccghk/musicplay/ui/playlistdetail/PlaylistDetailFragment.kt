@@ -298,7 +298,7 @@ class PlaylistDetailFragment : Fragment() {
 
         return try {
             val json = withContext(Dispatchers.IO) {
-                KugouAPi.getSongsUrl(hash, quality = "flac")
+                KugouAPi.getSongsUrl(hash)
             }
 
             if (json == null || json == "502" || json == "404") {

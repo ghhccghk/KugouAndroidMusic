@@ -274,7 +274,7 @@ class PlayService : MediaSessionService(),
         }
 
         val cache = SimpleCache(
-            File(this.getExternalFilesDir(null), "exo_music_cache"),
+            File(this.getExternalFilesDir(null), "cache/exo_music_cache"),
             LeastRecentlyUsedCacheEvictor(900 * 1024 * 1024), // 100MB
             StandaloneDatabaseProvider(this)
         )
