@@ -31,6 +31,8 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -41,6 +43,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.CacheKeyFactory
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
@@ -53,7 +56,6 @@ import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
-import androidx.media3.session.doUpdateNotification
 import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.MainActivity.Companion.playbar
@@ -68,7 +70,6 @@ import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemI
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
-import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
@@ -93,6 +94,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.akanework.gramophone.logic.ui.MeiZuLyricsMediaNotificationProvider
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -107,15 +109,17 @@ class PlayService : MediaSessionService(),
         private const val PENDING_INTENT_SESSION_ID = 0
         const val SERVICE_GET_AUDIO_FORMAT = "get_audio_format"
     }
+
     private lateinit var mediaSession: MediaSession
-    private var lyric : String = ""
+    private var lyric: String = ""
+
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
 
 
     //Node js 服务相关
     var isNodeRunning = false
-    var isNodeRunError : String = ""
+    var isNodeRunError: String = ""
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == NodeBridge.ACTION_NODE_READY) {
@@ -139,8 +143,9 @@ class PlayService : MediaSessionService(),
     private var btInfo: BtCodecInfo? = null
     private var bitrate: Long? = null
     private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
-    private lateinit var repo : PlaylistRepository
-    private var prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private lateinit var repo: PlaylistRepository
+    private var prefs =
+        MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     val subDir = "cache/lyrics"
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -164,7 +169,7 @@ class PlayService : MediaSessionService(),
 
                             if (isPlaying == true) {
 
-                                MainViewModelObject.syncLyricIndex.intValue  = currentLyricIndex
+                                MainViewModelObject.syncLyricIndex.intValue = currentLyricIndex
 
                                 liveTime = mediaSession.player.currentPosition
 
@@ -195,11 +200,12 @@ class PlayService : MediaSessionService(),
 
 
                                         if (playbar.visibility != View.GONE) {
-                                            playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
+                                            playbar.findViewById<TextView>(R.id.playbar_artist).text =
+                                                lyricResult
                                         }
 
                                         if (true) {
-                                            doUpdateNotification(mediaSession)
+                                            manuallyUpdateMediaNotification(mediaSession)
                                             // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                             SuperLyricPush.onSuperLyric(
                                                 SuperLyricData()
@@ -295,8 +301,6 @@ class PlayService : MediaSessionService(),
             .setCacheKeyFactory(cacheKeyFactory)
 
 
-
-
         //val factory = DataSource.Factory { assetDataSource }
 
         playbackHandler = Handler(Looper.getMainLooper())
@@ -313,8 +317,21 @@ class PlayService : MediaSessionService(),
         val player: ExoPlayer = ExoPlayer.Builder(this, GramophoneRenderFactory(
             this, this::onAudioSinkInputFormatChanged,
             afFormatTracker::setAudioSink
+        ).setPcmEncodingRestrictionLifted(
+            prefs.getBoolean("floatoutput", false)
         )
+            .setEnableDecoderFallback(true)
+            .setEnableAudioTrackPlaybackParams(true)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
         )
+            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setAudioAttributes(
+                AudioAttributes
+                    .Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                    .build(), true
+            )
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
 
@@ -342,17 +359,19 @@ class PlayService : MediaSessionService(),
             val list = repo.loadPlaylist().first()  // 只取一次
             if (list.isNotEmpty()) {
                 val mediaItems = list.map { it.toMediaItem() }
-                val last = prefs.getInt("lastplayitem",-1)
+                val last = prefs.getInt("lastplayitem", -1)
                 player.setMediaItems(mediaItems)
                 player.prepare()
-                if (last != -1){
+                if (last != -1) {
                     player.seekToDefaultPosition(last)
                 }
                 val artist = player.mediaMetadata?.artist
                 val title = player.mediaMetadata?.title
 
-                playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
-                playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
+                playbar.findViewById<TextView>(R.id.playbar_artist).text =
+                    if (artist.isNullOrBlank()) "未知艺术家" else artist
+                playbar.findViewById<TextView>(R.id.playbar_title).text =
+                    if (title.isNullOrBlank()) "未知歌曲" else title
             }
         }
 
@@ -365,8 +384,10 @@ class PlayService : MediaSessionService(),
         )
 
 
-        playbar.findViewById<TextView>(R.id.playbar_artist).text = if (artist.isNullOrBlank()) "未知艺术家" else artist
-        playbar.findViewById<TextView>(R.id.playbar_title).text =  if (title.isNullOrBlank()) "未知歌曲" else title
+        playbar.findViewById<TextView>(R.id.playbar_artist).text =
+            if (artist.isNullOrBlank()) "未知艺术家" else artist
+        playbar.findViewById<TextView>(R.id.playbar_title).text =
+            if (title.isNullOrBlank()) "未知歌曲" else title
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -438,6 +459,7 @@ class PlayService : MediaSessionService(),
                         }
                     }
                 }
+
                 else -> {
                     SessionResult(SessionError.ERROR_BAD_VALUE)
                 }
@@ -458,8 +480,10 @@ class PlayService : MediaSessionService(),
         }
 
 
-        playbar.findViewById<TextView>(R.id.playbar_artist).text = mediaSession.player.mediaMetadata.artist
-        playbar.findViewById<TextView>(R.id.playbar_title).text = mediaSession.player.mediaMetadata.title
+        playbar.findViewById<TextView>(R.id.playbar_artist).text =
+            mediaSession.player.mediaMetadata.artist
+        playbar.findViewById<TextView>(R.id.playbar_title).text =
+            mediaSession.player.mediaMetadata.title
 
         val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
         val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
@@ -470,9 +494,10 @@ class PlayService : MediaSessionService(),
 
         if (cachedData != null) {
             Log.d("Cache", "子目录缓存命中: $cachedData")
-            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedData)
+            MediaViewModelObject.lrcEntries.value =
+                YosLrcFactory(false).formatLrcEntries(cachedData)
         } else {
-            if ( MainActivity.isNodeRunning ) {
+            if (MainActivity.isNodeRunning) {
                 serviceScope.launch {
                     val json = withContext(Dispatchers.IO) {
                         KugouAPi.getSongLyrics(
@@ -497,9 +522,11 @@ class PlayService : MediaSessionService(),
                             "ghhcc.lrc",
                             lyric.toString()
                         )
-                        val cachedDataa = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+                        val cachedDataa =
+                            readFromSubdirCache(MainActivity.lontext, subDir, fileName)
                         if (cachedDataa != null) {
-                            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cachedDataa)
+                            MediaViewModelObject.lrcEntries.value =
+                                YosLrcFactory(false).formatLrcEntries(cachedDataa)
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -524,22 +551,26 @@ class PlayService : MediaSessionService(),
 
         if (isPlaying) {
             // 播放开始
-            playbar.findViewById<TextView>(R.id.playbar_artist).text = mediaSession.player.mediaMetadata.artist
-            playbar.findViewById<TextView>(R.id.playbar_title).text = mediaSession.player.mediaMetadata.title
+            playbar.findViewById<TextView>(R.id.playbar_artist).text =
+                mediaSession.player.mediaMetadata.artist
+            playbar.findViewById<TextView>(R.id.playbar_title).text =
+                mediaSession.player.mediaMetadata.title
         } else {
             serviceScope.launch {
                 if (mediaSession.player.playbackState != Player.STATE_IDLE && mediaSession.player.currentTimeline.isEmpty.not()) {
                     val index = mediaSession.player.currentMediaItemIndex
                     saveCurrentPlaylist(mediaSession.player, repo)
-                    prefs.edit().putInt("lastplayitem",index).apply()
+                    prefs.edit().putInt("lastplayitem", index).apply()
                     Log.d("ExoPlayer", "当前播放索引：$index")
                 } else {
                     Log.d("ExoPlayer", "播放列表未就绪")
                 }
 
             }
-            playbar.findViewById<TextView>(R.id.playbar_artist).text =  mediaSession.player.mediaMetadata.artist
-            playbar.findViewById<TextView>(R.id.playbar_title).text =  mediaSession.player.mediaMetadata.title
+            playbar.findViewById<TextView>(R.id.playbar_artist).text =
+                mediaSession.player.mediaMetadata.artist
+            playbar.findViewById<TextView>(R.id.playbar_title).text =
+                mediaSession.player.mediaMetadata.title
 
 
         }
@@ -666,7 +697,6 @@ class PlayService : MediaSessionService(),
     }
 
 
-
     private fun makeDrawableToBitmap(drawable: Drawable): Bitmap {
         val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
         val canvas = Canvas(bitmap)
@@ -772,7 +802,8 @@ class PlayService : MediaSessionService(),
                     sb.append("[${millisToTimeStr(time)}]$pendingRole：")
                     pendingRole = null
                 } else if (word.length == 1 && index + 1 < wordMatches.size &&
-                    wordMatches[index + 1].groupValues[3] == "：") {
+                    wordMatches[index + 1].groupValues[3] == "："
+                ) {
                     pendingRole = word
                     continue
                 } else if (word != "：") {
@@ -788,8 +819,11 @@ class PlayService : MediaSessionService(),
             output.add(sb.toString())
 
             // 添加对应翻译行，使用 lyricLineIndex
-            val translationLine = translationLyricList?.getOrNull(lyricLineIndex)?.joinToString(separator = "") ?: " "
-            if (translationLyricList != null){ output.add("[${millisToTimeStr(lineStartTime)}]$translationLine") }
+            val translationLine =
+                translationLyricList?.getOrNull(lyricLineIndex)?.joinToString(separator = "") ?: " "
+            if (translationLyricList != null) {
+                output.add("[${millisToTimeStr(lineStartTime)}]$translationLine")
+            }
 
             lyricLineIndex++  // 只在歌词行累加
         }
@@ -834,13 +868,15 @@ class PlayService : MediaSessionService(),
                         val hundredths = match.groupValues[3].toInt()
 
                         // 原时间戳 + offset * 10ms
-                        var totalMillis = (minutes * 60 + seconds) * 1000 + hundredths * 10 + offset * 10
+                        var totalMillis =
+                            (minutes * 60 + seconds) * 1000 + hundredths * 10 + offset * 10
 
                         val newMinutes = totalMillis / 60000
                         val newSeconds = (totalMillis % 60000) / 1000
                         val newHundredths = (totalMillis % 1000) / 10
 
-                        val newTimeTag = "[%02d:%02d.%02d]".format(newMinutes, newSeconds, newHundredths)
+                        val newTimeTag =
+                            "[%02d:%02d.%02d]".format(newMinutes, newSeconds, newHundredths)
                         // 替换原行中的时间戳
                         linesCopy[i] = linesCopy[i].replace(timeRegex, newTimeTag)
                     }
