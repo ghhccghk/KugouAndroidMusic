@@ -35,4 +35,5 @@ data class MediaItemEntity(
     val songHash: String?  = "",
     val lrcId: String?  = "",
     val lrcAccesskey: String?  = "",
+    val songtitle: String? = "",
 )

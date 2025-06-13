@@ -56,7 +56,6 @@ class RedirectingDataSource(
         } else {
             currentUri = dataSpec.uri
         }
-
         val redirectedSpec = dataSpec.buildUpon().setUri(currentUri!!).setKey(id!!).build()
         return actualDataSource.open(redirectedSpec)
     }

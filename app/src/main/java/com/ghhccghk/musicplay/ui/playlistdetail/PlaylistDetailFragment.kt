@@ -218,7 +218,8 @@ class PlaylistDetailFragment : Fragment() {
                 thumb = urla,
                 lrcId = id,
                 songHash = result.hash,
-                lrcAccesskey = accesskey
+                lrcAccesskey = accesskey,
+                songtitle = title
             )
             return abc.toMediaItem()
         }
