@@ -165,5 +165,9 @@
     <string name="dark">深色</string>
     <string name="light">浅色</string>
     <string name="settings_app_theme">应用主题</string>
+    <string name="settings_hq_output">高质量输出</string>
+    <string name="settings_hq_output_summary">允许使用任何采样格式，而不是仅限于 16 位采样</string>
+    <string name="settings_song_quality_weight">缓存音质</string>
+    <string name="settings_song_quality_summary">选择缓存的音质，部分音质仅部分音乐支持</string>
 
 </resources>

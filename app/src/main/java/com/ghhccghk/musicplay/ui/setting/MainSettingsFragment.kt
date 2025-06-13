@@ -50,7 +50,7 @@ class MainSettingsFragment : BasePreferenceFragment() {
             }
 
             "audio" -> {
-                //startActivity(AudioSettingsActivity::class.java)
+                startActivity(AudioSettingsActivity::class.java)
             }
 
             "experimental" -> {

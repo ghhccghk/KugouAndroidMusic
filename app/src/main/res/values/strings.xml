@@ -301,6 +301,10 @@
     <string name="dark">Dark</string>
     <string name="light">Light</string>
     <string name="settings_app_theme">App theme</string>
+    <string name="settings_hq_output">High-quality output</string>
+    <string name="settings_hq_output_summary">Allow using any sample format instead of restricting to 16-bit int</string>
+    <string name="settings_song_quality_weight">缓存音质</string>
+    <string name="settings_song_quality_summary">选择缓存的音质，部分音质仅部分音乐支持</string>
 
 
 </resources>

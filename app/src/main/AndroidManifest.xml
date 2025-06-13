@@ -46,6 +46,9 @@
         <activity
             android:name=".ui.setting.AppearanceSettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.setting.AudioSettingsActivity"
+            android:exported="false" />
 
         <service android:name=".service.PlayService"
             android:foregroundServiceType="mediaPlayback"

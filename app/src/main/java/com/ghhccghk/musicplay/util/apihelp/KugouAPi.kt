@@ -14,10 +14,12 @@ object KugouAPi {
     val apiaddress = "http:/127.0.0.1:9600"
     var token : String? = null
     var userid : String? = null
+    var perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", 0)
 
     fun init() {
         token = TokenManager.getToken()
         userid = TokenManager.getUserId()
+
     }
 
     val cookieJar = object : CookieJar {
@@ -579,7 +581,7 @@ object KugouAPi {
 
     fun getSongsUrl(hash: String,album_id: String? = null
                     ,free_part: String? = null , album_audio_id: String? = null,
-                    quality: String? = null ): String? {
+                    quality: String = perfs.getString("song_quality","128").toString()): String? {
         val url = "$apiaddress/song/url".toUri().buildUpon().apply {
             appendQueryParameter("hash",hash)
             album_id?.let { appendQueryParameter("album_id",it) }

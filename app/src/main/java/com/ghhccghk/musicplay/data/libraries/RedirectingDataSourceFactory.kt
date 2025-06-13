@@ -2,11 +2,11 @@ package com.ghhccghk.musicplay.data.libraries
 
 import android.net.Uri
 import androidx.core.net.toUri
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.TransferListener
+import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.songurl.getsongurl.GetSongUrlBase
 import com.ghhccghk.musicplay.util.UrlCacheManager
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
@@ -34,28 +34,28 @@ class RedirectingDataSource(
 
     private var currentUri: Uri? = null
     private var id: String? = null
+    private var perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", 0)
+    private val quality = perfs.getString("song_quality","128").toString()
 
     override fun addTransferListener(transferListener: TransferListener) {
 
     }
 
     override fun open(dataSpec: DataSpec): Long {
-
         if (dataSpec.uri.scheme == "musicplay" && dataSpec.uri.host == "playurl") {
             val cid = dataSpec.uri.getQueryParameter("id") ?: "0"
             val url = dataSpec.uri.getQueryParameter("url") ?: ""
-            val fallbackUrl = dataSpec.uri.getQueryParameter("url") ?: ""
             val hash = dataSpec.uri.getQueryParameter("hash") ?: ""
-            id = cid
+            id = (cid + quality)
             currentUri = runBlocking {
-                resolveUrl(hash, fallbackUrl)
+                resolveUrl(hash, url)
             }
-            if (currentUri == null) currentUri == url.toUri()
-
+            if (currentUri == null || currentUri.toString() == "") {
+                currentUri = url.toUri()
+            }
         } else {
             currentUri = dataSpec.uri
         }
-        Log.d("RedirectingDataSource", "Redirecting URI: ${dataSpec.uri} to $currentUri")
 
         val redirectedSpec = dataSpec.buildUpon().setUri(currentUri!!).setKey(id!!).build()
         return actualDataSource.open(redirectedSpec)
@@ -74,7 +74,7 @@ class RedirectingDataSource(
     /**
      * 简单的 URL 可用性检测（如 HEAD 请求或连接尝试）
      */
-    private fun isUrlAvailable(url: String): Boolean {
+    private fun isUrlAvailable(url: String?): Boolean {
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
             conn.requestMethod = "HEAD"
@@ -100,22 +100,22 @@ class RedirectingDataSource(
     }
 
     suspend fun resolveUrl(hash: String, fallbackUrl: String?): Uri? = withContext(Dispatchers.IO) {
-        // 尝试从缓存获取 URL
-        var finalUrl: String? = UrlCacheManager.get(hash)?.url
+        val songid = (hash + quality)
+        var finalUrl: String? = UrlCacheManager.get(songid)?.url
 
-        if (finalUrl == null || !isUrlAvailable(finalUrl)) {
+        if (finalUrl.isNullOrEmpty() || !isUrlAvailable(finalUrl)) {
             // 缓存无效，尝试重新请求
             finalUrl = fetchRealUrlFromServer(hash)
 
             if (!finalUrl.isNullOrEmpty() && isUrlAvailable(finalUrl)) {
-                UrlCacheManager.put(hash, finalUrl)
+                UrlCacheManager.put(songid, finalUrl)
             } else {
                 // 失败，使用 fallback 或旧缓存
-                finalUrl = fallbackUrl
+                finalUrl = fallbackUrl?.ifEmpty { UrlCacheManager.get(hash)?.url }
             }
         }
-
         return@withContext finalUrl?.toUri()
+
     }
 
 }
