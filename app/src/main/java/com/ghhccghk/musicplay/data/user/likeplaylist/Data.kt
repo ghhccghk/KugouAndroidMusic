@@ -7,5 +7,5 @@ data class Data(
     val list_count: Int,
     val phone_flag: Int,
     val total_ver: Int,
-    val userid: Int
+    val userid: Long
 )

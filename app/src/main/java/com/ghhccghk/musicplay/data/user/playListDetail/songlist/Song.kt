@@ -42,5 +42,5 @@ data class Song(
     val tagmap: Tagmap? = null,
     val timelen: Int? = 0,
     val trans_param: TransParam? = null,
-    val user_id: Int? = 0
+    val user_id: Long = 0
 )
