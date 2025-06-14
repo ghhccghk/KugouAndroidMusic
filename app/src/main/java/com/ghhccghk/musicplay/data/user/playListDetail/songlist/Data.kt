@@ -7,5 +7,5 @@ data class Data(
     val pagesize: Int,
     val popularization: Popularization,
     val songs: List<Song>,
-    val userid: Int
+    val userid: Long
 )

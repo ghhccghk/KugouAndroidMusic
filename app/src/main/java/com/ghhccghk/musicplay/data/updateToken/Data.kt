@@ -39,7 +39,7 @@ data class Data(
     val totp_server_timestamp: Int,
     val user_type: Int,
     val user_y_type: Int,
-    val userid: Int,
+    val userid: Long,
     val username: String= "",
     val vip_begin_time: String= "",
     val vip_end_time: String= "",
