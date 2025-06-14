@@ -169,5 +169,7 @@
     <string name="settings_hq_output_summary">允许使用任何采样格式，而不是仅限于 16 位采样</string>
     <string name="settings_song_quality_weight">缓存音质</string>
     <string name="settings_song_quality_summary">选择缓存的音质，部分音质仅部分音乐支持</string>
+    <string name="settings_car_lyrics_title">车载歌词</string>
+    <string name="settings_car_lyrics_summary">启用车载歌词</string>
 
 </resources>

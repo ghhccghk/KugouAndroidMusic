@@ -21,8 +21,8 @@ android {
         applicationId = "com.ghhccghk.musicplay"
         minSdk = 27
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
         //noinspection ChromeOsAbiSupport
         ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a")
         buildConfigField("long", "BUILD_TIME", "$buildTime")

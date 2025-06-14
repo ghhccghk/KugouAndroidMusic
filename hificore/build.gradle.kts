@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.CmakeProperty
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -23,6 +25,9 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
+    }
+    externalNativeBuild.cmake {
+        CmakeProperty.ANDROID_STL
     }
     externalNativeBuild {
         cmake {

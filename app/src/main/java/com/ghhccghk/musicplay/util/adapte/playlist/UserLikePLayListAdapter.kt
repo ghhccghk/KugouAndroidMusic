@@ -9,7 +9,6 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.R
-import com.ghhccghk.musicplay.data.ThemeMusicScene
 import com.ghhccghk.musicplay.data.user.likeplaylist.Info
 import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter.UserLikePLayListHolder
 
@@ -55,7 +54,7 @@ class UserLikePLayListAdapter (private val items: List<Info>,
 
         if (item.name != "我喜欢"){
             val secureUrl =
-                item.pic.replaceFirst("http://", "https://").replaceFirst("/{size}/", "/")
+                item.pic.replaceFirst("/{size}/", "/")
             // 使用 Glide 加载图片
             Glide.with(holder.itemView)
                 .load(secureUrl)

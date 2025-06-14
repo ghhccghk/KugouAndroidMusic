@@ -149,6 +149,7 @@ class PlayService : MediaSessionService(),
         MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     val subDir = "cache/lyrics"
 
+
     @SuppressLint("UseCompatLoadingForDrawables")
     fun run() {
         val base64 = drawableToBase64(getDrawable(R.drawable.ic_cd)!!)
@@ -169,7 +170,8 @@ class PlayService : MediaSessionService(),
 
 
                             if (isPlaying == true) {
-
+                                val car_lyrics = prefs.getBoolean("car_lyrics", false)
+                                val status_bar_lyrics = prefs.getBoolean("status_bar_lyrics", false)
                                 MainViewModelObject.syncLyricIndex.intValue = currentLyricIndex
 
                                 liveTime = mediaSession.player.currentPosition
@@ -197,33 +199,40 @@ class PlayService : MediaSessionService(),
 
                                         val lyricResult = lyricb.toString()
 
-                                        lyric = lyricResult
-
-
                                         if (playbar.visibility != View.GONE) {
                                             playbar.findViewById<TextView>(R.id.playbar_artist).text =
                                                 lyricResult
                                         }
 
-                                        if (true) {
+                                        if (car_lyrics || status_bar_lyrics) {
+                                            if (car_lyrics) {
+                                                lyric = lyricResult
+                                                val sessionMetadata =
+                                                    mediaSession.player.mediaMetadata
+                                                val sessionMediaItem =
+                                                    mediaSession.player.currentMediaItem
 
-                                            val sessionMetadata = mediaSession.player.mediaMetadata
-                                            val sessionMediaItem = mediaSession.player.currentMediaItem
+                                                val newdata =
+                                                    sessionMetadata.buildUpon().setTitle(lyric)
+                                                        .build()
+                                                val newmedia = sessionMediaItem?.buildUpon()
+                                                    ?.setMediaMetadata(newdata)?.build()
 
-                                            val newdata = sessionMetadata.buildUpon().setTitle(lyric).build()
-                                            val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
-
-                                            mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
-                                                newmedia!!
-                                            )
+                                                mediaSession.player.replaceMediaItem(
+                                                    mediaSession.player.currentMediaItemIndex,
+                                                    newmedia!!
+                                                )
+                                            }
+                                            if (status_bar_lyrics) {// 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
+                                                lyric = lyricResult
+                                                SuperLyricPush.onSuperLyric(
+                                                    SuperLyricData()
+                                                        .setLyric(lyricResult) // 设置歌词
+                                                        .setBase64Icon(base64)
+                                                        .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
+                                                ) // 发送歌词
+                                            }
                                             manuallyUpdateMediaNotification(mediaSession)
-                                            // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
-                                            SuperLyricPush.onSuperLyric(
-                                                SuperLyricData()
-                                                    .setLyric(lyricResult) // 设置歌词
-                                                    .setBase64Icon(base64)
-                                                    .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                            ) // 发送歌词
                                         }
                                         lastLyric = line
                                     } catch (_: Exception) {
@@ -249,9 +258,12 @@ class PlayService : MediaSessionService(),
                                 val t = sessionMediaItem?.songtitle?.toString()
 
                                 val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-                                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                                val newmedia =
+                                    sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)
+                                        ?.build()
 
-                                mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
+                                mediaSession.player.replaceMediaItem(
+                                    mediaSession.player.currentMediaItemIndex,
                                     newmedia!!
                                 )
                             }
@@ -302,10 +314,10 @@ class PlayService : MediaSessionService(),
         )
 
         val cacheKeyFactory = CacheKeyFactory { dataSpec ->
-            val quality = prefs.getString("song_quality","128").toString()
+            val quality = prefs.getString("song_quality", "128").toString()
             val uri = dataSpec.uri
             val ida = uri.getQueryParameter("id")
-            val id = ( ida + quality)
+            val id = (ida + quality)
             if (id != null) {
                 id
             } else {
@@ -336,15 +348,16 @@ class PlayService : MediaSessionService(),
         }
 
         // 初始化 ExoPlayer
-        val player: ExoPlayer = ExoPlayer.Builder(this, GramophoneRenderFactory(
-            this, this::onAudioSinkInputFormatChanged,
-            afFormatTracker::setAudioSink
-        ).setPcmEncodingRestrictionLifted(
-            prefs.getBoolean("floatoutput", false)
-        )
-            .setEnableDecoderFallback(true)
-            .setEnableAudioTrackPlaybackParams(true)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+        val player: ExoPlayer = ExoPlayer.Builder(
+            this, GramophoneRenderFactory(
+                this, this::onAudioSinkInputFormatChanged,
+                afFormatTracker::setAudioSink
+            ).setPcmEncodingRestrictionLifted(
+                prefs.getBoolean("floatoutput", false)
+            )
+                .setEnableDecoderFallback(true)
+                .setEnableAudioTrackPlaybackParams(true)
+                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
         )
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setAudioAttributes(
@@ -452,7 +465,6 @@ class PlayService : MediaSessionService(),
             : MediaSession.ConnectionResult {
         val availableSessionCommands =
             MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-        Log.d("PlayService", "onConnect: $availableSessionCommands")
         availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
 
 
@@ -490,22 +502,24 @@ class PlayService : MediaSessionService(),
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super<Player.Listener>.onMediaItemTransition(mediaItem, reason)
+        val car_lyrics = prefs.getBoolean("car_lyrics", false)
 
+        if (car_lyrics) {
+            val prevIndex = mediaSession.player.getPreviousMediaItemIndex()
+            if (prevIndex != C.INDEX_UNSET) {
+                val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
+                val sessionMetadata = previousItem.mediaMetadata
+                val sessionMediaItem = previousItem
+                val t = sessionMediaItem?.songtitle?.toString()
 
-        val prevIndex = mediaSession.player.getPreviousMediaItemIndex()
-        if (prevIndex != C.INDEX_UNSET) {
-            val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
-            val sessionMetadata = previousItem.mediaMetadata
-            val sessionMediaItem = previousItem
-            val t = sessionMediaItem?.songtitle?.toString()
-
-            val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-            val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
-            mediaSession.player.replaceMediaItem(prevIndex,
-                newmedia!!
-            )
+                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                mediaSession.player.replaceMediaItem(
+                    prevIndex,
+                    newmedia!!
+                )
+            }
         }
-
 
         bitrate = null
         bitrateFetcher.launch {
@@ -615,21 +629,25 @@ class PlayService : MediaSessionService(),
     }
 
     override fun onPlaybackStateChanged(state: Int) {
+        val car_lyrics = prefs.getBoolean("car_lyrics", false)
         when (state) {
             Player.STATE_IDLE -> println("空闲")
             Player.STATE_BUFFERING -> println("缓冲中")
             Player.STATE_READY -> println("准备好")
             Player.STATE_ENDED -> {
-                val sessionMetadata = mediaSession.player.mediaMetadata
-                val sessionMediaItem = mediaSession.player.currentMediaItem
-                val t = sessionMediaItem?.songtitle?.toString()
+                if (car_lyrics) {
+                    val sessionMetadata = mediaSession.player.mediaMetadata
+                    val sessionMediaItem = mediaSession.player.currentMediaItem
+                    val t = sessionMediaItem?.songtitle?.toString()
 
-                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                    val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                    val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
 
-                mediaSession.player.replaceMediaItem(mediaSession.player.currentMediaItemIndex,
-                    newmedia!!
-                )
+                    mediaSession.player.replaceMediaItem(
+                        mediaSession.player.currentMediaItemIndex,
+                        newmedia!!
+                    )
+                }
                 println("播放结束")
             }
         }
