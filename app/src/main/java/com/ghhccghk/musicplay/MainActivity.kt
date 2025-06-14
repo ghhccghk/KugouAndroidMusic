@@ -28,7 +28,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
-import androidx.core.content.edit
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -134,10 +133,11 @@ class MainActivity : AppCompatActivity() {
         val prefs = context.getSharedPreferences("app_prefs", MODE_PRIVATE)
         val isFirst = prefs.getBoolean("is_first_run", true)
         if (isFirst) {
-            prefs.edit() { putBoolean("is_first_run", false) }
+            prefs.edit().putBoolean("is_first_run", false).apply()
         }
         return isFirst
     }
+
 
 
     override fun onStop() {

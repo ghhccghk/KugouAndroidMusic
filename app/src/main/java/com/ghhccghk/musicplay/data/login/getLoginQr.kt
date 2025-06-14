@@ -33,5 +33,5 @@ data class KeyData(
     val pic: String,
     val status: Int,
     val token: String,
-    val userid: Int
+    val userid: Long
 )

@@ -12,14 +12,13 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.login.QrImg
+import com.ghhccghk.musicplay.data.login.QrLoginkey
 import com.ghhccghk.musicplay.data.login.getLoginQr
 import com.ghhccghk.musicplay.databinding.FragmentLoginQrBinding
+import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.Tools.generateQRCode
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.ghhccghk.musicplay.data.login.QrLoginkey
-import com.ghhccghk.musicplay.util.TokenManager
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,7 +93,7 @@ class LoginQrcode: Fragment() {
                 KugouAPi.getQrCode(img)
             }
             if (json == null || json == "502" || json == "404") {
-                Toast.makeText(context, "失败", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
             } else {
                 try {
                     val gson = Gson()
@@ -124,7 +123,7 @@ class LoginQrcode: Fragment() {
                 key?.let { KugouAPi.getQrCodeCheck(it, System.currentTimeMillis().toString()) }
             }
             if (json == null || json == "502" || json == "404") {
-                Toast.makeText(context, "失败", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
             } else {
                 val gson = Gson()
                 val result = gson.fromJson(json, QrLoginkey::class.java)

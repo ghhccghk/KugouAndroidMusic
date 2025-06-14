@@ -4,5 +4,6 @@
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">fs.youthandroid.kugou.com</domain>
+        <domain includeSubdomains="true">c1.kgimg.com</domain>
     </domain-config>
 </network-security-config>

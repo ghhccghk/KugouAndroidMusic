@@ -22,6 +22,7 @@ import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentUserBinding
 import com.ghhccghk.musicplay.ui.setting.MainSettingsActivity
 import com.ghhccghk.musicplay.util.TokenManager
+import com.ghhccghk.musicplay.util.TokenManager.isLoggedIn
 import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.gson.Gson
@@ -143,9 +144,13 @@ class UserFragment : Fragment() {
         }
         TokenManager.init(requireContext())
         KugouAPi.init()
-        if (MainActivity.isNodeRunning) {
+        if (MainActivity.isNodeRunning && isLoggedIn()) {
             setui()
             setUserPlayList()
+        } else {
+            binding.notLoggedIn.visibility = View.VISIBLE
+            binding.layoutUserInfo.visibility = View.GONE
+            binding.userLikePlaylistViewBase.visibility = View.GONE
         }
 
 
@@ -159,7 +164,7 @@ class UserFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        if (MainActivity.isNodeRunning) {
+        if (MainActivity.isNodeRunning  && isLoggedIn() ) {
             setui()
             setUserPlayList()
         }
@@ -176,6 +181,8 @@ class UserFragment : Fragment() {
             }
             if (json == null || json == "502" || json == "404") {
                 binding.notLoggedIn.visibility = View.VISIBLE
+                binding.layoutUserInfo.visibility = View.GONE
+                binding.userLikePlaylistViewBase.visibility = View.GONE
             } else {
                 binding.layoutUserInfo.visibility = View.VISIBLE
                 val userinfo = gson.fromJson(json, UserDetail::class.java)
