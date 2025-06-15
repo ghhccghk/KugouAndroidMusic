@@ -45,6 +45,7 @@ import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
 import com.ghhccghk.musicplay.util.NodeBridge
+import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.UrlCacheManager
 import com.ghhccghk.musicplay.util.ZipExtractor
@@ -93,6 +94,8 @@ class MainActivity : AppCompatActivity() {
         instance = this
         enableEdgeToEdge()
         UrlCacheManager.init(this)
+        SmartImageCache.init(applicationContext, "image_manager_disk_cache", 1000 * 1024 * 1024)
+
         if (isFirstRun(this)) {
             ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
             start()

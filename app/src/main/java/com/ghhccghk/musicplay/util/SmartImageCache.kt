@@ -1,0 +1,81 @@
+package com.ghhccghk.musicplay.util
+
+import android.content.Context
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.security.MessageDigest
+
+object SmartImageCache {
+    private lateinit var cacheDir: File
+    private var maxCacheSize: Long = 50L * 1024 * 1024 // 默认50MB
+    private val client = OkHttpClient()
+
+    fun init(context: Context, dirName: String = "smart_image_cache", maxSize: Long = maxCacheSize) {
+        cacheDir = File(context.cacheDir, dirName).apply { mkdirs() }
+        maxCacheSize = maxSize
+    }
+
+    fun hasCache(url: String): Boolean {
+        val file = File(cacheDir, url.md5())
+        return file.exists()
+    }
+
+    fun getCachedUri(url: String): Uri? {
+        val file = File(cacheDir, url.md5())
+        return if (file.exists()) Uri.fromFile(file) else null
+    }
+
+    suspend fun getOrDownload(url: String, customHash: String? = null): Uri? = withContext(Dispatchers.IO) {
+        val fileName = (customHash ?: url).md5()
+        val file = File(cacheDir, fileName)
+
+        if (file.exists()) {
+            file.setLastModified(System.currentTimeMillis())
+            return@withContext Uri.fromFile(file)
+        }
+
+        try {
+            val request = Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.bytes()
+                if (body != null) {
+                    file.writeBytes(body)
+                    file.setLastModified(System.currentTimeMillis())
+                    trimCache()
+                    return@withContext Uri.fromFile(file)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return@withContext null
+    }
+
+
+    fun clearAll() {
+        cacheDir.deleteRecursively()
+        cacheDir.mkdirs()
+    }
+
+    private fun trimCache() {
+        val files = cacheDir.listFiles() ?: return
+        var total = files.sumOf { it.length() }
+        if (total <= maxCacheSize) return
+
+        files.sortedBy { it.lastModified() }.forEach {
+            if (it.delete()) total -= it.length()
+            if (total <= maxCacheSize) return
+        }
+    }
+
+    private fun String.md5(): String {
+        val digest = MessageDigest.getInstance("MD5")
+        return digest.digest(toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+}

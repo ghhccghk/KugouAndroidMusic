@@ -24,6 +24,7 @@ import com.ghhccghk.musicplay.data.user.playListDetail.PlayListDetail
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.SongListBase
 import com.ghhccghk.musicplay.databinding.FragmentPlaylistBinding
+import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.adapte.SongAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.others.toMediaItem
@@ -82,8 +83,11 @@ class PlaylistDetailFragment : Fragment() {
                             binding.tvCreator.text = playList[0].list_create_username
                             binding.tvIntro.text = playList[0].intro
                             val secureUrl = playList[0].create_user_pic.replaceFirst("http://", "https://")
+                            val urlcache = withContext(Dispatchers.IO) {
+                                SmartImageCache.getOrDownload(secureUrl,playList[0].global_collection_id)
+                            }
                             Glide.with(requireContext())
-                                .load(secureUrl)
+                                .load(urlcache)
                                 .into(binding.ivPlaylistCover)
 
                         } catch (e: Exception) {
@@ -194,6 +198,9 @@ class PlaylistDetailFragment : Fragment() {
         val mediaId = "$artist - $title"
         val urla = result.trans_param.union_cover.replaceFirst("http://", "https://")
             .replaceFirst("/{size}/", "/")
+        val urlcache = withContext(Dispatchers.IO) {
+            SmartImageCache.getOrDownload(urla,hash)
+        }
 
         val b = withContext(Dispatchers.IO) {
             KugouAPi.getSearchSongLyrics(hash = hash)
@@ -215,7 +222,7 @@ class PlaylistDetailFragment : Fragment() {
                 albumArtists = "",
                 trackNumber = 0,
                 discNumber = 0,
-                thumb = urla,
+                thumb = urlcache.toString(),
                 lrcId = id,
                 songHash = hash,
                 lrcAccesskey = accesskey,
