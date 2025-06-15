@@ -36,7 +36,6 @@ class RedirectingDataSource(
     private var currentUri: Uri? = null
     private var id: String? = null
     private var perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", 0)
-    private val quality = perfs.getString("song_quality","128").toString()
 
     override fun addTransferListener(transferListener: TransferListener) {
 
@@ -44,6 +43,7 @@ class RedirectingDataSource(
 
     override fun open(dataSpec: DataSpec): Long {
         if (dataSpec.uri.scheme == "musicplay" && dataSpec.uri.host == "playurl") {
+            val quality = perfs.getString("song_quality","128").toString()
             val cid = dataSpec.uri.getQueryParameter("id") ?: "0"
             val url = dataSpec.uri.getQueryParameter("url") ?: ""
             val hash = dataSpec.uri.getQueryParameter("hash") ?: ""
@@ -102,6 +102,7 @@ class RedirectingDataSource(
     }
 
     suspend fun resolveUrl(hash: String, fallbackUrl: String?): Uri? = withContext(Dispatchers.IO) {
+        val quality = perfs.getString("song_quality","128").toString()
         val songid = (hash + quality)
         var finalUrl: String? = UrlCacheManager.get(songid)?.url
 
