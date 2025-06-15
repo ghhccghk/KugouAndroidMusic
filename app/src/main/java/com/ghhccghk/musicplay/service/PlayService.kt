@@ -65,12 +65,14 @@ import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
+import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
@@ -536,9 +538,6 @@ class PlayService : MediaSessionService(),
         playbar.findViewById<TextView>(R.id.playbar_title).text =
             mediaSession.player.currentMediaItem?.songtitle
 
-        val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
-        val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
-
         val fileName = sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
 
         val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
@@ -549,6 +548,10 @@ class PlayService : MediaSessionService(),
                 YosLrcFactory(false).formatLrcEntries(cachedData)
         } else {
             if (MainActivity.isNodeRunning) {
+                val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
+                val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
+                val hash = mediaSession.player.currentMediaItem?.songHash.toString()
+
                 serviceScope.launch {
                     val json = withContext(Dispatchers.IO) {
                         KugouAPi.getSongLyrics(
@@ -567,12 +570,6 @@ class PlayService : MediaSessionService(),
                             fileName,
                             out.toString()
                         )
-                        writeToSubdirCache(
-                            MainActivity.lontext,
-                            subDir,
-                            "ghhcc.lrc",
-                            lyric.toString()
-                        )
                         val cachedDataa =
                             readFromSubdirCache(MainActivity.lontext, subDir, fileName)
                         if (cachedDataa != null) {
@@ -581,11 +578,57 @@ class PlayService : MediaSessionService(),
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        Toast.makeText(
-                            MainActivity.lontext,
-                            "数据加载失败: ${e.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
+                        val b = withContext(Dispatchers.IO) {
+                            KugouAPi.getSearchSongLyrics(hash = hash)
+                        }
+                        if (b == null || b == "502" || b == "404") {
+                            Toast.makeText(return@launch, "歌词加载失败 json 是 $b", Toast.LENGTH_LONG).show()
+                        } else {
+                            try {
+                                val gson = Gson()
+                                val resulta = gson.fromJson(b, searchLyricBase::class.java)
+                                val accesskey = resulta.candidates.getOrNull(0)?.accesskey.toString()
+                                val id = resulta.candidates.getOrNull(0)?.id.toString()
+
+                                val json = withContext(Dispatchers.IO) {
+                                    KugouAPi.getSongLyrics(
+                                        id = id, accesskey = accesskey,
+                                        fmt = "krc", decode = true
+                                    )
+                                }
+                                try {
+                                    val gson = Gson()
+                                    val result = gson.fromJson(json, getLyricCode::class.java)
+                                    val lyric = result.decodeContent
+                                    val out = convertKrcToLrc(lyric)
+                                    writeToSubdirCache(
+                                        MainActivity.lontext,
+                                        subDir,
+                                        fileName,
+                                        out.toString()
+                                    )
+                                    val cachedDataa =
+                                        readFromSubdirCache(MainActivity.lontext, subDir, fileName)
+                                    if (cachedDataa != null) {
+                                        MediaViewModelObject.lrcEntries.value =
+                                            YosLrcFactory(false).formatLrcEntries(cachedDataa)
+                                    }
+                                }catch (e: Exception) {
+                                    e.printStackTrace()
+                                    Toast.makeText(
+                                        return@launch,
+                                        "歌词加载失败: ${e.message}",
+                                        Toast.LENGTH_LONG).show()
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(
+                                    return@launch,
+                                    "歌词加载失败: ${e.message}",
+                                    Toast.LENGTH_LONG).show()
+                            }
+                        }
+
                     }
 
                 }

@@ -136,7 +136,7 @@ class PlaylistDetailFragment : Fragment() {
                                         val item = it?.let { artist -> createMediaItemWithId(name?.first,
                                             name?.second,
                                             uri,
-                                            result) }
+                                            result,result.hash) }
 
                                         item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
 
@@ -190,13 +190,13 @@ class PlaylistDetailFragment : Fragment() {
         slideOut.start()
     }
 
-    suspend fun createMediaItemWithId(artist: String?, title: String?, url: String, result: GetSongUrlBase): MediaItem {
+    suspend fun createMediaItemWithId(artist: String?, title: String?, url: String, result: GetSongUrlBase,hash: String): MediaItem {
         val mediaId = "$artist - $title"
         val urla = result.trans_param.union_cover.replaceFirst("http://", "https://")
             .replaceFirst("/{size}/", "/")
 
         val b = withContext(Dispatchers.IO) {
-            KugouAPi.getSearchSongLyrics(hash = result.hash)
+            KugouAPi.getSearchSongLyrics(hash = hash)
         }
         if (b == null || b == "502" || b == "404") {
             Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
@@ -217,7 +217,7 @@ class PlaylistDetailFragment : Fragment() {
                 discNumber = 0,
                 thumb = urla,
                 lrcId = id,
-                songHash = result.hash,
+                songHash = hash,
                 lrcAccesskey = accesskey,
                 songtitle = title
             )
@@ -252,7 +252,7 @@ class PlaylistDetailFragment : Fragment() {
             (2..totalPages).map { page ->
                 async(Dispatchers.IO) {
                     semaphore.withPermit {
-                        delay(200)
+                        delay(500)
                         try {
                             val json = KugouAPi.getPlayListAllSongs(ids, page, pageSize) ?: return@withPermit emptyList<Song>()
                             val pageData = adapter.fromJson(json)
@@ -284,7 +284,7 @@ class PlaylistDetailFragment : Fragment() {
         this@toMediaItemListParallel
             .map { song ->
                 async {
-                    delay(100)
+                    delay(500)
                     song.toMediaItemSuspend() // 注意是挂起函数
                 }
             }
@@ -301,7 +301,6 @@ class PlaylistDetailFragment : Fragment() {
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getSongsUrl(hash)
             }
-
             if (json == null || json == "502" || json == "404") {
                 null
             } else {
@@ -313,7 +312,7 @@ class PlaylistDetailFragment : Fragment() {
 
                 val (title, artist) = splitArtistAndTitle(name ?: "未知歌曲") ?: return null
 
-                createMediaItemWithId(title, artist, uri, re)
+                createMediaItemWithId(title, artist, uri, re,re.hash)
             }
         } catch (e: Exception) {
             e.printStackTrace()
