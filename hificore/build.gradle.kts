@@ -38,6 +38,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
+        coreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "21"
@@ -55,4 +56,5 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation("io.github.nift4.dlfunc:dlfunc:0.1.6")
+    coreLibraryDesugaring('com.android.tools:desugar_jdk_libs:2.0.3')
 }
