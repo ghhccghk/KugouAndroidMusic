@@ -20,6 +20,10 @@ android {
         }
     }
 
+    packagingOptions {
+        pickFirsts += listOf("lib/arm64-v8a/libdlfunc.so", "lib/armeabi-v7a/libdlfunc.so")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
