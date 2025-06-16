@@ -308,10 +308,14 @@ class PlayService : MediaSessionService(),
                 }
             }
         }
+        val cacheSizeMB = prefs.getString("song_cache_size", "50")?.toLongOrNull() ?: 950L
+
+        val cacheSizeBytes = cacheSizeMB * 1024 * 1024
+
 
         val cache = SimpleCache(
             File(this.getExternalFilesDir(null), "cache/exo_music_cache"),
-            LeastRecentlyUsedCacheEvictor(900 * 1024 * 1024), // 100MB
+            LeastRecentlyUsedCacheEvictor(cacheSizeBytes), // 100MB
             StandaloneDatabaseProvider(this)
         )
 
