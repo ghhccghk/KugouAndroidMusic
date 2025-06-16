@@ -54,4 +54,5 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation("io.github.nift4.dlfunc:dlfunc:0.1.6")
 }
