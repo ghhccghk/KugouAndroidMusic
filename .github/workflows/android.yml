@@ -1,0 +1,73 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - "README.md"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Write key
+        if: ${{ github.event_name != 'pull_request' || github.ref_type == 'tag' }}
+        run: |
+          if [ ! -z "${{ secrets.SIGNING_KEY }}" ]; then
+            echo androidStorePassword='${{ secrets.KEY_STORE_PASSWORD }}' >> local.properties
+            echo androidKeyAlias='ghhccghk' >> local.properties
+            echo androidKeyPassword='${{ secrets.KEY_STORE_PASSWORD }}' >> local.properties
+            echo androidStoreFile=`pwd`/key.jks >> local.properties
+            echo ${{ secrets.SIGNING_KEY }} | base64 --decode > key.jks
+          fi
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+
+      - name: Set execute permissions for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build with Gradle
+        run: |
+          ./gradlew assemble
+          ./gradlew bundleRelease
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_dir: ./doc
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Music Player release
+          path: ./app/build/outputs/apk/release
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name:  Music Player  Pay debug
+          path: ./app/build/outputs/apk/debug
+
+      - name: Upload Release Mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name:  Music Player mapping
+          path: ./app/build/outputs/mapping/release/mapping.txt

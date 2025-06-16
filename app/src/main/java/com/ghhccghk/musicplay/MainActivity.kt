@@ -94,7 +94,11 @@ class MainActivity : AppCompatActivity() {
         instance = this
         enableEdgeToEdge()
         UrlCacheManager.init(this)
-        SmartImageCache.init(applicationContext, "image_manager_disk_cache", 1000 * 1024 * 1024)
+        val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
+        val cacheSizeMB = prefs.getString("image_cache_size", "50")?.toLongOrNull() ?: 950L
+
+        val cacheSizeBytes = cacheSizeMB * 1024 * 1024
+        SmartImageCache.init(applicationContext, "image_manager_disk_cache",cacheSizeBytes)
 
         if (isFirstRun(this)) {
             ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
@@ -102,7 +106,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             start()
         }
-        val prefs = this.applicationContext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
         when (prefs.getString("theme_mode", "0")) {
             "0" -> {
                 AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
