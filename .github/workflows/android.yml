@@ -34,7 +34,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 21
-          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
           cache: gradle
 
       - name: Set execute permissions for gradlew
