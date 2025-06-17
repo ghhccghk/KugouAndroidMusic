@@ -31,8 +31,7 @@ jobs:
 
       - name: Setup JVM options
         run: |
-            echo "
-          " >> gradle.properties
+            echo "" >> gradle.properties
             echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" >> gradle.properties
     
 
