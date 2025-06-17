@@ -1,5 +1,6 @@
 package com.ghhccghk.musicplay.ui.user
 
+import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
@@ -10,7 +11,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -51,8 +51,7 @@ class UserFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val userViewModel =
-            ViewModelProvider(this).get(UserViewModel::class.java)
+        //val userViewModel = ViewModelProvider(this).get(UserViewModel::class.java)
 
         _binding = FragmentUserBinding.inflate(inflater, container, false)
         val vipupdate = prefs.getString("vipupdate", "")
@@ -171,6 +170,7 @@ class UserFragment : Fragment() {
     }
 
 
+    @SuppressLint("SetTextI18n")
     fun setui() {
         lifecycleScope.launch {
             val gson = Gson()
@@ -196,7 +196,7 @@ class UserFragment : Fragment() {
                     0 -> getString(R.string.gender_female)
                     else -> getString(R.string.gender_secret)
                 }
-                binding.userGender.text = gen + " "
+                binding.userGender.text = "$gen "
                 binding.textGrade.text = " " + data.p_grade.toString()
                 binding.textListTimeDuration.text = data.duration.toString()
                 binding.textLocation.text = data.province + " " + data.city
