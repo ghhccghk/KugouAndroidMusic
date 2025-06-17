@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.18.1)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp)
 

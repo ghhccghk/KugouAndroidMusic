@@ -40,6 +40,23 @@ android {
         }
     }
 
+    packaging {
+        dex {
+            useLegacyPackaging = false
+        }
+        jniLibs {
+            useLegacyPackaging = false
+            // https://issuetracker.google.com/issues/168777344#comment11
+            pickFirsts += "lib/arm64-v8a/libdlfunc.so"
+            pickFirsts += "lib/armeabi-v7a/libdlfunc.so"
+            pickFirsts += "lib/x86/libdlfunc.so"
+            pickFirsts += "lib/x86_64/libdlfunc.so"
+        }
+        resources {
+            // https://youtrack.jetbrains.com/issue/KT-48019/Bundle-Kotlin-Tooling-Metadata-into-apk-artifacts
+            excludes += "kotlin-tooling-metadata.json"
+        }
+    }
 
     buildTypes {
         externalNativeBuild {
@@ -59,11 +76,16 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "21"
+        freeCompilerArgs = listOf(
+            "-Xno-param-assertions",
+            "-Xno-call-assertions",
+            "-Xno-receiver-assertions"
+        )
     }
     buildFeatures {
         viewBinding = true
@@ -74,6 +96,7 @@ android {
     }
     buildFeatures {
         compose = true
+        prefab = true
     }
     ksp {
         arg("room.schemaLocation", project.layout.projectDirectory.dir("schemas").asFile.absolutePath)
