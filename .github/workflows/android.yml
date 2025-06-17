@@ -29,12 +29,16 @@ jobs:
             echo ${{ secrets.SIGNING_KEY }} | base64 --decode > key.jks
           fi
 
+      - name: Setup JVM options
+        run: | 
+            echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" >> gradle.properties
+    
+
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: 21
-          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
           cache: gradle
 
       - name: Set execute permissions for gradlew
