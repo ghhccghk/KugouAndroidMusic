@@ -44,7 +44,8 @@ android {
         freeCompilerArgs = listOf(
             "-Xno-param-assertions",
             "-Xno-call-assertions",
-            "-Xno-receiver-assertions"
+            "-Xno-receiver-assertions",
+            "-Xstring-concat=inline"
         )
     }
     buildFeatures {
