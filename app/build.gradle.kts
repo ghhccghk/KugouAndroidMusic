@@ -40,6 +40,10 @@ android {
         }
     }
 
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+
     packaging {
         dex {
             useLegacyPackaging = false
