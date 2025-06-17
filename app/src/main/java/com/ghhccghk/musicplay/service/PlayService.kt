@@ -259,15 +259,18 @@ class PlayService : MediaSessionService(),
                                 val sessionMediaItem = mediaSession.player.currentMediaItem
                                 val t = sessionMediaItem?.songtitle?.toString()
 
-                                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-                                val newmedia =
-                                    sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)
-                                        ?.build()
+                                if (sessionMetadata.title != t) {
+                                    val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                                    val newmedia =
+                                        sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)
+                                            ?.build()
+                                    mediaSession.player.replaceMediaItem(
+                                        mediaSession.player.currentMediaItemIndex,
+                                        newmedia!!
+                                    )
+                                }
 
-                                mediaSession.player.replaceMediaItem(
-                                    mediaSession.player.currentMediaItemIndex,
-                                    newmedia!!
-                                )
+
                             }
                         }
                     }
@@ -517,13 +520,14 @@ class PlayService : MediaSessionService(),
                 val sessionMetadata = previousItem.mediaMetadata
                 val sessionMediaItem = previousItem
                 val t = sessionMediaItem?.songtitle?.toString()
-
-                val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-                val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
-                mediaSession.player.replaceMediaItem(
-                    prevIndex,
-                    newmedia!!
-                )
+                if (sessionMetadata.title != t) {
+                    val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                    val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                    mediaSession.player.replaceMediaItem(
+                        prevIndex,
+                        newmedia!!
+                    )
+                }
             }
         }
 
@@ -586,12 +590,17 @@ class PlayService : MediaSessionService(),
                             KugouAPi.getSearchSongLyrics(hash = hash)
                         }
                         if (b == null || b == "502" || b == "404") {
-                            Toast.makeText(return@launch, "歌词加载失败 json 是 $b", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                return@launch,
+                                "歌词加载失败 json 是 $b",
+                                Toast.LENGTH_LONG
+                            ).show()
                         } else {
                             try {
                                 val gson = Gson()
                                 val resulta = gson.fromJson(b, searchLyricBase::class.java)
-                                val accesskey = resulta.candidates.getOrNull(0)?.accesskey.toString()
+                                val accesskey =
+                                    resulta.candidates.getOrNull(0)?.accesskey.toString()
                                 val id = resulta.candidates.getOrNull(0)?.id.toString()
 
                                 val json = withContext(Dispatchers.IO) {
@@ -617,19 +626,21 @@ class PlayService : MediaSessionService(),
                                         MediaViewModelObject.lrcEntries.value =
                                             YosLrcFactory(false).formatLrcEntries(cachedDataa)
                                     }
-                                }catch (e: Exception) {
+                                } catch (e: Exception) {
                                     e.printStackTrace()
                                     Toast.makeText(
                                         return@launch,
                                         "歌词加载失败: ${e.message}",
-                                        Toast.LENGTH_LONG).show()
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             } catch (e: Exception) {
                                 e.printStackTrace()
                                 Toast.makeText(
                                     return@launch,
                                     "歌词加载失败: ${e.message}",
-                                    Toast.LENGTH_LONG).show()
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         }
 
