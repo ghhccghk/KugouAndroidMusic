@@ -519,9 +519,9 @@ class PlayService : MediaSessionService(),
                 val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
                 val sessionMetadata = previousItem.mediaMetadata
                 val sessionMediaItem = previousItem
-                val t = sessionMediaItem?.songtitle?.toString()
-                if (sessionMetadata.title != t) {
-                    val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                val te = sessionMediaItem?.songtitle?.toString()
+                if (sessionMetadata.title != te) {
+                    val newdata = sessionMetadata.buildUpon().setTitle(te).build()
                     val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
                     mediaSession.player.replaceMediaItem(
                         prevIndex,
