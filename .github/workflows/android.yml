@@ -29,11 +29,6 @@ jobs:
             echo ${{ secrets.SIGNING_KEY }} | base64 --decode > key.jks
           fi
 
-      - name: Setup environment for Gradle
-        run: |
-          echo "GRADLE_OPTS=-Xmx5g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8" >> $GITHUB_ENV
-    
-
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
