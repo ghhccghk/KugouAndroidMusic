@@ -20,10 +20,6 @@ android {
         }
     }
 
-    packagingOptions {
-        pickFirsts += listOf("lib/arm64-v8a/libdlfunc.so", "lib/armeabi-v7a/libdlfunc.so")
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -57,6 +53,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-ktx:1.16.0")
     implementation("io.github.nift4.dlfunc:dlfunc:0.1.6")
 }
