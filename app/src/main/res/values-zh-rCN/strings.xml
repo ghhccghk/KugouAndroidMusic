@@ -171,8 +171,6 @@
     <string name="settings_song_quality_summary">选择缓存的音质，部分音质仅部分音乐支持</string>
     <string name="settings_car_lyrics_title">车载歌词</string>
     <string name="settings_car_lyrics_summary">启用车载歌词</string>
-    <string name="picmb_title">图片缓存大小 (MB)</string>
-    <string name="picmb_summary">设置最大缓存大小</string>
     <string name="settings_song_cache_size_title">设置歌曲缓存大小 (MB)</string>
     <string name="settings_song_cache_size_summary">设置最大缓存</string>
 
