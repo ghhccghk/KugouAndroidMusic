@@ -25,3 +25,64 @@
     *;
 }
 -keep class com.hchen.superlyricapi.** { *;}
+
+# 避免 kotlin.reflect 内部反射崩溃
+-keepattributes *Annotation*
+
+# Media3 推荐规则
+-keep class androidx.media3.** { *; }
+-dontwarn androidx.media3.**
+
+# Room
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+
+# Moshi Adapter
+-keep class * extends com.squareup.moshi.JsonAdapter
+
+# Gson（如果你用了）
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+
+# 避免 Compose 相关工具类被混淆
+-keep class androidx.compose.** { *; }
+
+# 避免 META-INF/services 文件冲突
+-keepnames class * implements java.util.ServiceLoader
+
+# 保留 Kotlin metadata，避免反射失败
+-keepclassmembers class ** {
+    @kotlin.Metadata *;
+}
+-keep class kotlin.Metadata
+
+# JNI
+-keep class org.nift4.gramophone.hificore.NativeTrack {
+    onAudioDeviceUpdate(...);
+    onUnderrun(...);
+    onMarker(...);
+    onNewPos(...);
+    onStreamEnd(...);
+    onNewIAudioTrack(...);
+    onNewTimestamp(...);
+    onLoopEnd(...);
+    onBufferEnd(...);
+    onMoreData(...);
+    onCanWriteMoreData(...);
+}
+# Uncomment this to preserve the line number information for
+# debugging stack traces.
+-keepattributes SourceFile,LineNumberTable
+
+# If you keep the line number information, uncomment this to
+# hide the original source file name.
+# -renamesourcefileattribute SourceFile
+
+-dontobfuscate
+# reflection by androidx via theme attr viewInflaterClass
+-keep class com.ghhccghk.musicplay.ui.components.** { *; }
+-keep class com.ghhccghk.musicplay.ui.widgets.** { *; }
+# reflection by lyric getter xposed
+-keep class androidx.media3.common.util.Util {
+    public static void setForegroundServiceNotification(...);
+}

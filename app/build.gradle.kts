@@ -1,22 +1,30 @@
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+
+import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
+import com.android.build.gradle.tasks.PackageAndroidArtifact
+
+
+
+val buildTime = System.currentTimeMillis()
+
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.abc) apply false
+    alias(libs.plugins.abc)
     id("com.google.devtools.ksp")
     kotlin("plugin.parcelize")
-    kotlin("plugin.serialization") version "1.9.0"
+    kotlin("plugin.serialization") version  "1.9.0"
+    id("com.mikepenz.aboutlibraries.plugin")
+    id("androidx.baselineprofile") version "1.3.4"
 }
 
 android {
     namespace = "com.ghhccghk.musicplay"
     compileSdk = 35
 
-    val buildTime = System.currentTimeMillis()
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
         minSdk = 27
@@ -30,19 +38,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // 启用按架构分包
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = true
-        }
-    }
+//    // 启用按架构分包
+//    splits {
+//        abi {
+//            isEnable = true
+//            reset()
+//            include("arm64-v8a", "armeabi-v7a")
+//            isUniversalApk = true
+//        }
+//    }
 
     lint {
         baseline = file("lint-baseline.xml")
     }
+
+    // https://gitlab.com/IzzyOnDroid/repo/-/issues/491
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
 
     packaging {
         dex {
@@ -58,7 +73,15 @@ android {
         }
         resources {
             // https://youtrack.jetbrains.com/issue/KT-48019/Bundle-Kotlin-Tooling-Metadata-into-apk-artifacts
-            excludes += "kotlin-tooling-metadata.json"
+            excludes.addAll(
+                setOf(
+                "kotlin-tooling-metadata.json",
+                "META-INF/LICENSE*",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1",
+                "META-INF/*.kotlin_module",
+                "META-INF/services/*")
+            )
         }
     }
 
@@ -71,7 +94,6 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -79,6 +101,17 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    buildTypes.forEach {
+        (it as ApplicationBuildType).run {
+            vcsInfo {
+                include = false
+            }
+            isCrunchPngs = false // for reproducible builds TODO how much size impact does this have? where are the pngs from? can we use webp?
+        }
+    }
+
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
@@ -95,26 +128,65 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
     externalNativeBuild.cmake {
         CmakeProperty.ANDROID_STL
     }
+
     buildFeatures {
-        compose = true
+        buildConfig = true
         prefab = true
+        compose = true
     }
+
     ksp {
         arg("room.schemaLocation", project.layout.projectDirectory.dir("schemas").asFile.absolutePath)
     }
-    applicationVariants.all {
-        outputs.all {
-            val outputImpl = this as BaseVariantOutputImpl
-            // 尝试获取 filters 中的 abi 架构名称
-            val abiFilter = outputImpl.filters.find { it.filterType.equals("ABI", ignoreCase = true) }
-            val abiName = abiFilter?.identifier ?: "universal"
-            outputImpl.outputFileName =
-                "Music_Player-$versionName-$versionCode-$name-$abiName-$buildTime.apk"
-        }
+
+}
+
+
+base {
+    archivesName.set("Music_Player-${android.defaultConfig.versionName}-${android.defaultConfig.versionNameSuffix ?: ""}-$buildTime")
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) {
+        // https://github.com/Kotlin/kotlinx.coroutines?tab=readme-ov-file#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
+        it.packaging.resources.excludes.addAll("META-INF/*.version", "DebugProbesKt.bin")
     }
+}
+
+baselineProfile {
+    dexLayoutOptimization = true
+}
+
+aboutLibraries {
+    offlineMode = false
+    collect {
+        configPath.file("config") // TODO(ASAP) libraries json ignored
+        filterVariants.add("release")
+    }
+    export {
+        // Remove the "generated" timestamp to allow for reproducible builds
+        excludeFields.set(listOf("generated"))
+    }
+    license {
+        // TODO https://github.com/mikepenz/AboutLibraries/issues/1190
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicenses.addAll(
+            "Apache-2.0",
+            "LGPL-3.0-only",
+            "BSD-2-Clause",
+            "CC0-1.0",
+            "GPL-3.0-only"
+        )
+    }
+}
+
+// https://stackoverflow.com/a/77745844
+tasks.withType<PackageAndroidArtifact> {
+    doFirst { appMetadata.asFile.orNull?.writeText("") }
 }
 
 dependencies {
@@ -128,7 +200,7 @@ dependencies {
     implementation(libs.androidx.navigation.fragment.ktx)
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.animation.core.android)
-    implementation(libs.androidx.media3.common.ktx)
+
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.preference.ktx)
     testImplementation(libs.junit)
@@ -188,6 +260,7 @@ dependencies {
     implementation(libs.androidx.media3.session)   // 媒体会话管理
     implementation(libs.androidx.media3.ui)   // 媒体会话管理
     implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
+    implementation(libs.androidx.media3.common.ktx)
 
     implementation(libs.superlyricapi)
 
