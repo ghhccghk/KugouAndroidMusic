@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.CmakeProperty
-
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
@@ -21,13 +19,13 @@ android {
     }
 
     buildTypes {
+        maybeCreate("benchmarkRelease").apply {
+            initWith(getByName("release"))
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
-    }
-    externalNativeBuild.cmake {
-        CmakeProperty.ANDROID_STL
     }
     externalNativeBuild {
         cmake {
@@ -54,6 +52,6 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.16.0")
+    implementation(libs.androidx.core.ktx)
     implementation("io.github.nift4.dlfunc:dlfunc:0.1.6")
 }
