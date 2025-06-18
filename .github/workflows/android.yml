@@ -47,7 +47,7 @@ jobs:
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.GH_TOKEN }}
           publish_dir: ./doc
 
       - name: Upload Release APK
