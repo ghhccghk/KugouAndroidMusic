@@ -42,7 +42,7 @@ class MainSettingsFragment : BasePreferenceFragment() {
             }
 
             "about" -> {
-                //startActivity(AboutSettingsActivity::class.java)
+                startActivity(AboutSettingsActivity::class.java)
             }
 
             "player" -> {

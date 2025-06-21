@@ -14,18 +14,20 @@ object SmartImageCache {
     private var maxCacheSize: Long = 50L * 1024 * 1024 // 默认50MB
     private val client = OkHttpClient()
 
-    fun init(context: Context, dirName: String = "smart_image_cache", maxSize: Long = maxCacheSize) {
-        cacheDir = File(context.cacheDir, dirName).apply { mkdirs() }
+    fun init(context: Context, dirName: String = "cache/smart_image_cache", maxSize: Long = maxCacheSize) {
+        cacheDir = File(context.getExternalFilesDir(null), dirName).apply { mkdirs() }
         maxCacheSize = maxSize
     }
 
-    fun hasCache(url: String): Boolean {
-        val file = File(cacheDir, url.md5())
+    fun hasCache(url: String, customHash: String? = null): Boolean {
+        val fileName = (customHash ?: url).md5()
+        val file = File(cacheDir, fileName)
         return file.exists()
     }
 
-    fun getCachedUri(url: String): Uri? {
-        val file = File(cacheDir, url.md5())
+    fun getCachedUri(url: String , customHash: String? = null): Uri? {
+        val fileName = (customHash ?: url).md5()
+        val file = File(cacheDir,fileName)
         return if (file.exists()) Uri.fromFile(file) else null
     }
 

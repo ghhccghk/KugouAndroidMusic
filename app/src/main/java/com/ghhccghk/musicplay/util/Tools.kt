@@ -65,6 +65,9 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
 import java.io.File
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.Locale
 import kotlin.math.max
 
@@ -306,6 +309,30 @@ object Tools {
             }
         }
     }
+
+
+
+    /** 检测端口是否打开 */
+    fun isPortOpen(port: Int = 9600, timeout: Int = 200): Boolean {
+        return try {
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress("127.0.0.1", port), timeout)
+                true
+            }
+        } catch (e: IOException) {
+            false
+        }
+    }
+
+    fun loadImageFileAsByteArray(file: File): ByteArray? {
+        return try {
+            file.inputStream().use { it.readBytes() }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
 
 
 

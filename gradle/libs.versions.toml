@@ -1,4 +1,5 @@
 [versions]
+aboutlibrariesComposeM3 = "12.2.3"
 activityCompose = "1.10.1"
 agp = "8.10.1"
 core = "3.5.2"
@@ -42,6 +43,7 @@ lifecycleService = "2.9.0"
 preferenceKtx = "1.2.1"
 
 [libraries]
+aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibrariesComposeM3" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-adaptive = { module = "androidx.compose.material3.adaptive:adaptive" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

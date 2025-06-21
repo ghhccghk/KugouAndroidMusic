@@ -1,8 +1,9 @@
+package com.ghhccghk.musicplay.util.adapte
+
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 
-class SimpleFragmentPagerAdapter(
+class LogicFragmentPagerAdapter(
     fragment: Fragment,
     private val fragmentList: List<Fragment>
 ) : FragmentStateAdapter(fragment) {
