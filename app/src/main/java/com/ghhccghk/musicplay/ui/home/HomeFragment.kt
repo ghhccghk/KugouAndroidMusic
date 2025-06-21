@@ -1,29 +1,17 @@
 package com.ghhccghk.musicplay.ui.home
 
-import SimpleFragmentPagerAdapter
+import com.ghhccghk.musicplay.util.adapte.LogicFragmentPagerAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AnimationUtils
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
-import com.ghhccghk.musicplay.databinding.ItemInputphoneBinding
-import androidx.core.view.isVisible
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
@@ -101,7 +89,7 @@ class HomeFragment : Fragment() {
         )
 
         if (!isLoggedIn()) {        // 设置适配器
-            val adapter = SimpleFragmentPagerAdapter(this, fragments)
+            val adapter = LogicFragmentPagerAdapter(this, fragments)
             login_viewPager.adapter = adapter
 
             // 设置 Tab 标题

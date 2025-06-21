@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -176,7 +175,6 @@ class UserFragment : Fragment() {
             val gson = Gson()
             val json = withContext(Dispatchers.IO) {
                 val a = KugouAPi.getUserPlayList()
-                Log.d("test", a.toString())
                 KugouAPi.getUserDetail()
             }
             if (json == null || json == "502" || json == "404") {
@@ -234,6 +232,7 @@ class UserFragment : Fragment() {
                 val adapter = UserLikePLayListAdapter(data) {
                     val bundle = Bundle().apply {
                         putString("playlistId", it.global_collection_id)
+                        putString("picurl", it.pic.replaceFirst("/{size}/", "/"))
 
                     }
                     requireActivity().findNavController(R.id.nav_host_fragment_activity_main)

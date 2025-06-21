@@ -20,6 +20,7 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -38,6 +39,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.databinding.ActivityMainBinding
@@ -98,7 +100,7 @@ class MainActivity : AppCompatActivity() {
         val cacheSizeMB = prefs.getString("image_cache_size", "50")?.toLongOrNull() ?: 950L
 
         val cacheSizeBytes = cacheSizeMB * 1024 * 1024
-        SmartImageCache.init(applicationContext, "image_manager_disk_cache",cacheSizeBytes)
+        SmartImageCache.init(applicationContext, maxSize = cacheSizeBytes)
 
         if (isFirstRun(this)) {
             ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
@@ -158,6 +160,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         val navView: NavigationBarView = binding.navView
         isNodeRunning = viewModel.noderun
+
         val a = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
         if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
@@ -206,15 +209,14 @@ class MainActivity : AppCompatActivity() {
         }
         controllerFuture.addListener({
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+
             val artlurl = player.mediaMetadata?.artworkUri.toString()
             val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
             if (artlurl.isNullOrBlank() || artlurl == "" || artlurl == "null") {
-                Log.d("MainActivity", "artlurl is ${artlurl.toString()} or blank")
                 Glide.with(playbar)
                     .load(R.drawable.lycaon_icon)
                     .into(playbaricon)
             } else {
-                Log.d("MainActivity", "artlurl is ${artlurl.toString()}")
                 Glide.with(playbar)
                     .load(player.mediaMetadata.artworkUri)
                     .into(playbaricon)
@@ -236,11 +238,21 @@ class MainActivity : AppCompatActivity() {
 
 
             player.addListener(object : Player.Listener {
+                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                    super.onMediaMetadataChanged(mediaMetadata)
+                    val title = controllerFuture.get().currentMediaItem?.songtitle
+
+                    playbar.findViewById<TextView>(R.id.playbar_title).text =
+                        if (title.isNullOrBlank()) "未知歌曲" else title
+                }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
                         if (isPlaying) {
                             R.drawable.ic_pause_filled
                         } else {
+                            val artist = controllerFuture.get().mediaMetadata.artist
+                            playbar.findViewById<TextView>(R.id.playbar_artist).text =
+                                if (artist.isNullOrBlank()) "未知艺术家" else artist
                             R.drawable.ic_play_arrow_filled
                         }
                     )

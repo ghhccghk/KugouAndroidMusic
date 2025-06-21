@@ -66,6 +66,7 @@ class PlaylistDetailFragment : Fragment() {
         KugouAPi.init()
         if (MainActivity.isNodeRunning){
             val playlistId = arguments?.getString("playlistId",null)
+            val picurl = arguments?.getString("picurl",null)
             val theme = arguments?.getBoolean("theme",false)
             if (playlistId != null && theme == false){
                 lifecycleScope.launch {
@@ -82,13 +83,26 @@ class PlaylistDetailFragment : Fragment() {
                             binding.tvPlaylistName.text = playList[0].name
                             binding.tvCreator.text = playList[0].list_create_username
                             binding.tvIntro.text = playList[0].intro
-                            val secureUrl = playList[0].create_user_pic.replaceFirst("http://", "https://")
-                            val urlcache = withContext(Dispatchers.IO) {
-                                SmartImageCache.getOrDownload(secureUrl,playList[0].global_collection_id)
+                            if (picurl != null){
+                                Log.d("picurl",picurl)
+                                val urlcache = withContext(Dispatchers.IO) {
+                                    SmartImageCache.getOrDownload(picurl,picurl.hashCode().toString())
+                                }
+                                Glide.with(requireContext())
+                                    .load(urlcache)
+                                    .into(binding.ivPlaylistCover)
+                            } else {
+                                val secureUrl =
+                                    playList[0].create_user_pic.replaceFirst("/{size}/", "/")
+                                val urlcache = withContext(Dispatchers.IO) {
+                                    SmartImageCache.getOrDownload(secureUrl,secureUrl.hashCode().toString())
+                                }
+                                Log.d("picurl",picurl.toString())
+                                Glide.with(requireContext())
+                                    .load(urlcache)
+                                    .into(binding.ivPlaylistCover)
                             }
-                            Glide.with(requireContext())
-                                .load(urlcache)
-                                .into(binding.ivPlaylistCover)
+
 
                         } catch (e: Exception) {
                             e.printStackTrace()

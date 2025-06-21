@@ -409,29 +409,13 @@ class PlayService : MediaSessionService(),
                 if (last != -1) {
                     player.seekToDefaultPosition(last)
                 }
-                val artist = player.mediaMetadata?.artist
-                val title = player.mediaMetadata?.title
-
-                playbar.findViewById<TextView>(R.id.playbar_artist).text =
-                    if (artist.isNullOrBlank()) "未知艺术家" else artist
-                playbar.findViewById<TextView>(R.id.playbar_title).text =
-                    if (title.isNullOrBlank()) "未知歌曲" else title
             }
         }
-
-        val artist = player.mediaMetadata?.artist
-        val title = player.mediaMetadata?.title
 
         mediaSession.broadcastCustomCommand(
             SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
             Bundle.EMPTY
         )
-
-
-        playbar.findViewById<TextView>(R.id.playbar_artist).text =
-            if (artist.isNullOrBlank()) "未知艺术家" else artist
-        playbar.findViewById<TextView>(R.id.playbar_title).text =
-            if (title.isNullOrBlank()) "未知歌曲" else title
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -511,10 +495,10 @@ class PlayService : MediaSessionService(),
 
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         super<Player.Listener>.onMediaItemTransition(mediaItem, reason)
+        val prevIndex = mediaSession.player.getPreviousMediaItemIndex()
         val car_lyrics = prefs.getBoolean("car_lyrics", false)
 
         if (car_lyrics) {
-            val prevIndex = mediaSession.player.getPreviousMediaItemIndex()
             if (prevIndex != C.INDEX_UNSET) {
                 val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
                 val sessionMetadata = previousItem.mediaMetadata
@@ -551,7 +535,6 @@ class PlayService : MediaSessionService(),
         val cachedData = readFromSubdirCache(MainActivity.lontext, subDir, fileName)
 
         if (cachedData != null) {
-            Log.d("Cache", "子目录缓存命中: $cachedData")
             MediaViewModelObject.lrcEntries.value =
                 YosLrcFactory(false).formatLrcEntries(cachedData)
         } else {
@@ -698,13 +681,16 @@ class PlayService : MediaSessionService(),
                     val sessionMediaItem = mediaSession.player.currentMediaItem
                     val t = sessionMediaItem?.songtitle?.toString()
 
-                    val newdata = sessionMetadata.buildUpon().setTitle(t).build()
-                    val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                    if (t != sessionMetadata.title){
+                        val newdata = sessionMetadata.buildUpon().setTitle(t).build()
+                        val newmedia =
+                            sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
 
-                    mediaSession.player.replaceMediaItem(
-                        mediaSession.player.currentMediaItemIndex,
-                        newmedia!!
-                    )
+                        mediaSession.player.replaceMediaItem(
+                            mediaSession.player.currentMediaItemIndex,
+                            newmedia!!
+                        )
+                    }
                 }
                 println("播放结束")
             }

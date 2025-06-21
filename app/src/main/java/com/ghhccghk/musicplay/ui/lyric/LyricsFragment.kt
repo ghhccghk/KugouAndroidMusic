@@ -103,7 +103,7 @@ class LyricsFragment: Fragment() {
         val customTransition = TransitionSet().apply {
             addTransition(Slide(Gravity.END))
             addTransition(Fade(Fade.IN))
-            duration = 600
+            duration = 800
             interpolator = FastOutSlowInInterpolator()
         }
 

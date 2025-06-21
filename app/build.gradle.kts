@@ -2,7 +2,8 @@
 import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
 import com.android.build.gradle.tasks.PackageAndroidArtifact
-
+import org.jetbrains.kotlin.util.removeSuffixIfPresent
+import java.util.Properties
 
 
 val buildTime = System.currentTimeMillis()
@@ -24,6 +25,9 @@ plugins {
 android {
     namespace = "com.ghhccghk.musicplay"
     compileSdk = 35
+    val releaseType = if (project.hasProperty("releaseType")) project.properties["releaseType"].toString()
+    else readProperties(file("../package.properties")).getProperty("releaseType")
+    val myVersionName = "." + "git rev-parse --short=7 HEAD".runCommand(workingDir = rootDir)
 
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
@@ -34,7 +38,21 @@ android {
         //noinspection ChromeOsAbiSupport
         ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a")
         buildConfigField("long", "BUILD_TIME", "$buildTime")
-
+        buildConfigField(
+            "String",
+            "MY_VERSION_NAME",
+            "\"$versionName$myVersionName\""
+        )
+        buildConfigField(
+            "String",
+            "RELEASE_TYPE",
+            "\"$releaseType\""
+        )
+        buildConfigField(
+            "boolean",
+            "DISABLE_MEDIA_STORE_FILTER",
+            "false"
+        )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -281,11 +299,22 @@ dependencies {
     implementation(libs.rxandroid)
 
     implementation(libs.androidx.mediarouter)
-
     implementation(libs.androidx.palette.ktx)
-
     implementation(libs.cupertino.icons.extended)
 
+    implementation(libs.aboutlibraries.compose.m3)
 
+}
 
+fun String.runCommand(
+    workingDir: File = File(".")
+): String = providers.exec {
+    setWorkingDir(workingDir)
+    commandLine(split(' '))
+}.standardOutput.asText.get().removeSuffixIfPresent("\n")
+
+fun readProperties(propertiesFile: File) = Properties().apply {
+    propertiesFile.inputStream().use { fis ->
+        load(fis)
+    }
 }

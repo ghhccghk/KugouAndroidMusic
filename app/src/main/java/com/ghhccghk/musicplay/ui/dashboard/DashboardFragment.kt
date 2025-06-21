@@ -27,6 +27,7 @@ import com.ghhccghk.musicplay.data.SearchBase
 import com.ghhccghk.musicplay.data.SongDataBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
+import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.adapte.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.adapte.playlist.PlayMusicSceneAdapter
 import com.ghhccghk.musicplay.util.adapte.search.RecommendationAdapter
@@ -37,9 +38,6 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Socket
 
 class DashboardFragment : Fragment() {
 
@@ -75,21 +73,10 @@ class DashboardFragment : Fragment() {
     }
 
 
-    fun isPortOpen(port: Int = 9600, timeout: Int = 200): Boolean {
-        return try {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress("127.0.0.1", port), timeout)
-                true
-            }
-        } catch (e: IOException) {
-            false
-        }
-    }
-
     fun a(callback: (Boolean) -> Unit){
         lifecycleScope.launch {
             val b = withContext(Dispatchers.IO) {
-                isPortOpen()
+                Tools.isPortOpen()
             }
             callback(b)
         }
