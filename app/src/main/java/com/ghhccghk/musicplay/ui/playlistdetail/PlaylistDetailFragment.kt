@@ -12,6 +12,7 @@ import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -244,7 +245,13 @@ class PlaylistDetailFragment : Fragment() {
             )
             return abc.toMediaItem()
         }
-        return MediaItem.Builder().setUri(url).build()
+        val data = MediaMetadata.Builder()
+            .setExtras(
+                Bundle().apply {
+                    putString("songHash",hash)
+                }
+            ).build()
+        return MediaItem.Builder().setUri(url).setMediaMetadata(data).build()
     }
 
     fun getAllSongsFlow(

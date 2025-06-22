@@ -97,7 +97,7 @@ fun MediaItemEntity.toMediaItem(): MediaItem {
             putLong("Duration", duration)
             putLong("ModifiedDate", modifiedDate ?: 0)
             putInt("CdTrackNumber", cdTrackNumber ?: 0)
-            songHash?.toIntOrNull()?.let { putInt("songHash", it) }
+            songHash?.toString()?.let { putString("songHash", it) }
             putString("lrcId", lrcId)
             putString("lrcAccesskey", lrcAccesskey)
             putString("songtitle",songtitle)
