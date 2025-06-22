@@ -252,11 +252,28 @@ class MainActivity : AppCompatActivity() {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                     super.onMediaMetadataChanged(mediaMetadata)
                     val title = controllerFuture.get().currentMediaItem?.songtitle
+                    val artlurl = player.mediaMetadata?.artworkUri.toString()
+                    if (artlurl.isNullOrBlank() || artlurl == "" || artlurl == "null") {
+                        Glide.with(playbar)
+                            .load(R.drawable.lycaon_icon)
+                            .into(playbaricon)
+                    } else {
+                        val hash = player.currentMediaItem?.songHash
+                        lifecycleScope.launch {
+                            val fileUrl = withContext(Dispatchers.IO){
+                                SmartImageCache.getOrDownload(artlurl.toString(), hash)
+                            }
+                            Glide.with(playbar)
+                                .load(fileUrl)
+                                .into(playbaricon)
+                        }
+                    }
 
                     playbar.findViewById<TextView>(R.id.playbar_title).text =
                         if (title.isNullOrBlank()) "未知歌曲" else title
                 }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    val artlurl = player.mediaMetadata?.artworkUri.toString()
                     playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
                         if (isPlaying) {
                             R.drawable.ic_pause_filled
@@ -267,12 +284,20 @@ class MainActivity : AppCompatActivity() {
                             R.drawable.ic_play_arrow_filled
                         }
                     )
-                    if (artlurl.isNullOrBlank()) {
-                        ""
-                    } else {
+                    if (artlurl == "" || artlurl == "null") {
                         Glide.with(playbar)
-                            .load(player.mediaMetadata.artworkUri)
+                            .load(R.drawable.lycaon_icon)
                             .into(playbaricon)
+                    } else {
+                        val hash = player.currentMediaItem?.songHash
+                        lifecycleScope.launch {
+                            val fileUrl = withContext(Dispatchers.IO){
+                                SmartImageCache.getOrDownload(artlurl.toString(), hash)
+                            }
+                            Glide.with(playbar)
+                                .load(fileUrl)
+                                .into(playbaricon)
+                        }
                     }
                 }
             })
