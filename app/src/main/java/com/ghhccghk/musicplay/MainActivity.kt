@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -39,6 +40,7 @@ import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
@@ -55,6 +57,9 @@ import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
@@ -217,9 +222,15 @@ class MainActivity : AppCompatActivity() {
                     .load(R.drawable.lycaon_icon)
                     .into(playbaricon)
             } else {
-                Glide.with(playbar)
-                    .load(player.mediaMetadata.artworkUri)
-                    .into(playbaricon)
+                val hash = player.currentMediaItem?.songHash
+                lifecycleScope.launch {
+                    val fileUrl = withContext(Dispatchers.IO){
+                        SmartImageCache.getOrDownload(artlurl.toString(), hash)
+                    }
+                    Glide.with(playbar)
+                        .load(fileUrl)
+                        .into(playbaricon)
+                }
             }
 
             val maxHeight = (Resources.getSystem().displayMetrics.heightPixels * 0.8).toInt()

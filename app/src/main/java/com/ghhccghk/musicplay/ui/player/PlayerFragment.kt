@@ -35,6 +35,7 @@ import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
@@ -45,6 +46,7 @@ import com.ghhccghk.musicplay.util.AudioFormatDetector
 import com.ghhccghk.musicplay.util.AudioFormatDetector.AudioFormatInfo
 import com.ghhccghk.musicplay.util.AudioFormatDetector.AudioQuality
 import com.ghhccghk.musicplay.util.AudioFormatDetector.SpatialFormat
+import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.Tools.dpToPx
 import com.ghhccghk.musicplay.util.Tools.fadInAnimation
 import com.ghhccghk.musicplay.util.Tools.fadOutAnimation
@@ -227,19 +229,25 @@ class PlayerFragment() : Fragment() {
 
         if (player.mediaMetadata.artworkUri != null ){
             val url = player.mediaMetadata.artworkUri
-            Glide.with(binding.root)
-                .load(player.mediaMetadata.artworkUri)
-                .into(binding.fullSheetCover)
+            val hash = player.currentMediaItem?.songHash
+
             lifecycleScope.launch {
                 withContext(Dispatchers.IO) {
-                    val a = Glide.with(context)
-                        .load(url)
-                        .submit()
-                        .get() // 注意：这是同步操作，需放在协程或后台线程中
+                    val fileUrl = SmartImageCache.getOrDownload(url.toString(),hash)
+                    val drawable = withContext(Dispatchers.IO) {
+                        Glide.with(context)
+                            .load(fileUrl)
+                            .submit()
+                            .get()
+                    }
+
+                    // 在主线程设置 UI
+                    withContext(Dispatchers.Main) { binding.fullSheetCover.setImageDrawable(drawable) }
+
                     if (DynamicColors.isDynamicColorAvailable() &&
                         prefs.getBoolean("content_based_color", true)
                     ) {
-                        addColorScheme(a)
+                        addColorScheme(drawable)
                     } else {
                         removeColorScheme()
                     }

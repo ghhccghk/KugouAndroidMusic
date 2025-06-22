@@ -44,12 +44,14 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.BACKGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.FOREGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.ui.widgets.YosLyricView
+import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
 import com.ghhccghk.musicplay.util.lrc.YosUIConfig
 import com.ghhccghk.musicplay.util.ui.ColorUtils
@@ -238,10 +240,11 @@ class LyricsFragment: Fragment() {
 
     fun updatebg(){
         val imageUrl = play.mediaMetadata.artworkUri
-
+        val hash = play.currentMediaItem?.songHash
+        val fileUrl = SmartImageCache.getCachedUri(imageUrl.toString(),hash)
         Glide.with(this)
             .asBitmap()
-            .load(imageUrl)
+            .load(fileUrl)
             .into(object : CustomTarget<Bitmap>() {
                 val times = 4  // 模糊叠加3次
                 val radius = 25f
