@@ -21,7 +21,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
-import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.mikepenz.aboutlibraries.ui.compose.android.rememberLibraries
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
@@ -35,14 +34,15 @@ class OssLicensesSettingsActivity : AppCompatActivity() {
         setContent {
             MaterialTheme(
                 colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    if (isSystemInDarkTheme()) dynamicDarkColorScheme(MainActivity.lontext) else dynamicLightColorScheme(
-                        MainActivity.lontext
-                    )
+                    if (isSystemInDarkTheme())
+                        dynamicDarkColorScheme(applicationContext)
+                    else
+                        dynamicLightColorScheme(applicationContext)
                 } else {
                     if (isSystemInDarkTheme()) {
-                        darkColorScheme()    // 静态深色方案
+                        darkColorScheme()
                     } else {
-                        lightColorScheme()   // 静态亮色方案
+                        lightColorScheme()
                     }
                 }
             ) {
@@ -53,7 +53,7 @@ class OssLicensesSettingsActivity : AppCompatActivity() {
                             title = { Text(stringResource(R.string.settings_open_source_licenses)) },
                             navigationIcon = {
                                 IconButton(onClick = { finish() }) {
-                                    Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                                 }
                             }
                         )
