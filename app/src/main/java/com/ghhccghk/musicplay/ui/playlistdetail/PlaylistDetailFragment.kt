@@ -215,6 +215,7 @@ class PlaylistDetailFragment : Fragment() {
             .replaceFirst("/{size}/", "/")
         val urlcache = withContext(Dispatchers.IO) {
             SmartImageCache.getOrDownload(urla,hash)
+            return@withContext urla
         }
 
         val b = withContext(Dispatchers.IO) {

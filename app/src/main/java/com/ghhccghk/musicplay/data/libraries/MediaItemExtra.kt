@@ -90,8 +90,8 @@ val MediaItem.modifiedDate: Long?
 val MediaItem.cdTrackNumber: Int?
     get() = this.mediaMetadata.extras?.getInt("CdTrackNumber")
 
-val MediaItem.songHash: Int?
-    get() = this.mediaMetadata.extras?.getInt("songHash")
+val MediaItem.songHash: String?
+    get() = this.mediaMetadata.extras?.getString("songHash")
 
 val MediaItem.lrcId: String?
     get() = this.mediaMetadata.extras?.getString("lrcId")
