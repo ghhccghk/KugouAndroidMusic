@@ -2,6 +2,7 @@ package com.ghhccghk.musicplay.util
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -37,6 +38,7 @@ object SmartImageCache {
 
         if (file.exists()) {
             file.setLastModified(System.currentTimeMillis())
+            Log.d("SmartImageCache", "获取到缓存 : $file")
             return@withContext Uri.fromFile(file)
         }
 
@@ -49,10 +51,12 @@ object SmartImageCache {
                     file.writeBytes(body)
                     file.setLastModified(System.currentTimeMillis())
                     trimCache()
+                    Log.d("SmartImageCache", "request success 获取到缓存 : $file")
                     return@withContext Uri.fromFile(file)
                 }
             }
         } catch (e: Exception) {
+            Log.d("SmartImageCache", "报错 : ${e} url :$url")
             e.printStackTrace()
         }
 

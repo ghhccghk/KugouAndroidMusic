@@ -40,7 +40,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -55,8 +57,12 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
+import com.ghhccghk.musicplay.util.SmartImageCache
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 object GlobalPlaylistBottomSheetController : PlaylistBottomSheetController()
@@ -131,7 +137,8 @@ fun PlaylistBottomSheet(
                     leadingContent = {
                         if (currentArtwork != null) {
                             RotatingArtwork(
-                                uri = currentSong?.mediaMetadata?.artworkUri
+                                uri = currentSong?.mediaMetadata?.artworkUri,
+                                hash = currentSong?.songHash
                             )
                         } else {
                             Icon(
@@ -184,7 +191,8 @@ fun PlaylistBottomSheet(
                             leadingContent = {
                                 if (song.mediaMetadata.artworkUri != null) {
                                     RotatingArtwork(
-                                        uri = song.mediaMetadata.artworkUri
+                                        uri = song.mediaMetadata.artworkUri,
+                                        hash = song.songHash
                                     )
                                 } else {
                                     Icon(
@@ -225,7 +233,7 @@ fun PlaylistBottomSheet(
 }
 
 @Composable
-fun RotatingArtwork(uri: Uri?) {
+fun RotatingArtwork(uri: Uri?,hash: String?) {
     Box(
         modifier = Modifier
             .size(40.dp)
@@ -234,7 +242,7 @@ fun RotatingArtwork(uri: Uri?) {
             }
             .clip(RoundedCornerShape(8.dp)) // 👈 设置圆角半径
     ) {
-        GlideComposeImage(url = uri.toString(), modifier = Modifier.fillMaxSize(), circleCrop = false)
+        GlideComposeImage(url = uri.toString(), hash = hash ,modifier = Modifier.fillMaxSize(), circleCrop = false)
     }
 }
 
@@ -243,11 +251,20 @@ fun RotatingArtwork(uri: Uri?) {
 @Composable
 fun GlideComposeImage(
     url: String?,
+    hash: String?,
     modifier: Modifier = Modifier,
     placeholderResId: Int? = null,
     errorResId: Int? = null,
     circleCrop: Boolean = false,
 ) {
+    var fileUrl by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(url) {
+        fileUrl = withContext(Dispatchers.IO) {
+            SmartImageCache.getOrDownload(url.toString(), hash.toString())
+        }
+    }
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -257,7 +274,7 @@ fun GlideComposeImage(
         },
         update = { imageView ->
             val request = Glide.with(imageView.context)
-                .load(url)
+                .load(fileUrl)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
 
             if (placeholderResId != null) {
