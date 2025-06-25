@@ -39,6 +39,9 @@ jobs:
       - name: Set execute permissions for gradlew
         run: chmod +x ./gradlew
 
+      - name: Set release type
+        run: echo releaseType=GitHub CI > package.properties
+
       - name: Build with Gradle
         run: |
           ./gradlew assemble
