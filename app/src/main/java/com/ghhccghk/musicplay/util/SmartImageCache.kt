@@ -9,11 +9,15 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 
 object SmartImageCache {
     private lateinit var cacheDir: File
     private var maxCacheSize: Long = 50L * 1024 * 1024 // 默认50MB
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
 
     fun init(context: Context, dirName: String = "cache/smart_image_cache", maxSize: Long = maxCacheSize) {
         cacheDir = File(context.getExternalFilesDir(null), dirName).apply { mkdirs() }
@@ -32,35 +36,47 @@ object SmartImageCache {
         return if (file.exists()) Uri.fromFile(file) else null
     }
 
-    suspend fun getOrDownload(url: String, customHash: String? = null): Uri? = withContext(Dispatchers.IO) {
+    suspend fun getOrDownload(url: String, customHash: String? = null): Uri? {
+        if (url.isBlank() || url == "") {
+            Log.w("SmartImageCache", "无效 URL：$url")
+            return null
+        }
+
         val fileName = (customHash ?: url).md5()
         val file = File(cacheDir, fileName)
 
-        if (file.exists()) {
+        if (!file.exists() || file.length() == 0L) {
+            file.delete()
+        }
+
+        if (file.exists() && file.length() != 0L) {
             file.setLastModified(System.currentTimeMillis())
             Log.d("SmartImageCache", "获取到缓存 : $file")
-            return@withContext Uri.fromFile(file)
+            return Uri.fromFile(file)
         }
 
-        try {
-            val request = Request.Builder().url(url).build()
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.bytes()
-                if (body != null) {
-                    file.writeBytes(body)
-                    file.setLastModified(System.currentTimeMillis())
-                    trimCache()
-                    Log.d("SmartImageCache", "request success 获取到缓存 : $file")
-                    return@withContext Uri.fromFile(file)
+        return withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder().url(url).build()
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    response.body?.byteStream()?.use { input ->
+                        file.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                        file.setLastModified(System.currentTimeMillis())
+                        trimCache()
+                        Log.d("SmartImageCache", "request success 获取到缓存 : $file")
+                        return@withContext Uri.fromFile(file)
+                    }
                 }
+                null
+            } catch (e: Exception) {
+                Log.e("SmartImageCache", "下载失败: $e url: $url")
+                null
             }
-        } catch (e: Exception) {
-            Log.d("SmartImageCache", "报错 : ${e} url :$url")
-            e.printStackTrace()
         }
 
-        return@withContext null
     }
 
 

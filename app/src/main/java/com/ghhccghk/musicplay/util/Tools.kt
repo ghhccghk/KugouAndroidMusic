@@ -27,13 +27,20 @@ package com.ghhccghk.musicplay.util
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.LayerDrawable
+import android.graphics.drawable.VectorDrawable
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.os.StrictMode
+import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.view.ViewPropertyAnimator
@@ -42,6 +49,7 @@ import androidx.annotation.OptIn
 import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.Insets
 import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.set
 import androidx.core.net.toFile
 import androidx.core.os.BundleCompat
@@ -57,13 +65,20 @@ import androidx.media3.session.SessionCommand
 import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.uri
+import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
 import com.ghhccghk.musicplay.service.PlayService.Companion.SERVICE_GET_AUDIO_FORMAT
+import com.ghhccghk.musicplay.util.others.PlaylistRepository
+import com.ghhccghk.musicplay.util.others.toEntity
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.CollapsingToolbarLayout
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -331,6 +346,264 @@ object Tools {
             e.printStackTrace()
             null
         }
+    }
+
+
+
+    fun drawableToBase64(drawable: Drawable): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (drawable is AdaptiveIconDrawable) {
+                return adaptiveIconDrawableBase64(drawable)
+            }
+        }
+        when (drawable) {
+            is BitmapDrawable -> {
+                return drawableToBase64(drawable.bitmap)
+            }
+
+            is VectorDrawable -> {
+                return drawableToBase64(
+                    makeDrawableToBitmap(
+                        drawable
+                    )
+                )
+            }
+
+            else -> {
+                return try {
+                    drawableToBase64(drawable.toBitmap())
+                } catch (_: Exception) {
+                    ""
+                }
+            }
+        }
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
+    fun adaptiveIconDrawableBase64(drawable: AdaptiveIconDrawable): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val background = drawable.background
+            val foreground = drawable.foreground
+            if (background != null && foreground != null) {
+                val layerDrawable = LayerDrawable(arrayOf(background, foreground))
+                val createBitmap =
+                    createBitmap(layerDrawable.intrinsicWidth, layerDrawable.intrinsicHeight)
+                val canvas = Canvas(createBitmap)
+                layerDrawable.setBounds(0, 0, canvas.width, canvas.height)
+                layerDrawable.draw(canvas)
+                drawableToBase64(createBitmap)
+            } else {
+                ""
+            }
+        } else {
+            ""
+        }
+    }
+
+
+    fun makeDrawableToBitmap(drawable: Drawable): Bitmap {
+        val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
+        val canvas = Canvas(bitmap)
+        drawable.apply {
+            setBounds(0, 0, canvas.width, canvas.height)
+            draw(canvas)
+        }
+        return bitmap
+    }
+
+    fun drawableToBase64(bitmap: Bitmap): String {
+        val stream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        val bytes = stream.toByteArray()
+        return Base64.encodeToString(bytes, Base64.DEFAULT)
+    }
+
+    fun getExternalSubdirFile(context: Context, subDir: String, fileName: String): File? {
+        val baseDir = context.getExternalFilesDir(null)
+        val targetDir = File(baseDir, "$subDir")
+
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()  // 确保子目录存在
+        }
+
+        return File(targetDir, fileName)
+    }
+
+    fun writeToSubdirCache(context: Context, subDir: String, fileName: String, data: String) {
+        val file = getExternalSubdirFile(context, subDir, fileName)
+        file?.writeText(data)
+    }
+
+    fun sanitizeFileName(fileName: String): String {
+        return fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+    }
+
+
+    fun readFromSubdirCache(context: Context, subDir: String, fileName: String): String? {
+        val file = getExternalSubdirFile(context, subDir, fileName)
+        return if (file != null && file.exists()) {
+            file.readText()
+        } else {
+            null
+        }
+    }
+
+    fun convertKrcToLrc(krcContent: String): String {
+        val lineRegex = Regex("""\[(\d+),(\d+)]""")  // [开始时间, 持续时间]
+        val wordRegex = Regex("""<(\d+),(\d+),\d+>(.*?)(?=<|$)""")  // <偏移, 持续, ?>文字
+        var lastLineStartTime: Long = -1L  // 记录上一行的时间戳
+
+        // 解析 Base64 里的 JSON 翻译内容
+        val regex = "\\[language:(.*?)]".toRegex()
+        val matchResult = regex.find(krcContent)?.groups?.get(1)?.value
+
+        val output = mutableListOf<String>()
+
+        // 提前获取翻译内容列表，避免重复查找
+        val translationLyricList = if (!matchResult.isNullOrBlank()) {
+            val decodedBytes = Base64.decode(matchResult, Base64.DEFAULT)
+            val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+            val adapter = moshi.adapter(fanyiLyricbase::class.java)
+            adapter.fromJson(decodedBytes.toString(Charsets.UTF_8))
+                ?.content?.find { it.type == 1 }?.lyricContent
+        } else null
+
+        var lyricLineIndex = 0  // 只计数歌词行
+
+        for (line in krcContent.lines()) {
+            val trimmed = line.trim()
+
+            // 判断是否是歌词行（带时间戳）
+            if (!lineRegex.containsMatchIn(trimmed)) {
+                // 不是歌词行，直接加，不加翻译，不增加索引
+                output.add(trimmed)
+                continue
+            }
+
+            // 是歌词行，解析时间和单词
+            val lineMatch = lineRegex.find(line) ?: continue
+            var lineStartTime = lineMatch.groupValues[1].toLong()
+
+            if (lastLineStartTime != -1L && lineStartTime <= lastLineStartTime) {
+                lineStartTime = lastLineStartTime + 3
+            }
+            lastLineStartTime = lineStartTime
+
+            val wordMatches = wordRegex.findAll(line).toList()
+            if (wordMatches.isEmpty()) continue
+
+
+            val sb = StringBuilder()
+            var pendingRole: String? = null
+
+            for ((index, match) in wordMatches.withIndex()) {
+                val offset = match.groupValues[1].toLong()
+                val duration = match.groupValues[2].toLong()
+                val word = match.groupValues[3]
+                val time = lineStartTime + offset
+
+                if (pendingRole != null) {
+                    sb.append("[${millisToTimeStr(time)}]$pendingRole：")
+                    pendingRole = null
+                } else if (word.length == 1 && index + 1 < wordMatches.size &&
+                    wordMatches[index + 1].groupValues[3] == "："
+                ) {
+                    pendingRole = word
+                    continue
+                } else if (word != "：") {
+                    sb.append("[${millisToTimeStr(time)}]$word")
+                }
+
+                if (index == wordMatches.lastIndex) {
+                    val endTime = time + duration
+                    sb.append("[${millisToTimeStr(endTime)}]")
+                }
+            }
+
+            output.add(sb.toString())
+
+            // 添加对应翻译行，使用 lyricLineIndex
+            val translationLine =
+                translationLyricList?.getOrNull(lyricLineIndex)?.joinToString(separator = "") ?: " "
+            if (translationLyricList != null) {
+                output.add("[${millisToTimeStr(lineStartTime)}]$translationLine")
+            }
+
+            lyricLineIndex++  // 只在歌词行累加
+        }
+
+        return output.joinToString("\n")
+    }
+
+
+    fun millisToTimeStr(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        val hundredths = (ms % 1000) / 10
+        return "%02d:%02d.%02d".format(minutes, seconds, hundredths)
+    }
+
+
+    fun lrctimefix(a: String): String {
+
+        val timeRegex = "\\[(\\d{2}):(\\d{2})\\.(\\d{2})]".toRegex()
+
+        // Map 时间戳文本 -> 它出现的行索引
+        val timeMap = mutableMapOf<String, MutableList<Int>>()
+        val inputLines = a.lines()
+
+        inputLines.forEachIndexed { index, line ->
+            val match = timeRegex.find(line)
+            match?.value?.let { timeTag ->
+                timeMap.computeIfAbsent(timeTag) { mutableListOf() }.add(index)
+            }
+        }
+
+        val linesCopy = inputLines.toMutableList()
+
+        for ((timeTag, indices) in timeMap) {
+            if (indices.size >= 3) {
+                for ((offset, i) in indices.withIndex()) {
+                    val match = timeRegex.find(timeTag)
+                    if (match != null) {
+                        val minutes = match.groupValues[1].toInt()
+                        val seconds = match.groupValues[2].toInt()
+                        val hundredths = match.groupValues[3].toInt()
+
+                        // 原时间戳 + offset * 10ms
+                        var totalMillis =
+                            (minutes * 60 + seconds) * 1000 + hundredths * 10 + offset * 10
+
+                        val newMinutes = totalMillis / 60000
+                        val newSeconds = (totalMillis % 60000) / 1000
+                        val newHundredths = (totalMillis % 1000) / 10
+
+                        val newTimeTag =
+                            "[%02d:%02d.%02d]".format(newMinutes, newSeconds, newHundredths)
+                        // 替换原行中的时间戳
+                        linesCopy[i] = linesCopy[i].replace(timeRegex, newTimeTag)
+                    }
+                }
+            }
+        }
+
+        // 输出结果
+        return linesCopy.joinToString("\n")
+    }
+
+    suspend fun saveCurrentPlaylist(player: Player, dao: PlaylistRepository) {
+        val itemCount = player.mediaItemCount
+        val entities = mutableListOf<MediaItemEntity>()
+
+        for (i in 0 until itemCount) {
+            val mediaItem = player.getMediaItemAt(i)
+            val entity = mediaItem.toEntity()
+            entities.add(entity)
+        }
+
+        // 批量插入数据库
+        dao.savePlaylist(entities)
     }
 
 

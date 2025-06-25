@@ -226,13 +226,14 @@ class UserFragment : Fragment() {
             } else {
                 val userplaylist = gson.fromJson(json, LikePlayListBase::class.java)
                 val data = userplaylist.data.info
-
                 binding.recyclerViewUserLikePlaylist.layoutManager =
                     LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
                 val adapter = UserLikePLayListAdapter(data) {
                     val bundle = Bundle().apply {
                         putString("playlistId", it.global_collection_id)
-                        putString("picurl", it.pic.replaceFirst("/{size}/", "/"))
+                        if (it.name != "我喜欢") {
+                            putString("picurl", it.pic.replaceFirst("/{size}/", "/"))
+                        }
 
                     }
                     requireActivity().findNavController(R.id.nav_host_fragment_activity_main)

@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -34,6 +35,7 @@ import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -56,6 +58,7 @@ class PlaylistDetailFragment : Fragment() {
 
     private val binding get() = _binding!!
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         player = MainActivity.controllerFuture.get()
@@ -70,7 +73,7 @@ class PlaylistDetailFragment : Fragment() {
             val picurl = arguments?.getString("picurl",null)
             val theme = arguments?.getBoolean("theme",false)
             if (playlistId != null && theme == false){
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     val json = withContext(Dispatchers.IO) {
                         KugouAPi.getPlayListDetail(playlistId)
                     }
@@ -80,31 +83,29 @@ class PlaylistDetailFragment : Fragment() {
                         try {
                             val gson = Gson()
                             val result = gson.fromJson(json, PlayListDetail::class.java)
-                            val playList = result.data
-                            binding.tvPlaylistName.text = playList[0].name
-                            binding.tvCreator.text = playList[0].list_create_username
-                            binding.tvIntro.text = playList[0].intro
-                            if (picurl != null){
-                                Log.d("picurl",picurl)
-                                val urlcache = withContext(Dispatchers.IO) {
-                                    SmartImageCache.getOrDownload(picurl,picurl.hashCode().toString())
+                            val playList = result.data[0]
+                            binding.tvPlaylistName.text = playList.name
+                            binding.tvCreator.text = playList.list_create_username
+                            binding.tvIntro.text = playList.intro
+
+                            if (picurl != "null" || picurl != ""){
+                                Log.d("PlaylistDetailFragment",picurl.toString())
+                                val urlcache = SmartImageCache.getOrDownload(picurl.toString(),picurl.hashCode().toString())
+                                if (urlcache != null){
+                                    Glide.with(requireContext())
+                                        .load(urlcache)
+                                        .into(binding.ivPlaylistCover)
+                                } else {
+                                    binding.ivPlaylistCover.setImageBitmap(binding.ivPlaylistCover.context.getDrawable(R.drawable.ic_favorite_filled)?.toBitmap())
                                 }
-                                Glide.with(requireContext())
-                                    .load(urlcache)
-                                    .into(binding.ivPlaylistCover)
                             } else {
-                                val secureUrl =
-                                    playList[0].create_user_pic.replaceFirst("/{size}/", "/")
-                                val urlcache = withContext(Dispatchers.IO) {
-                                    SmartImageCache.getOrDownload(secureUrl,secureUrl.hashCode().toString())
-                                }
-                                Log.d("picurl",picurl.toString())
+                                val secureUrl = playList.create_user_pic.replaceFirst("/{size}/", "/")
+                                val urlcache = SmartImageCache.getOrDownload(secureUrl,secureUrl.hashCode().toString())
+                                Log.d("PlaylistDetailFragment",secureUrl.toString())
                                 Glide.with(requireContext())
                                     .load(urlcache)
                                     .into(binding.ivPlaylistCover)
                             }
-
-
                         } catch (e: Exception) {
                             e.printStackTrace()
                             Toast.makeText(
@@ -113,10 +114,7 @@ class PlaylistDetailFragment : Fragment() {
                                 Toast.LENGTH_LONG
                             ).show()
                         }
-
                     }
-
-
                 }
 
                 lifecycleScope.launch {
