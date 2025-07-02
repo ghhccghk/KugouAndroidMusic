@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -65,18 +66,13 @@ class UserFragment : Fragment() {
                         val a = KugouAPi.getlitevip()
                         if (a == null || a == "502" || a == "404") {
                             Toast.makeText(
-                                MainActivity.lontext,
+                                requireContext(),
                                 R.string.token_update_error,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(
-                            MainActivity.lontext,
-                            R.string.token_update_error,
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        Log.e("User","format error",e)
                         null
                     }
                 }

@@ -1,0 +1,177 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "1cee70ba436f06fb38147b60d85898f1",
+    "entities": [
+      {
+        "tableName": "media_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uri` TEXT, `mediaId` TEXT, `title` TEXT, `writer` TEXT, `compilation` TEXT, `composer` TEXT, `artists` TEXT, `album` TEXT, `albumArtists` TEXT, `thumb` TEXT, `trackNumber` INTEGER, `discNumber` INTEGER, `genre` TEXT, `recordingDay` INTEGER, `recordingMonth` INTEGER, `recordingYear` INTEGER, `releaseYear` INTEGER, `artistId` INTEGER, `albumId` INTEGER, `genreId` INTEGER, `author` TEXT, `addDate` INTEGER, `duration` INTEGER NOT NULL, `modifiedDate` INTEGER, `cdTrackNumber` INTEGER, `songHash` TEXT, `lrcId` TEXT, `lrcAccesskey` TEXT, `songtitle` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uri",
+            "columnName": "uri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mediaId",
+            "columnName": "mediaId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "writer",
+            "columnName": "writer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "compilation",
+            "columnName": "compilation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "composer",
+            "columnName": "composer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "artists",
+            "columnName": "artists",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "album",
+            "columnName": "album",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "albumArtists",
+            "columnName": "albumArtists",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "thumb",
+            "columnName": "thumb",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "trackNumber",
+            "columnName": "trackNumber",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "discNumber",
+            "columnName": "discNumber",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "genre",
+            "columnName": "genre",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recordingDay",
+            "columnName": "recordingDay",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recordingMonth",
+            "columnName": "recordingMonth",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recordingYear",
+            "columnName": "recordingYear",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "releaseYear",
+            "columnName": "releaseYear",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "artistId",
+            "columnName": "artistId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "albumId",
+            "columnName": "albumId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "genreId",
+            "columnName": "genreId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "author",
+            "columnName": "author",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addDate",
+            "columnName": "addDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modifiedDate",
+            "columnName": "modifiedDate",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cdTrackNumber",
+            "columnName": "cdTrackNumber",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "songHash",
+            "columnName": "songHash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lrcId",
+            "columnName": "lrcId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lrcAccesskey",
+            "columnName": "lrcAccesskey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "songtitle",
+            "columnName": "songtitle",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1cee70ba436f06fb38147b60d85898f1')"
+    ]
+  }
+}

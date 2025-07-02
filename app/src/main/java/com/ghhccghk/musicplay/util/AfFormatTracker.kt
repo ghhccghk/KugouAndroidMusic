@@ -22,7 +22,6 @@
 
 package com.ghhccghk.musicplay.util
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioRouting
 import android.media.AudioTrack
@@ -36,10 +35,9 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig
 import androidx.media3.exoplayer.audio.DefaultAudioSink
-import org.nift4.gramophone.hificore.AudioTrackHiddenApi
 import kotlinx.parcelize.Parcelize
+import org.nift4.gramophone.hificore.AudioTrackHiddenApi
 
-@SuppressLint("ParcelCreator")
 @Parcelize
 data class AfFormatInfo(
     val routedDeviceName: String?, val routedDeviceId: Int?,
@@ -67,6 +65,7 @@ data class AudioTrackInfo(
 @OptIn(UnstableApi::class)
 class AfFormatTracker(
     private val context: Context, private val playbackHandler: Handler,
+    private val handler: Handler
 ) : AnalyticsListener {
     companion object {
         private const val LOG_EVENTS = true
@@ -116,7 +115,7 @@ class AfFormatTracker(
 
     override fun onAudioTrackInitialized(
         eventTime: AnalyticsListener.EventTime,
-        audioTrackConfig: AudioTrackConfig
+        audioTrackConfig: AudioSink.AudioTrackConfig
     ) {
         format = null
         playbackHandler.post {
@@ -157,6 +156,14 @@ class AfFormatTracker(
             if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED) return@let null
             val rd = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
                 audioTrack.routedDevice else null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                handler.post {
+                    val sd = MediaRoutes.getSelectedAudioDevice(context)
+                    if (rd != sd)
+                        Log.w(TAG, "routedDevice ${rd?.productName}(${rd?.id}) is not the same as MediaRoute " +
+                                "selected device ${sd?.productName}(${sd?.id})")
+                }
+            }
             val deviceProductName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
                 rd?.productName.toString() else null
             val deviceType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
