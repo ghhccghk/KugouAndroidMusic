@@ -29,6 +29,7 @@ import android.os.Build
 import android.os.Parcelable
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.annotation.RequiresApi
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
@@ -36,6 +37,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import com.ghhccghk.musicplay.R
 import kotlinx.parcelize.Parcelize
+
 
 object AudioFormatDetector {
     fun channelConfigToString(context: Context, format: Int?): String {
@@ -161,8 +163,8 @@ object AudioFormatDetector {
         ENCODING_AAC_LC(C.ENCODING_AAC_LC, "AUDIO_FORMAT_AAC_LC", 0x4000002U, 21, R.string.spk_encoding_aac_lc),
         ENCODING_AAC_HE_V1(C.ENCODING_AAC_HE_V1, "AUDIO_FORMAT_AAC_HE_V1", 0x4000010U, 21, R.string.spk_encoding_aac_he_v1),
         ENCODING_AAC_HE_V2(C.ENCODING_AAC_HE_V2, "AUDIO_FORMAT_AAC_HE_V2", 0x4000100U, 21, R.string.spk_encoding_aac_he_v2),
-        ENCODING_HE_AAC_V1(null, "AUDIO_FORMAT_HE_AAC_V1", 0x05000000U, 21, R.string.spk_encoding_aac_he_v1), // deprecated
-        ENCODING_HE_AAC_V2(null, "AUDIO_FORMAT_HE_AAC_V2", 0x06000000U, 21, R.string.spk_encoding_aac_he_v2), // deprecated
+        ENCODING_HE_AAC_V1(C.ENCODING_AAC_HE_V1, "AUDIO_FORMAT_HE_AAC_V1", 0x05000000U, 21, R.string.spk_encoding_aac_he_v1), // deprecated
+        ENCODING_HE_AAC_V2(C.ENCODING_AAC_HE_V2, "AUDIO_FORMAT_HE_AAC_V2", 0x06000000U, 21, R.string.spk_encoding_aac_he_v2), // deprecated
         ENCODING_AAC_XHE(C.ENCODING_AAC_XHE, "AUDIO_FORMAT_AAC_XHE", 0x4000300U, 28, R.string.spk_encoding_aac_xhe),
         ENCODING_AAC_ELD(C.ENCODING_AAC_ELD, "AUDIO_FORMAT_AAC_ELD", 0x4000200U, 21, R.string.spk_encoding_aac_eld),
         ENCODING_AAC_ER_BSAC(C.ENCODING_AAC_ER_BSAC, null, null, null, R.string.spk_encoding_aac_er_bsac),
@@ -172,8 +174,7 @@ object AudioFormatDetector {
             0xA000001U else 0x1E000000U, if (Build.VERSION.SDK_INT >= 23) 28 else 21, R.string.spk_encoding_e_ac3_joc), // aosp since 28
         ENCODING_AC4(C.ENCODING_AC4, "AUDIO_FORMAT_AC4", 0x22000000U, 26, R.string.spk_encoding_ac4),
         ENCODING_DTS(C.ENCODING_DTS, "AUDIO_FORMAT_DTS", if (Build.VERSION.SDK_INT >= 23) 0x0B000000U else 0x12000000U, 21, R.string.spk_encoding_dts), // aosp since 23
-        ENCODING_DTS_HD(C.ENCODING_DTS_HD, "AUDIO_FORMAT_DTS_HD", 0x0C000000U, 23, R.string.spk_encoding_dts_hd),
-        ENCODING_DTS_LBR(null, "AUDIO_FORMAT_DTS_LBR", 0x18000000U, 21..22, R.string.spk_encoding_dts_lbr), // caf
+        ENCODING_DTS_HD(C.ENCODING_DTS_HD, "AUDIO_FORMAT_DTS_HD", if (Build.VERSION.SDK_INT >= 23) 0x0C000000U else 0x18000000U, 21, R.string.spk_encoding_dts_hd), // aosp since 23
         ENCODING_DOLBY_TRUEHD(C.ENCODING_DOLBY_TRUEHD, "AUDIO_FORMAT_DOLBY_TRUEHD", 0x0E000000U, 25, R.string.spk_encoding_dolby_truehd),
         ENCODING_OPUS(C.ENCODING_OPUS, "AUDIO_FORMAT_OPUS", 0x08000000U, 21, R.string.spk_encoding_opus),
         ENCODING_DTS_UHD_P2(C.ENCODING_DTS_UHD_P2, "AUDIO_FORMAT_DTS_UHD_P2", 0x33000000U, 34, R.string.spk_encoding_dts_uhd_p2),
@@ -258,7 +259,7 @@ object AudioFormatDetector {
         ENCODING_MPEGH_SUB_LC_L4(null, "AUDIO_FORMAT_MPEGH_SUB_LC_L4", 0x2C000024U, 31, R.string.spk_encoding_mpegh_sub_lc_l4);
 
         constructor(enc: Int?, enc2: String?, native: UInt?, firstSdk: Int, res: Int)
-            : this(enc, enc2, native, firstSdk..1000, res)
+                : this(enc, enc2, native, firstSdk..1000, res)
         fun getString(context: Context) = context.getString(res)
         val isSupportedAsNative
             get() = sdkRange?.contains(Build.VERSION.SDK_INT) == true && native != null
@@ -632,6 +633,7 @@ object AudioFormatDetector {
         return str.joinToString(", ")
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun audioDeviceTypeToString(context: Context, type: Int?) =
         when (type) {
             AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> context.getString(R.string.device_type_bluetooth_a2dp)

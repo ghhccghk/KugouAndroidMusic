@@ -54,6 +54,13 @@ android {
             "false"
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags("")
+                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+            }
+        }
     }
 
 //    // 启用按架构分包
@@ -116,7 +123,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -196,6 +202,7 @@ aboutLibraries {
             "Apache-2.0",
             "LGPL-3.0-only",
             "BSD-2-Clause",
+            "BSD-3-Clause",
             "CC0-1.0",
             "GPL-3.0-only"
         )
@@ -221,6 +228,7 @@ dependencies {
 
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.preference.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -303,6 +311,15 @@ dependencies {
     implementation(libs.cupertino.icons.extended)
 
     implementation(libs.aboutlibraries.compose.m3)
+
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
+
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance)
+    //implementation(libs.androidx.glance.wear.tiles)
+
 
 }
 

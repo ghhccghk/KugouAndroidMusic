@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- 头像 -->
+        <ImageView
+            android:id="@+id/contributorAvatar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_user" />
+
+        <!-- 贡献者信息 -->
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+
+            <!-- 姓名 -->
+            <TextView
+                android:id="@+id/contributorName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contributor Name"
+                android:textStyle="bold" />
+
+            <!-- 贡献描述 -->
+            <TextView
+                android:id="@+id/contributorDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contributed to feature X, Y, and Z" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

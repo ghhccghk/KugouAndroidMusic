@@ -64,6 +64,7 @@ import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
+import com.ghhccghk.musicplay.util.LyricSyncManager
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
@@ -122,6 +123,7 @@ class PlayService : MediaSessionService(),
     private lateinit var afFormatTracker: AfFormatTracker
     private var downstreamFormat: Format? = null
     private lateinit var playbackHandler: Handler
+    private lateinit var handler: Handler
     private var audioSinkInputFormat: Format? = null
     private var audioTrackInfo: AudioTrackInfo? = null
     private var audioTrackInfoCounter = 0
@@ -163,13 +165,14 @@ class PlayService : MediaSessionService(),
 
                                 val lrcEntries = MediaViewModelObject.lrcEntries.value
 
+
                                 val nextIndex = lrcEntries.indexOfFirst { line ->
                                     line.first().first >= liveTime
                                 }
 
+
                                 val sendLyric = fun() {
                                     try {
-
                                         val line = lrcEntries[currentLyricIndex]
                                         if (line == lastLyric) {
                                             return
@@ -187,6 +190,15 @@ class PlayService : MediaSessionService(),
                                         if (playbar.visibility != View.GONE && play_bar_lyrics) {
                                             playbar.findViewById<TextView>(R.id.playbar_artist).text =
                                                 lyricResult
+                                        }
+
+                                        bitrateFetcher.launch {
+                                            withContext(Dispatchers.IO){
+                                                LyricSyncManager(
+                                                    this@PlayService,
+                                                    MediaViewModelObject.lrcEntries.value
+                                                ).sync(liveTime)
+                                            }
                                         }
 
                                         if (car_lyrics || status_bar_lyrics) {
@@ -275,10 +287,9 @@ class PlayService : MediaSessionService(),
     override fun onCreate() {
         super.onCreate()
         repo = PlaylistRepository(applicationContext)
-
+        handler = Handler(Looper.getMainLooper())
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
-
         serviceScope.launch {
             withContext(Dispatchers.IO) {
                 try {
@@ -327,7 +338,7 @@ class PlayService : MediaSessionService(),
 
         playbackHandler = Handler(Looper.getMainLooper())
 
-        afFormatTracker = AfFormatTracker(this, playbackHandler)
+        afFormatTracker = AfFormatTracker(this, playbackHandler,handler)
         afFormatTracker.formatChangedCallback = {
             mediaSession?.broadcastCustomCommand(
                 SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),

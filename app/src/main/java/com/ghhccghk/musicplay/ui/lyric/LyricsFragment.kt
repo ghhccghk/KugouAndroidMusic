@@ -33,6 +33,7 @@ import androidx.core.graphics.toColorInt
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -136,11 +137,11 @@ class LyricsFragment: Fragment() {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                 super.onMediaMetadataChanged(mediaMetadata)
                 if (_binding != null){
-                    updatebg()
+                    lifecycleScope.launch { updatebg() }
                 }
             }
         })
-        updatebg()
+        lifecycleScope.launch { updatebg() }
         binding.lyricsContainerComposeView.setContent {
             showControl.value = false
             YosLyricView(

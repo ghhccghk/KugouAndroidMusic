@@ -56,5 +56,13 @@
         <item>viper_tape</item>
     </string-array>
 
+    <string-array name="contributors_user">
+        <item>ghhccghk</item>
+    </string-array>
+
+    <string-array name="contributors_contribute">
+        <item>主要开发者</item>
+    </string-array>
+
 
 </resources>

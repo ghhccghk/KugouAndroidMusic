@@ -183,12 +183,13 @@
                 android:gravity="center"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="12sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/duration"
-                app:layout_constraintStart_toEndOf="@id/position"
-                app:layout_constraintTop_toTopOf="parent"
                 tools:drawableStartCompat="@drawable/ic_high_res"
-                tools:text="16-bit / 44.1KHz / 2ch" />
+                tools:text="16-bit / 44.1KHz / 2ch"
+                app:layout_constrainedWidth="true"
+                app:layout_constraintStart_toEndOf="@id/position"
+                app:layout_constraintEnd_toStartOf="@id/duration"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"  />
 
             <TextView
                 android:id="@+id/duration"
