@@ -14,10 +14,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.abc)
-    id("com.google.devtools.ksp")
-    kotlin("plugin.parcelize")
-    kotlin("plugin.serialization") version  "1.9.0"
+    alias(libs.plugins.navigationUi) apply false
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.serialization)
     id("com.mikepenz.aboutlibraries.plugin")
     id("androidx.baselineprofile") version "1.3.4"
 }
