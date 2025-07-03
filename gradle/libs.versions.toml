@@ -1,47 +1,48 @@
 [versions]
 aboutlibrariesComposeM3 = "12.2.3"
+ksp = "2.0.0-1.0.21"
 activityCompose = "1.10.1"
 agp = "8.11.0"
 converterGson = "3.0.0"
-core = "3.5.2"
+core = "3.5.3"
 cupertinoIconsExtended = "0.1.0-alpha04"
 glance = "1.2.0-alpha01"
-glide = "4.15.1"
+glide = "4.16.0"
 gson = "2.13.1"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-appcompat = "1.7.0"
-kotlinxCoroutinesAndroid = "1.10.1"
-kotlinxCoroutinesCore = "1.9.0"
-kotlinxSerializationJson = "1.7.3"
-lifecycleViewmodelCompose = "2.9.0"
+appcompat = "1.7.1"
+kotlinxCoroutinesAndroid = "1.10.2"
+kotlinxCoroutinesCore = "1.10.2"
+kotlinxSerializationJson = "1.9.0"
+lifecycleViewmodelCompose = "2.9.1"
 material = "1.12.0"
 constraintlayout = "2.2.1"
-lifecycleLivedataKtx = "2.9.0"
-lifecycleViewmodelKtx = "2.9.0"
-mediarouter = "1.7.0"
-moshi = "1.15.0"
-moshiKotlin = "1.15.0"
-moshiKotlinCodegen = "1.15.0"
-navigationFragmentKtx = "2.9.0"
-navigationUiKtx = "2.9.0"
+lifecycleLivedataKtx = "2.9.1"
+lifecycleViewmodelKtx = "2.9.1"
+mediarouter = "1.8.0"
+moshi = "1.15.2"
+moshiKotlin = "1.15.2"
+moshiKotlinCodegen = "1.15.2"
+navigationFragmentKtx = "2.9.1"
+navigationUiKtx = "2.9.1"
 okhttp = "4.12.0"
 paletteKtx = "1.0.0"
 retrofit = "3.0.0"
-roomCompiler = "2.7.1"
-roomKtx = "2.7.1"
-roomRuntime = "2.7.1"
-roomRxjava2 = "2.7.1"
+roomCompiler = "2.7.2"
+roomKtx = "2.7.2"
+roomRuntime = "2.7.2"
+roomRxjava2 = "2.7.2"
 rxandroid = "2.1.1"
 rxjava = "2.2.21"
 superlyricapi = "1.7"
 zxingAndroidEmbedded = "4.3.0"
-animationCoreAndroid = "1.8.2"
+animationCoreAndroid = "1.8.3"
 media3CommonKtx = "1.7.1"
-lifecycleService = "2.9.0"
+lifecycleService = "2.9.1"
 preferenceKtx = "1.2.1"
 workRuntimeKtx = "2.10.2"
 
@@ -53,7 +54,6 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
 androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 androidx-glance = { module = "androidx.glance:glance", version.ref = "glance" }
-androidx-glance-wear-tiles = { module = "androidx.glance:glance-wear-tiles", version.ref = "glance" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material = { module = "androidx.compose.material:material" }
 androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core" }
@@ -112,7 +112,9 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-jetbrainsCompose = { id = "org.jetbrains.compose", version = "1.8.0" }
+jetbrainsCompose = { id = "org.jetbrains.compose", version = "1.8.2" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-abc = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigationUiKtx" }
+navigationUi = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigationUiKtx" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
