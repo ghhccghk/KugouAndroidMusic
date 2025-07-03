@@ -297,6 +297,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
     private val proxy: AudioTrack?
     private val codecListener: AudioTrack.OnCodecFormatChangedListener?
     private val routingListener: AudioRouting.OnRoutingChangedListener?
+    private val audioManager: AudioManager
     init {
         if (sharedMem?.isDirect == false)
             throw IllegalArgumentException("shared memory specified but isn't direct")
@@ -317,6 +318,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
             throw IllegalArgumentException("contentId cannot be negative (did you mean to use null?)")
         if (contentId == 0 && syncId == null)
             throw IllegalArgumentException("CONTENT_ID_NONE with no syncId (did you mean to use null?)")
+        audioManager = context.getSystemService<AudioManager>()!!
         try {
             System.loadLibrary("hificore")
         } catch (t: Throwable) {
@@ -613,8 +615,21 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
     fun getBufferDurationInUs(): ULong {
         if (myState == State.RELEASED)
             throw IllegalStateException("state is $myState")
-        TODO()
+        val ret = try {
+            getBufferDurationInUsInternal(ptr)
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to get buffer duration us", t)
+        }
+        if (ret == -32L) {
+            myState = State.DEAD_OBJECT
+            throw NativeTrackException("getBufferDurationInUs() failed, track died")
+        }
+        if (ret < 0) {
+            throw NativeTrackException("getBufferDurationInUs() failed: $ret")
+        }
+        return ret.toULong()
     }
+    private external fun getBufferDurationInUsInternal(ptr: Long): Long
 
     @RequiresApi(Build.VERSION_CODES.N)
     fun setBufferSizeInFrames(size: Int) {
@@ -728,9 +743,18 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
 
     @RequiresApi(Build.VERSION_CODES.S_V2)
     fun pauseAndWait(timeoutMs: ULong): Boolean {
-        // TODO call into proxy
-        TODO()
+        if (myState != State.ALIVE)
+            throw IllegalStateException("state is $myState")
+        val ret = try {
+            pauseAndWaitInternal(ptr, timeoutMs.toLong())
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to pause", t)
+        }
+        // no-op as far as track is concerned, but java object and system should be notified about the pause.
+        proxy?.pause()
+        return ret
     }
+    private external fun pauseAndWaitInternal(ptr: Long, timeoutMs: Long): Boolean
 
     fun setVolume(volume: Float) {
         if (myState != State.ALIVE)
@@ -1020,19 +1044,59 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
     private external fun getOutputInternal(ptr: Long): Int
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun setSelectedDevice(audioDeviceInfo: AudioDeviceInfo) {
-        TODO()
+    fun setSelectedDevice(audioDeviceInfo: AudioDeviceInfo?): Boolean {
+        if (audioDeviceInfo != null && !audioDeviceInfo.isSink)
+            return false
+        val id = audioDeviceInfo?.id ?: 0 /* AUDIO_PORT_HANDLE_NONE */
+        if (myState != State.ALIVE)
+            throw IllegalStateException("state is $myState")
+        val ret = try {
+            setSelectedDeviceInternal(ptr, id)
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to set selected device", t)
+        }
+        if (ret == -32) {
+            myState = State.DEAD_OBJECT
+            throw NativeTrackException("setSelectedDevice($id) failed, track died")
+        }
+        if (ret != 0) {
+            Log.w(TAG, "setSelectedDevice($id) failed: $ret")
+            return false
+        }
+        return true
     }
+    private external fun setSelectedDeviceInternal(ptr: Long, id: Int): Int
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun getSelectedDevice(): AudioDeviceInfo {
-        TODO()
+    fun getSelectedDevice(): AudioDeviceInfo? {
+        if (myState == State.RELEASED)
+            throw IllegalStateException("state is $myState")
+        val id = try {
+            getSelectedDeviceInternal(ptr)
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to set selected device", t)
+        }
+        if (id == 0) return null
+        // this is somewhat racy, we can loose a device between these two calls, but shrug
+        val device = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).find { it.id == id }
+        return device
     }
+    private external fun getSelectedDeviceInternal(ptr: Long): Int
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun getRoutedDevices(): List<AudioDeviceInfo> {
-        TODO()
+        if (myState != State.ALIVE)
+            throw IllegalStateException("state is $myState")
+        val ids = try {
+            getRoutedDevicesInternal(ptr)
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to set selected device", t)
+        }
+        // this is somewhat racy, we can loose a device between these two calls, but shrug
+        val devices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        return ids.map { id -> devices.find { it.id == id } }.filterNotNull()
     }
+    private external fun getRoutedDevicesInternal(ptr: Long): IntArray
 
     fun attachAuxEffect(effectId: Int) {
         if (myState != State.ALIVE)
@@ -1201,9 +1265,12 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
         }
     }
 
+    /**
+     * Retrieve current position in milliseconds (`out[0]`) and anchor realtime in nanoseconds (`out[1]`).
+     */
     fun getTimestamp(out: LongArray) {
         if (out.size != 2)
-            throw IllegalStateException("wrong size for getTimestamp: ${out.size}")
+            throw IllegalArgumentException("wrong size for getTimestamp: ${out.size}")
         if (myState == State.RELEASED)
             throw IllegalStateException("state is $myState")
         val ret = try {
@@ -1228,8 +1295,15 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun hasStarted(): Boolean {
-        TODO()
+        if (myState == State.RELEASED)
+            throw IllegalStateException("state is $myState")
+        return try {
+            hasStartedInternal(ptr)
+        } catch (t: Throwable) {
+            throw NativeTrackException("failed to check if stopped", t)
+        }
     }
+    private external fun hasStartedInternal(ptr: Long): Boolean
 
     @RequiresApi(Build.VERSION_CODES.S)
     fun setLogSessionId(params: LogSessionId) {
@@ -1276,8 +1350,8 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
         Log.i(TAG, "onNewIAudioTrack called")
     }
     // called from native, on callback thread (not main thread!)
-    private fun onNewTimestamp(timestamp: Int, timeSec: Long, timeNanoSec: Long) {
-        Log.i(TAG, "onNewTimestamp called: timestamp=$timestamp timeSec=$timeSec timeNanoSec=$timeNanoSec")
+    private fun onNewTimestamp(timestampMs: Int, timeNanoSec: Long) {
+        Log.i(TAG, "onNewTimestamp called: timestampMs=$timestampMs timeNanoSec=$timeNanoSec")
     }
     // called from native, on callback thread (not main thread!)
     private fun onLoopEnd(loopsRemaining: Int) {

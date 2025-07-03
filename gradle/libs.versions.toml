@@ -1,7 +1,7 @@
 [versions]
 aboutlibrariesComposeM3 = "12.2.3"
 activityCompose = "1.10.1"
-agp = "8.10.1"
+agp = "8.11.0"
 converterGson = "3.0.0"
 core = "3.5.2"
 cupertinoIconsExtended = "0.1.0-alpha04"
