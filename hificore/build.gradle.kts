@@ -16,21 +16,16 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags("")
+                // TODO remove this when NDK r28 is default in AGP.
                 arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
             }
         }
     }
 
     buildTypes {
-        maybeCreate("benchmarkRelease").apply {
-            initWith(getByName("release"))
-        }
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     externalNativeBuild {
@@ -47,18 +42,19 @@ android {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_21
             freeCompilerArgs = listOf(
+                "-Xstring-concat=inline",
                 "-Xno-param-assertions",
                 "-Xno-call-assertions",
                 "-Xno-receiver-assertions"
             )
         }
-        buildFeatures {
-            prefab = true
-        }
+    }
+    buildFeatures {
+        prefab = true
     }
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-ktx:1.16.0")
     implementation("io.github.nift4.dlfunc:dlfunc:0.1.6")
 }
