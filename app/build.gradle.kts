@@ -17,6 +17,7 @@ plugins {
     alias(libs.plugins.navigationUi) apply false
     alias(libs.plugins.ksp)
     alias(libs.plugins.serialization)
+    kotlin("plugin.parcelize")
     id("com.mikepenz.aboutlibraries.plugin")
     id("androidx.baselineprofile") version "1.3.4"
 }
