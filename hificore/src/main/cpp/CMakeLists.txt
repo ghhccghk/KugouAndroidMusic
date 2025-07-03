@@ -26,9 +26,10 @@ project("hificore")
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        gramophone.cpp android_linker_ns.cpp NativeTrack.cpp)
+        gramophone.cpp android_linker_ns.cpp NativeTrack.cpp uac/uac.cpp)
 
-find_package(dlfunc REQUIRED CONFIG)
+find_package(dlfunc)
+add_subdirectory(libusb-cmake)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -36,7 +37,8 @@ find_package(dlfunc REQUIRED CONFIG)
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         log
-        dlfunc::dlfunc)
+        dlfunc::dlfunc
+		usb-1.0)
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -fvisibility=hidden -fomit-frame-pointer -fno-unroll-loops -Xclang -fmerge-functions)
 
