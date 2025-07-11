@@ -44,6 +44,13 @@
             app:iconSpaceReserved="false" />
 
         <Preference
+            android:key="nodejs_version"
+            android:layout="@layout/preference_basic"
+            android:summary="@string/unknown_version"
+            android:title="@string/settings_nodejs_version"
+            app:iconSpaceReserved="false" />
+
+        <Preference
             android:key="contributors"
             android:layout="@layout/preference_basic"
             android:title="@string/settings_contributors"

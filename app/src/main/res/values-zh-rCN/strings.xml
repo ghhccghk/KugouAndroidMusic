@@ -182,5 +182,6 @@
     <string name="package_type_explainer">任何人都可以创建 Music Player  APK，因为 Music Player 是开源的。最常见的类型是 Release，可从 F-Droid、Google Play、GitHub 或 IzzyOnDroid 获取。对于其他软件包类型，名称应能合理地提示 APK 的来源。</string>
     <string name="settingsplay_bar_lyrics_title">播放栏显示歌词</string>
     <string name="settings_play_bar_lyrics_summary">是否让播放栏显示歌词</string>
+    <string name="settings_nodejs_version">NodeJs 版本</string>
 
 </resources>

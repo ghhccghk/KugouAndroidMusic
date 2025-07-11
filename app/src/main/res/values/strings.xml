@@ -324,5 +324,6 @@
     <string name="package_type_explainer">Music Player  APKs can be created by anyone, because Music Player is open source. To help remembering where an APK came from, Music Player provides the package type.  The most common type is Release, which is obtained from F-Droid, Google Play, GitHub or IzzyOnDroid. The CI package type refers to automated builds made for every commit on GitHub. These builds may be unstable. For other package types, the name should give a reasonable hint to where the APK is from.</string>
     <string name="settingsplay_bar_lyrics_title">播放栏显示歌词</string>
     <string name="settings_play_bar_lyrics_summary">是否让播放栏显示歌词</string>
+    <string name="settings_nodejs_version">NodeJs 版本</string>
 
 </resources>
