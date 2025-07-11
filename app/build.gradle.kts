@@ -3,6 +3,7 @@ import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
 import com.android.build.gradle.tasks.PackageAndroidArtifact
 import org.jetbrains.kotlin.util.removeSuffixIfPresent
+import java.io.ByteArrayOutputStream
 import java.util.Properties
 
 
@@ -33,10 +34,10 @@ android {
         applicationId = "com.ghhccghk.musicplay"
         minSdk = 27
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 4
+        versionName = "0.4"
         //noinspection ChromeOsAbiSupport
-        ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a")
+        ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a","x86_64")
         buildConfigField("long", "BUILD_TIME", "$buildTime")
         buildConfigField(
             "String",
@@ -53,6 +54,19 @@ android {
             "DISABLE_MEDIA_STORE_FILTER",
             "false"
         )
+        val versionOutput = ByteArrayOutputStream()
+        val nodeVersion = try {
+            exec {
+                commandLine("python", "extract_node_version.py")
+                standardOutput = versionOutput
+            }
+            versionOutput.toString().trim()
+        } catch (e: Exception) {
+            println("Warning: Failed to extract Node.js version: ${e.message}")
+            "unknown"
+        }
+        buildConfigField("String", "NODE_VERSION", "\"$nodeVersion\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
@@ -63,15 +77,15 @@ android {
         }
     }
 
-//    // 启用按架构分包
-//    splits {
-//        abi {
-//            isEnable = true
-//            reset()
-//            include("arm64-v8a", "armeabi-v7a")
-//            isUniversalApk = true
-//        }
-//    }
+    // 启用按架构分包
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a","x86_64")
+            isUniversalApk = true
+        }
+    }
 
     lint {
         baseline = file("lint-baseline.xml")
