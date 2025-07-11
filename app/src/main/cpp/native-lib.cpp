@@ -3,7 +3,7 @@
 #include <android/log.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "node.h"
+#include "node/node.h"
 
 #include <string>
 

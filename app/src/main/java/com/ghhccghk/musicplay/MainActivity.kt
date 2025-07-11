@@ -60,6 +60,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.nift4.gramophone.hificore.UacManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -69,6 +70,8 @@ class MainActivity : AppCompatActivity() {
     var bound = false
     private val viewModel by viewModels<MainViewModel>()
     var isNodeRunning = false
+    lateinit var uacManager: UacManager
+        private set
 
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -100,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
+        uacManager = UacManager(this)
         UrlCacheManager.init(this)
         val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
         val cacheSizeMB = prefs.getString("image_cache_size", "50")?.toLongOrNull() ?: 950L
