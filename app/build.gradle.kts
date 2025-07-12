@@ -25,7 +25,7 @@ plugins {
 
 android {
     namespace = "com.ghhccghk.musicplay"
-    compileSdk = 35
+    compileSdk = 36
     val releaseType = if (project.hasProperty("releaseType")) project.properties["releaseType"].toString()
     else readProperties(file("../package.properties")).getProperty("releaseType")
     val myVersionName = "." + "git rev-parse --short=7 HEAD".runCommand(workingDir = rootDir)
@@ -54,18 +54,30 @@ android {
             "DISABLE_MEDIA_STORE_FILTER",
             "false"
         )
-        val versionOutput = ByteArrayOutputStream()
+        val nodeVersionOutput = ByteArrayOutputStream()
+        val gitHashOutput = ByteArrayOutputStream()
         val nodeVersion = try {
             exec {
                 commandLine("python", "extract_node_version.py")
-                standardOutput = versionOutput
+                standardOutput = nodeVersionOutput
             }
-            versionOutput.toString().trim()
+            nodeVersionOutput.toString().trim()
         } catch (e: Exception) {
             println("Warning: Failed to extract Node.js version: ${e.message}")
             "unknown"
         }
         buildConfigField("String", "NODE_VERSION", "\"$nodeVersion\"")
+        val gitHash = try {
+            exec {
+                commandLine("git", "rev-parse","HEAD")
+                standardOutput = gitHashOutput
+            }
+            gitHashOutput.toString().trim()
+        } catch (e: Exception) {
+            println("Warning: Failed to Git hash: ${e.message}")
+            "unknown"
+        }
+        buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -80,9 +92,22 @@ android {
     // 启用按架构分包
     splits {
         abi {
-            isEnable = true
+            // Detect app bundle and conditionally disable split abis
+            // This is needed due to a "Sequence contains more than one matching element" error
+            // present since AGP 8.9.0, for more info see:
+            // https://issuetracker.google.com/issues/402800800
+
+            // AppBundle tasks usually contain "bundle" in their name
+            //noinspection WrongGradleMethod
+            val isBuildingBundle = gradle.startParameter.taskNames.any { it.lowercase().contains("bundle") }
+
+            // Disable split abis when building appBundle
+            isEnable = !isBuildingBundle
+
             reset()
-            include("arm64-v8a", "armeabi-v7a","x86_64")
+            //noinspection ChromeOsAbiSupport
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+
             isUniversalApk = true
         }
     }

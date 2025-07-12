@@ -42,6 +42,8 @@ class AboutSettingsFragment : BasePreferenceFragment() {
         val releaseType = findPreference<Preference>("package_type")
         val contributorsPref = findPreference<Preference>("contributors")
         val nodeJsVersion = findPreference<Preference>("nodejs_version")
+        val gitHash = findPreference<Preference>("git_hash")
+        gitHash!!.summary = BuildConfig.GIT_HASH
         nodeJsVersion!!.summary = BuildConfig.NODE_VERSION
         versionPrefs!!.summary = BuildConfig.MY_VERSION_NAME
         releaseType!!.summary = BuildConfig.RELEASE_TYPE
