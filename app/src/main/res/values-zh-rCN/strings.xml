@@ -183,5 +183,6 @@
     <string name="settingsplay_bar_lyrics_title">播放栏显示歌词</string>
     <string name="settings_play_bar_lyrics_summary">是否让播放栏显示歌词</string>
     <string name="settings_nodejs_version">NodeJs 版本</string>
+    <string name="settings_git_hash">Git 哈希</string>
 
 </resources>

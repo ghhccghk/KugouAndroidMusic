@@ -61,6 +61,8 @@ import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemI
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
+import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
+import com.ghhccghk.musicplay.ui.lyric.isManualNotificationUpdate
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
@@ -84,7 +86,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.akanework.gramophone.logic.ui.MeiZuLyricsMediaNotificationProvider
 import java.io.File
 
 
@@ -229,7 +230,13 @@ class PlayService : MediaSessionService(),
                                                         .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
                                                 ) // 发送歌词
                                             }
-                                            manuallyUpdateMediaNotification(mediaSession)
+                                            mediaSession?.let {
+                                                if (Looper.myLooper() != it.player.applicationLooper)
+                                                    throw UnsupportedOperationException("wrong looper for triggerNotificationUpdate")
+                                                isManualNotificationUpdate = true
+                                                triggerNotificationUpdate()
+                                                isManualNotificationUpdate = false
+                                            }
                                         }
                                         lastLyric = line
                                     } catch (_: Exception) {

@@ -51,6 +51,13 @@
             app:iconSpaceReserved="false" />
 
         <Preference
+            android:key="git_hash"
+            android:layout="@layout/preference_basic"
+            android:summary="@string/unknown_version"
+            android:title="@string/settings_git_hash"
+            app:iconSpaceReserved="false" />
+
+        <Preference
             android:key="contributors"
             android:layout="@layout/preference_basic"
             android:title="@string/settings_contributors"
