@@ -3,7 +3,6 @@ import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
 import com.android.build.gradle.tasks.PackageAndroidArtifact
 import org.jetbrains.kotlin.util.removeSuffixIfPresent
-import java.io.ByteArrayOutputStream
 import java.util.Properties
 
 
@@ -29,6 +28,8 @@ android {
     val releaseType = if (project.hasProperty("releaseType")) project.properties["releaseType"].toString()
     else readProperties(file("../package.properties")).getProperty("releaseType")
     val myVersionName = "." + "git rev-parse --short=7 HEAD".runCommand(workingDir = rootDir)
+    val nodeVersion = "python app/extract_node_version.py".runCommand(workingDir = rootDir)
+    val gitHash = "git rev-parse HEAD".runCommand(workingDir = rootDir)
 
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
@@ -54,31 +55,9 @@ android {
             "DISABLE_MEDIA_STORE_FILTER",
             "false"
         )
-        val nodeVersionOutput = ByteArrayOutputStream()
-        val gitHashOutput = ByteArrayOutputStream()
-        val nodeVersion = try {
-            exec {
-                commandLine("python", "extract_node_version.py")
-                standardOutput = nodeVersionOutput
-            }
-            nodeVersionOutput.toString().trim()
-        } catch (e: Exception) {
-            println("Warning: Failed to extract Node.js version: ${e.message}")
-            "unknown"
-        }
-        buildConfigField("String", "NODE_VERSION", "\"$nodeVersion\"")
-        val gitHash = try {
-            exec {
-                commandLine("git", "rev-parse","HEAD")
-                standardOutput = gitHashOutput
-            }
-            gitHashOutput.toString().trim()
-        } catch (e: Exception) {
-            println("Warning: Failed to Git hash: ${e.message}")
-            "unknown"
-        }
-        buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
 
+        buildConfigField("String", "NODE_VERSION", "\"$nodeVersion\"")
+        buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
