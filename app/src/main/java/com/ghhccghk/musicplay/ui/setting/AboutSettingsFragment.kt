@@ -31,6 +31,10 @@ import com.ghhccghk.musicplay.ui.preference.BasePreferenceFragment
 import com.ghhccghk.musicplay.util.ui.ColorUtils
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.text.DateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class AboutSettingsActivity : BaseSettingsActivity(R.string.settings_about_app,
     { AboutSettingsFragment() })
@@ -43,6 +47,13 @@ class AboutSettingsFragment : BasePreferenceFragment() {
         val contributorsPref = findPreference<Preference>("contributors")
         val nodeJsVersion = findPreference<Preference>("nodejs_version")
         val gitHash = findPreference<Preference>("git_hash")
+        val buildTime = findPreference<Preference>("build_time")
+        val dateFormat = DateFormat.getDateTimeInstance(
+            DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.getDefault()
+        )
+        dateFormat.timeZone = TimeZone.getDefault()
+        val localTime = dateFormat.format(Date(BuildConfig.BUILD_TIME))
+        buildTime!!.summary = localTime
         gitHash!!.summary = BuildConfig.GIT_HASH
         nodeJsVersion!!.summary = BuildConfig.NODE_VERSION
         versionPrefs!!.summary = BuildConfig.MY_VERSION_NAME

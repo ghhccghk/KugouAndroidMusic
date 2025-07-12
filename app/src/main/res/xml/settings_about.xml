@@ -58,6 +58,13 @@
             app:iconSpaceReserved="false" />
 
         <Preference
+            android:key="build_time"
+            android:layout="@layout/preference_basic"
+            android:summary="@string/unknown_version"
+            android:title="@string/settings_build_time"
+            app:iconSpaceReserved="false" />
+
+        <Preference
             android:key="contributors"
             android:layout="@layout/preference_basic"
             android:title="@string/settings_contributors"
