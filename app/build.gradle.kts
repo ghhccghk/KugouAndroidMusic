@@ -34,7 +34,7 @@ android {
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
         minSdk = 27
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "0.4"
         //noinspection ChromeOsAbiSupport
@@ -189,7 +189,7 @@ android {
 
 
 base {
-    archivesName.set("Music_Player-${android.defaultConfig.versionName}-${android.defaultConfig.versionNameSuffix ?: ""}-$buildTime")
+    archivesName.set("Music_Player-${android.defaultConfig.versionName}${android.defaultConfig.versionNameSuffix ?: ""}-$buildTime")
 }
 
 androidComponents {

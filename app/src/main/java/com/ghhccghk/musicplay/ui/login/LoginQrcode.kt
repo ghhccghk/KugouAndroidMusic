@@ -50,7 +50,6 @@ class LoginQrcode: Fragment() {
     ): View {
         _binding = FragmentLoginQrBinding.inflate(inflater, container, false)
         val root: View = binding.root
-
         if (MainActivity.isNodeRunning) {
             setui()
         }
@@ -65,21 +64,29 @@ class LoginQrcode: Fragment() {
 
     override fun onStart() {
         super.onStart()
-        handler.post(updateRunnable)
+        if (MainActivity.isNodeRunning) {
+            handler.post(updateRunnable)
+        }
     }
 
     override fun onStop() {
         super.onStop()
-        handler.removeCallbacks(updateRunnable)
+        if (MainActivity.isNodeRunning) {
+            handler.removeCallbacks(updateRunnable)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacks(updateRunnable)
+        if (MainActivity.isNodeRunning) {
+            handler.removeCallbacks(updateRunnable)
+        }
     }
     override fun onResume() {
         super.onResume()
-        handler.post(updateRunnable)
+        if (MainActivity.isNodeRunning) {
+            handler.post(updateRunnable)
+        }
     }
 
     fun setui() {
