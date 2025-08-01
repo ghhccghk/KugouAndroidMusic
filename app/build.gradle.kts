@@ -2,6 +2,7 @@
 import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.gradle.internal.cxx.configure.CmakeProperty
 import com.android.build.gradle.tasks.PackageAndroidArtifact
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.util.removeSuffixIfPresent
 import java.util.Properties
 
@@ -107,7 +108,7 @@ android {
             useLegacyPackaging = false
         }
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
             // https://issuetracker.google.com/issues/168777344#comment11
             pickFirsts += "lib/arm64-v8a/libdlfunc.so"
             pickFirsts += "lib/armeabi-v7a/libdlfunc.so"
@@ -158,13 +159,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_21
         targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "21"
-        freeCompilerArgs = listOf(
-            "-Xno-param-assertions",
-            "-Xno-call-assertions",
-            "-Xno-receiver-assertions"
-        )
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+            optIn.add("-Xno-param-assertions")
+            optIn.add("-Xno-call-assertions")
+            optIn.add("-Xno-receiver-assertions")
+        }
     }
     buildFeatures {
         viewBinding = true
@@ -300,11 +301,16 @@ dependencies {
     // Optional - Integration with RxJava
     implementation(libs.androidx.runtime.rxjava2)
 
-    implementation(libs.androidx.media3.exoplayer)// Media3 ExoPlayer
-    implementation(libs.androidx.media3.session)   // 媒体会话管理
-    implementation(libs.androidx.media3.ui)   // 媒体会话管理
-    implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
-    implementation(libs.androidx.media3.common.ktx)
+//    implementation(libs.androidx.media3.exoplayer)// Media3 ExoPlayer
+//    implementation(libs.androidx.media3.session)   // 媒体会话管理
+//    implementation(libs.androidx.media3.ui)   // 媒体会话管理
+//    implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
+//    implementation(libs.androidx.media3.common.ktx)
+
+    implementation(project(":media3-lib-exoplayer"))
+    implementation(project(":media3-lib-decoder-midi"))
+    implementation(project(":media3-lib-session"))
+    implementation(project(":media3-lib-common-ktx"))
 
     implementation(libs.superlyricapi)
 

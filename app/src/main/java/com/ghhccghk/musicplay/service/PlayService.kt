@@ -175,6 +175,7 @@ class PlayService : MediaSessionService(),
                                 val sendLyric = fun() {
                                     try {
                                         val line = lrcEntries[currentLyricIndex]
+
                                         if (line == lastLyric) {
                                             return
                                         }
@@ -185,6 +186,8 @@ class PlayService : MediaSessionService(),
                                             if (charIndex >= line.size - 1) return@forEachIndexed
                                             lyricb.append(char.second)
                                         }
+                                        //翻译
+                                        val translation = line.lastOrNull()?.second?.takeIf { it.isNotBlank() && line.size > 1 }
 
                                         val lyricResult = lyricb.toString()
 
@@ -223,12 +226,22 @@ class PlayService : MediaSessionService(),
                                             }
                                             if (status_bar_lyrics) {// 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                                 lyric = lyricResult
-                                                SuperLyricPush.onSuperLyric(
-                                                    SuperLyricData()
-                                                        .setLyric(lyricResult) // 设置歌词
-                                                        .setBase64Icon(base64)
-                                                        .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                ) // 发送歌词
+                                                if (translation != null){
+                                                    SuperLyricPush.onSuperLyric(
+                                                        SuperLyricData()
+                                                            .setLyric(lyricResult) // 设置歌词
+                                                            .setBase64Icon(base64)
+                                                            .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
+                                                            .setTranslation(translation)
+                                                    ) // 发送歌词
+                                                } else {
+                                                    SuperLyricPush.onSuperLyric(
+                                                        SuperLyricData()
+                                                            .setLyric(lyricResult) // 设置歌词
+                                                            .setBase64Icon(base64)
+                                                            .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
+                                                    ) // 发送歌词
+                                                }
                                             }
                                             mediaSession?.let {
                                                 if (Looper.myLooper() != it.player.applicationLooper)

@@ -29,23 +29,6 @@
 # 避免 kotlin.reflect 内部反射崩溃
 -keepattributes *Annotation*
 
-# Media3 推荐规则
--keep class androidx.media3.** { *; }
--dontwarn androidx.media3.**
-
-# Room
--keep class androidx.room.** { *; }
--dontwarn androidx.room.**
-
-# Moshi Adapter
--keep class * extends com.squareup.moshi.JsonAdapter
-
-# Gson（如果你用了）
--keep class com.google.gson.** { *; }
--dontwarn com.google.gson.**
-
-# 避免 Compose 相关工具类被混淆
--keep class androidx.compose.** { *; }
 
 # 避免 META-INF/services 文件冲突
 -keepnames class * implements java.util.ServiceLoader
