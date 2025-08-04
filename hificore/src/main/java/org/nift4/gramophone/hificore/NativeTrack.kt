@@ -95,7 +95,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
                     }
                 } else {
                     hasDirect = @Suppress("deprecation") AudioTrack.isDirectPlaybackSupported(
-                            format, attributes)
+                        format, attributes)
                 }
             }
             if (!initDlsym()) {
@@ -170,7 +170,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
                 try {
                     val track = NativeTrack(
                         context, attributes, AudioManager.STREAM_MUSIC, sampleRate, encoding,
-                        channelMask, null, 0x1, sessionId, 1.0f, null, bitrate, durationUs, false, false,
+                        channelMask, null, 0x1, sessionId, 1.0f, null, bitrate, durationUs, hasVideo = false, smallBuf = false,
                         false, 0, 0, true, TransferMode.Sync, null, null, ENCAPSULATION_MODE_NONE, null
                     )
                     val port = AudioTrackHiddenApi.getMixPortForThread(track.getOutput(), track.getHalSampleRate())
@@ -318,6 +318,8 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
             throw IllegalArgumentException("contentId cannot be negative (did you mean to use null?)")
         if (contentId == 0 && syncId == null)
             throw IllegalArgumentException("CONTENT_ID_NONE with no syncId (did you mean to use null?)")
+        if (!AudioTrackHiddenApi.canLoadLib())
+            throw IllegalStateException("this device is banned from native-enhanced features")
         audioManager = context.getSystemService<AudioManager>()!!
         try {
             System.loadLibrary("hificore")
@@ -325,10 +327,10 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
             throw NativeTrackException("failed to load libhificore.so", t)
         }
         if (!try {
-            initDlsym()
-        } catch (t: Throwable) {
-            throw NativeTrackException("initDlsym() failed", t)
-        })
+                initDlsym()
+            } catch (t: Throwable) {
+                throw NativeTrackException("initDlsym() failed", t)
+            })
             throw NativeTrackException("initDlsym() returned false")
         ptr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val ats = context.attributionSource
@@ -671,7 +673,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
         if (myState != State.ALIVE)
             throw IllegalStateException("state is $myState")
         if (proxy != null) {
-            proxy.play() // TODO how is dead object signaled here?
+            proxy.play()
         } else {
             val ret = try {
                 startInternal(ptr)
@@ -1151,7 +1153,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
         if (myState == State.RELEASED)
             throw IllegalStateException("state is $myState")
         try {
-             releaseBufferInternal(ptr, frameSize(), buf, buf.limit())
+            releaseBufferInternal(ptr, frameSize(), buf, buf.limit())
         } catch (t: Throwable) {
             throw NativeTrackException("failed to release buffer $buf", t)
         }

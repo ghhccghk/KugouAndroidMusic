@@ -1,6 +1,5 @@
 package org.nift4.gramophone.hificore
 
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,7 +10,6 @@ import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.util.Log
-import androidx.core.app.PendingIntentCompat
 import androidx.core.content.IntentCompat
 import androidx.core.content.getSystemService
 
@@ -127,7 +125,7 @@ class UacManager(private val context: Context) {
 			device.deviceClass == UsbConstants.USB_CLASS_VIDEO
 		) {
 			Log.w(TAG, "eligible audio device is UVC device, missing camera " +
-						"permission to access, hence ignoring")
+					"permission to access, hence ignoring")
 			return false
 		}
 		// TODO: check that there is at least 1 audio sink streaming interface declared.

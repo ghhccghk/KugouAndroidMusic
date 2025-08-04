@@ -10,16 +10,32 @@ import android.util.Log
 object AudioTrackHiddenApi {
     private const val TAG = "AudioTrackHiddenApi"
     private const val TRACE_TAG = "GpNativeTrace"
+    private var libLoaded = false
 
     data class MixPort(val id: Int?, val name: String?, val flags: Int?, val channelMask: Int?, val format: Int?)
     init {
-        try {
-            Log.d(TRACE_TAG, "Loading libhificore.so")
-            System.loadLibrary("hificore")
-            Log.d(TRACE_TAG, "Done loading libhificore.so")
-        } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
+        if (canLoadLib()) {
+            try {
+                Log.d(TRACE_TAG, "Loading libhificore.so")
+                System.loadLibrary("hificore")
+                libLoaded = true
+                Log.d(TRACE_TAG, "Done loading libhificore.so")
+            } catch (e: Throwable) {
+                Log.e(TAG, Log.getStackTraceString(e))
+            }
         }
+    }
+
+    /**
+     * A device may be banned from loading `libhificore.so` because it has crashed with a
+     * memory-related problem in Play Console. In order to rule out this being related to hacks in
+     * `libhificore.so`, these devices are banned from loading it. If further crashes appear, the
+     * ban can be lifted again because it's not our fault. If there are no further crashes, it may
+     * indicate an incompatibility of `libhificore.so` with the device's firmware.
+     */
+    fun canLoadLib(): Boolean {
+        return !(Build.VERSION.SDK_INT == 33 && Build.BRAND == "TECNO" &&
+                Build.PRODUCT.startsWith("BG6-")) // Tecno SPARK Go 2024
     }
 
     @SuppressLint("PrivateApi")
@@ -33,6 +49,8 @@ object AudioTrackHiddenApi {
     }
 
     fun getHalSampleRate(audioTrack: AudioTrack): UInt? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot get hal sample rate for released AudioTrack")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -83,6 +101,8 @@ object AudioTrackHiddenApi {
             Parcel.obtain(binder) else Parcel.obtain()
 
     fun getHalChannelCount(audioTrack: AudioTrack): Int? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot get hal channel count for released AudioTrack")
         // before U, caller should query channel mask from audio_port/audio_port_v7
@@ -100,6 +120,8 @@ object AudioTrackHiddenApi {
     private external fun getHalChannelCountInternal(@Suppress("unused") audioTrackPtr: Long): Int
 
     fun getHalFormat(audioTrack: AudioTrack): UInt? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot get hal format for released AudioTrack")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -214,6 +236,8 @@ object AudioTrackHiddenApi {
     private external fun findAfFlagsForPortInternal(id: Int, sr: Int): IntArray?
 
     fun findAfTrackFlags(dump: String?, latency: Int?, track: AudioTrack, grantedFlags: Int?): Int? {
+        if (!libLoaded)
+            return null
         // First exposure to client process was below commit, which first appeared in U QPR2.
         // https://cs.android.com/android/_/android/platform/frameworks/av/+/94ed47c6b6ca5a69b90238f6ae97af2ce7df9be0
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -256,6 +280,8 @@ object AudioTrackHiddenApi {
                                                   afSampleRate: Int, latency: Int, format: Int): Int
 
     fun getOutput(audioTrack: AudioTrack): Int? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot get hal output for released AudioTrack")
         Log.d(TRACE_TAG, "calling native getOutputInternal/getAudioTrackPtr")
@@ -269,6 +295,8 @@ object AudioTrackHiddenApi {
     private external fun getOutputInternal(@Suppress("unused") audioTrackPtr: Long): Int
 
     fun getGrantedFlags(audioTrack: AudioTrack): Int? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot get hal output for released AudioTrack")
         Log.d(TRACE_TAG, "calling native getOutputInternal/getAudioTrackPtr")
@@ -287,6 +315,8 @@ object AudioTrackHiddenApi {
     /*private*/ external fun getFlagsInternal(audioTrack: AudioTrack?, audioTrackPtr: Long): Int
 
     fun dump(audioTrack: AudioTrack): String? {
+        if (!libLoaded)
+            return null
         if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED)
             throw IllegalArgumentException("cannot dump released AudioTrack")
         Log.d(TRACE_TAG, "calling native dump/getAudioTrackPtr")
@@ -320,6 +350,8 @@ object AudioTrackHiddenApi {
     }
 
     fun getMixPortForThread(oid: Int?, halSampleRate: UInt?): MixPort? {
+        if (!libLoaded)
+            return null
         if (oid == null || halSampleRate == null || !(halSampleRate >= 8000U && halSampleRate <= 1600000U))
             return null
         val ports = listAudioPorts()
@@ -350,7 +382,7 @@ object AudioTrackHiddenApi {
         // https://cs.android.com/android/_/android/platform/frameworks/av/+/973db02ac18fa1de9ce6221f47b01af1bdc4bec2
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
             return null
-        var dt = dump.trim().split('\n').map { it.trim() }
+        val dt = dump.trim().split('\n').map { it.trim() }
         if (dt.size < 2) {
             Log.e(
                 TAG,
