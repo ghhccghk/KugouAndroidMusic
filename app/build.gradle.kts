@@ -20,7 +20,7 @@ plugins {
     alias(libs.plugins.serialization)
     kotlin("plugin.parcelize")
     id("com.mikepenz.aboutlibraries.plugin")
-    id("androidx.baselineprofile") version "1.3.4"
+    id("androidx.baselineprofile")
 }
 
 android {
@@ -34,7 +34,8 @@ android {
 
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
-        minSdk = 27
+        // 由于nodejs 编译版本为 29 遂最低为 29
+        minSdk = 29
         targetSdk = 36
         versionCode = 4
         versionName = "0.4"
@@ -142,6 +143,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -234,6 +236,13 @@ tasks.withType<PackageAndroidArtifact> {
 }
 
 dependencies {
+    // ErrorProne 注解
+    compileOnly("com.google.errorprone:error_prone_annotations:2.38.0")
+// JSR-305 注解
+    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
+// Checker Framework 注解
+    compileOnly("org.checkerframework:checker-qual:3.43.0")
+
     implementation(project(":hificore"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

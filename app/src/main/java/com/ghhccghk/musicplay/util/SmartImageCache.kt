@@ -37,6 +37,15 @@ object SmartImageCache {
     }
 
     suspend fun getOrDownload(url: String, customHash: String? = null): Uri? {
+        // 打印调用栈
+//        val stackTrace = Thread.currentThread().stackTrace
+//        val builder = StringBuilder("Full Call Stack:\n")
+//        for (element in stackTrace) {
+//            builder.append("    at ${element.className}.${element.methodName}")
+//                .append(" (${element.fileName}:${element.lineNumber})\n")
+//        }
+//        Log.d("SmartImageCache", builder.toString())
+
         if (url.isBlank() || url == "") {
             Log.w("SmartImageCache", "无效 URL：$url")
             return null
