@@ -65,6 +65,7 @@ import org.nift4.gramophone.hificore.UacManager
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
     @SuppressLint("UnsafeOptInUsageError")
     private var nodeService: PlayService? = null
     var bound = false
@@ -133,6 +134,32 @@ class MainActivity : AppCompatActivity() {
                 Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
             }
         }
+
+        val navController = findNavController(R.id.nav_host_fragment_activity_main)
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+            val playbar = findViewById<LinearLayout>(R.id.player_bar)
+
+            when (destination.id) {
+                R.id.playerFragment -> {
+                    hideLinearLayout(playbar, navView)
+                }
+                R.id.lyricFragment ->{
+                    hideLinearLayout(playbar, navView)
+                }
+                R.id.playlistDetailFragment -> {
+                    hideBottomNav(navView)
+                }
+                else -> {
+                    if (navView.visibility == View.GONE) {
+                        showBottomNav(navView)
+                    }
+                    if (playbar.visibility == View.GONE) {
+                        showLinearLayout(playbar, navView)
+                    }
+                }
+            }
+        }
     }
 
     override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
@@ -156,7 +183,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
     override fun onStop() {
         super.onStop()
         if (bound) {
@@ -170,20 +196,20 @@ class MainActivity : AppCompatActivity() {
         val navView: NavigationBarView = binding.navView
         isNodeRunning = viewModel.noderun
 
-        val a = findViewById<BottomNavigationView>(R.id.nav_view)
+//        val a = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
-            // 隐藏 BottomNavigationView
-            hideBottomNav(a)
-            hideLinearLayout(playbar, a)
-        }
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.lyricFragment) {
-            hideBottomNav(a)
-            hideLinearLayout(playbar, a)
-        }
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
-            hideBottomNav(a)
-        }
+//        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
+//            // 隐藏 BottomNavigationView
+//            hideBottomNav(a)
+//            hideLinearLayout(playbar, a)
+//        }
+//        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.lyricFragment) {
+//            hideBottomNav(a)
+//            hideLinearLayout(playbar, a)
+//        }
+//        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
+//            hideBottomNav(a)
+//        }
 
 
         // Passing each menu ID as a set of Ids because each
@@ -200,9 +226,9 @@ class MainActivity : AppCompatActivity() {
             navController.navigate(R.id.playerFragment, null, navOptions)
 
             // 隐藏 BottomNavigationView
-            val a = findViewById<BottomNavigationView>(R.id.nav_view)
-            hideBottomNav(a)
-            hideLinearLayout(playbar, a)
+//            val a = findViewById<BottomNavigationView>(R.id.nav_view)
+//            hideBottomNav(a)
+//            hideLinearLayout(playbar, a)
         }
 
         playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener {
@@ -217,125 +243,105 @@ class MainActivity : AppCompatActivity() {
             }
         }
         controllerFuture.addListener({
-            val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
+            val player = controllerFuture.get() // 已经在后台线程 get 安全
 
-            val artlurl = player.mediaMetadata?.artworkUri.toString()
-            val playbaricon = playbar.findViewById<ImageView>(R.id.player_album)
-            if (artlurl.isNullOrBlank() || artlurl == "" || artlurl == "null") {
-                Glide.with(playbar)
-                    .load(R.drawable.lycaon_icon)
-                    .into(playbaricon)
-            } else {
-                val hash = player.currentMediaItem?.songHash
-                lifecycleScope.launch {
-                    val fileUrl = withContext(Dispatchers.IO){
-                        SmartImageCache.getOrDownload(artlurl.toString(), hash)
-                    }
+            fun isArtworkMissing(url: String?) =
+                url.isNullOrBlank() || url == "null"
+
+            fun updateArtwork(player: Player) {
+                val artUrl = player.mediaMetadata.artworkUri?.toString()
+                val playbarIcon = playbar.findViewById<ImageView>(R.id.player_album)
+                if (isArtworkMissing(artUrl)) {
                     Glide.with(playbar)
-                        .load(fileUrl)
-                        .into(playbaricon)
+                        .load(R.drawable.lycaon_icon)
+                        .into(playbarIcon)
+                } else {
+                    val hash = player.currentMediaItem?.songHash
+                    lifecycleScope.launch {
+                        val fileUrl = withContext(Dispatchers.IO) {
+                            SmartImageCache.getOrDownload(artUrl!!, hash)
+                        }
+                        Glide.with(playbar)
+                            .load(fileUrl)
+                            .into(playbarIcon)
+                    }
                 }
+            }
+
+            fun updateMetadata(player: Player) {
+                val title = player.currentMediaItem?.songtitle
+                val artist = player.mediaMetadata.artist
+                val playbarTitle = playbar.findViewById<TextView>(R.id.playbar_title)
+                val playbarArtist = playbar.findViewById<TextView>(R.id.playbar_artist)
+
+                if (title.isNullOrBlank()) playbarTitle.text = "未知歌曲" else if (playbarTitle.text != title) playbarTitle.text = title
+                if (artist.isNullOrBlank()) playbarArtist.text = "未知艺术家" else if (playbarArtist.text != artist) playbarArtist.text = artist
             }
 
             val maxHeight = (Resources.getSystem().displayMetrics.heightPixels * 0.8).toInt()
             binding.comui.layoutParams.height = maxHeight
 
-
             val itemCount = player.mediaItemCount
-            mediaItems.value =
-                List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-
+            mediaItems.value = List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
 
             binding.comui.setContent {
                 Setplaylistui(player)
             }
 
+            // 初始化封面和元数据
+            updateArtwork(player)
+            updateMetadata(player)
 
-
+            // 监听播放器事件
             player.addListener(object : Player.Listener {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    super.onMediaMetadataChanged(mediaMetadata)
-                    val title = controllerFuture.get().currentMediaItem?.songtitle
-                    val artlurl = player.mediaMetadata?.artworkUri.toString()
-                    if (artlurl.isNullOrBlank() || artlurl == "" || artlurl == "null") {
-                        Glide.with(playbar)
-                            .load(R.drawable.lycaon_icon)
-                            .into(playbaricon)
-                    } else {
-                        val hash = player.currentMediaItem?.songHash
-                        lifecycleScope.launch {
-                            val fileUrl = withContext(Dispatchers.IO){
-                                SmartImageCache.getOrDownload(artlurl.toString(), hash)
-                            }
-                            Glide.with(playbar)
-                                .load(fileUrl)
-                                .into(playbaricon)
-                        }
-                    }
-
-                    playbar.findViewById<TextView>(R.id.playbar_title).text =
-                        if (title.isNullOrBlank()) "未知歌曲" else title
+                    updateArtwork(player)
+                    updateMetadata(player)
                 }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    val artlurl = player.mediaMetadata?.artworkUri.toString()
-                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setImageResource(
-                        if (isPlaying) {
-                            R.drawable.ic_pause_filled
-                        } else {
-                            val artist = controllerFuture.get().mediaMetadata.artist
-                            playbar.findViewById<TextView>(R.id.playbar_artist).text =
-                                if (artist.isNullOrBlank()) "未知艺术家" else artist
-                            R.drawable.ic_play_arrow_filled
-                        }
-                    )
-                    if (artlurl == "" || artlurl == "null") {
-                        Glide.with(playbar)
-                            .load(R.drawable.lycaon_icon)
-                            .into(playbaricon)
-                    } else {
-                        val hash = player.currentMediaItem?.songHash
-                        lifecycleScope.launch {
-                            val fileUrl = withContext(Dispatchers.IO){
-                                SmartImageCache.getOrDownload(artlurl.toString(), hash)
-                            }
-                            Glide.with(playbar)
-                                .load(fileUrl)
-                                .into(playbaricon)
-                        }
-                    }
+                    playbar.findViewById<ImageButton>(R.id.playerbar_play_pause)
+                        .setImageResource(
+                            if (isPlaying) R.drawable.ic_pause_filled
+                            else R.drawable.ic_play_arrow_filled
+                        )
+                    updateArtwork(player) // 播放状态变化时更新封面
                 }
             })
         }, ContextCompat.getMainExecutor(this))
 
-        binding.playerBar.findViewById<ImageButton>(R.id.playerbar_play_next).setOnClickListener {
-            controllerFuture.get().seekToNext()
-        }
-
-
-    }
-
-    // 处理返回时的操作，确保返回时显示 BottomNavigationView
-    @Suppress("DEPRECATION")
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // 只有当不在播放 Fragment 时才显示 BottomNavigationView
-        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
-            super.onBackPressed()
-            val navView = findViewById<BottomNavigationView>(R.id.nav_view)
-            showBottomNav(navView)
-            val playbar = findViewById<LinearLayout>(R.id.player_bar)
-            showLinearLayout(playbar, navView)
-        } else {
-            // 只有当不在playlistDetailFragment 时才显示 BottomNavigationView
-            if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
-                val navView = findViewById<BottomNavigationView>(R.id.nav_view)
-                showBottomNav(navView)
-                super.onBackPressed()
-            } else {
-                super.onBackPressed()  // 调用系统的默认行为
+        // 下一首按钮
+        binding.playerBar.findViewById<ImageButton>(R.id.playerbar_play_next)
+            .setOnClickListener {
+                controllerFuture.get().seekToNext()
             }
-        }
+
+
     }
+
+//    // 处理返回时的操作，确保返回时显示 BottomNavigationView
+//    @Suppress("DEPRECATION")
+//    @Deprecated("Deprecated in Java")
+//    override fun onBackPressed() {
+//        // 只有当不在播放 Fragment 时才显示 BottomNavigationView
+//        if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playerFragment) {
+//            super.onBackPressed()
+//            val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+//            showBottomNav(navView)
+//            val playbar = findViewById<LinearLayout>(R.id.player_bar)
+//            showLinearLayout(playbar, navView)
+//        } else {
+//            // 只有当不在playlistDetailFragment 时才显示 BottomNavigationView
+//            if (findNavController(R.id.nav_host_fragment_activity_main).currentDestination?.id == R.id.playlistDetailFragment) {
+//                val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+//                showBottomNav(navView)
+//                super.onBackPressed()
+//            } else {
+//                super.onBackPressed()  // 调用系统的默认行为
+//            }
+//        }
+//    }
+
 
     private fun showBottomNav(bottomNav: BottomNavigationView) {
         bottomNav.visibility = View.VISIBLE
@@ -441,8 +447,8 @@ class MainActivity : AppCompatActivity() {
 
             // 隐藏 BottomNavigationView
             val a = findViewById<BottomNavigationView>(R.id.nav_view)
-            hideBottomNav(a)
-            hideLinearLayout(playbar, a)
+//            hideBottomNav(a)
+//            hideLinearLayout(playbar, a)
         }
 
         playbar.findViewById<ImageButton>(R.id.playerbar_play_pause).setOnClickListener {
@@ -519,7 +525,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    fun Setplaylistui(player: Player){
+    fun Setplaylistui(player: Player) {
         PlaylistBottomSheet(
             controller = GlobalPlaylistBottomSheetController,
             songs = { mediaItems.value },

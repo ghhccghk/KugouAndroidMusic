@@ -29,6 +29,9 @@
 # 避免 kotlin.reflect 内部反射崩溃
 -keepattributes *Annotation*
 
+-keep class androidx.appcompat.** { *; }
+-keep class com.google.android.material.** { *; }
+
 
 # 避免 META-INF/services 文件冲突
 -keepnames class * implements java.util.ServiceLoader

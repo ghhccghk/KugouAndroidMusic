@@ -37,7 +37,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.palette.graphics.Palette
 import androidx.transition.Fade
 import androidx.transition.Slide
 import androidx.transition.TransitionSet
@@ -78,12 +77,8 @@ class LyricsFragment: Fragment() {
     private var currentJob: Job? = null
     private var wrappedContext: Context? = null
     private var fullPlayerFinalColor: Int = MediaViewModelObject.surfaceTransition.intValue
-    private var colorPrimaryFinalColor: Int = Color.BLACK
     private var colorSecondaryContainerFinalColor: Int = Color.BLACK
     private var colorOnSecondaryContainerFinalColor: Int = Color.BLACK
-    private var colorContrastFaintedFinalColor: Int = Color.BLACK
-    private var colorOnSurfaceColor : Int = Color.BLACK
-    private var colorOnSurfaceVariantColor : Int = Color.BLACK
     private var originalStatusBarColor: Int = 0
     private var originalLightStatusBar: Boolean = true
 
@@ -236,8 +231,6 @@ class LyricsFragment: Fragment() {
         return input
     }
 
-    // Generate palette synchronously and return it.
-    fun createPaletteSync(bitmap: Bitmap): Palette = Palette.from(bitmap).generate()
 
     fun updatebg(){
         val imageUrl = play.mediaMetadata.artworkUri
@@ -350,24 +343,6 @@ class LyricsFragment: Fragment() {
             -1
         )
 
-        val colorOnSurface = MaterialColors.getColor(
-            ctx,
-            com.google.android.material.R.attr.colorOnSurface,
-            -1
-        )
-
-        val colorOnSurfaceVariant = MaterialColors.getColor(
-            ctx,
-            com.google.android.material.R.attr.colorOnSurfaceVariant,
-            -1
-        )
-
-        val colorPrimary =
-            MaterialColors.getColor(
-                ctx,
-                com.google.android.material.R.attr.colorPrimary,
-                -1
-            )
 
         val colorSecondaryContainer =
             MaterialColors.getColor(
@@ -389,21 +364,11 @@ class LyricsFragment: Fragment() {
             ctx
         )
 
-        val colorContrastFainted = ColorUtils.getColor(
-            colorSecondaryContainer,
-            ColorUtils.ColorType.COLOR_CONTRAST_FAINTED,
-            ctx
-        )
-
         val surfaceTransition = ValueAnimator.ofArgb(
             fullPlayerFinalColor,
             backgroundProcessedColor
         )
 
-        val primaryTransition = ValueAnimator.ofArgb(
-            colorPrimaryFinalColor,
-            colorPrimary
-        )
 
         val secondaryContainerTransition = ValueAnimator.ofArgb(
             colorSecondaryContainerFinalColor,
@@ -413,11 +378,6 @@ class LyricsFragment: Fragment() {
         val onSecondaryContainerTransition = ValueAnimator.ofArgb(
             colorOnSecondaryContainerFinalColor,
             colorOnSecondaryContainer
-        )
-
-        val colorContrastFaintedTransition = ValueAnimator.ofArgb(
-            colorContrastFaintedFinalColor,
-            colorContrastFainted
         )
 
         surfaceTransition.apply {
@@ -437,23 +397,16 @@ class LyricsFragment: Fragment() {
         withContext(Dispatchers.Main) {
             if (_binding != null) {
                 surfaceTransition.start()
-                primaryTransition.start()
                 secondaryContainerTransition.start()
                 onSecondaryContainerTransition.start()
-                colorContrastFaintedTransition.start()
             }
         }
 
         delay(FOREGROUND_COLOR_TRANSITION_SEC)
-        fullPlayerFinalColor = backgroundProcessedColor
-        colorPrimaryFinalColor = colorPrimary
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
         MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = colorOnSecondaryContainer
         MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = colorSecondaryContainer
-        colorContrastFaintedFinalColor = colorContrastFainted
-        colorOnSurfaceColor = colorOnSurface
-        colorOnSurfaceVariantColor = colorOnSurfaceVariant
 
         currentJob = null
 

@@ -54,6 +54,8 @@ import com.ghhccghk.musicplay.util.Tools.formatMillis
 import com.ghhccghk.musicplay.util.Tools.getAudioFormat
 import com.ghhccghk.musicplay.util.Tools.playOrPause
 import com.ghhccghk.musicplay.util.Tools.startAnimation
+import com.ghhccghk.musicplay.util.oem.SystemMediaControlResolver
+import com.ghhccghk.musicplay.util.oem.UnstableMediaKitApi
 import com.ghhccghk.musicplay.util.ui.ColorUtils
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
@@ -174,6 +176,7 @@ class PlayerFragment() : Fragment() {
         findNavController().navigate(R.id.lyricFragment)
     }
 
+    @OptIn(UnstableMediaKitApi::class)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         context = requireContext()
@@ -219,8 +222,7 @@ class PlayerFragment() : Fragment() {
                 .toFloat()
 
         binding.slideDown.setOnClickListener {
-            @Suppress("DEPRECATION")
-            requireActivity().onBackPressed()
+            requireActivity().onBackPressedDispatcher.onBackPressed()
         }
 
         binding.lyrics.setOnClickListener {
@@ -371,7 +373,6 @@ class PlayerFragment() : Fragment() {
                                 }
                             }
                             progressDrawable.animate = false
-
                         }
                     }
                 }
@@ -493,12 +494,12 @@ class PlayerFragment() : Fragment() {
             true
         }
 
+        binding.miplay.setOnClickListener {
+            SystemMediaControlResolver(context).intentSystemMediaDialog()
+        }
 
 
-    }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
     }
 
     override fun onStart() {

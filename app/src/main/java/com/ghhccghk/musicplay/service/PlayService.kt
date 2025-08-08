@@ -18,7 +18,6 @@ import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.AudioAttributes
@@ -192,8 +191,7 @@ class PlayService : MediaSessionService(),
                                         val lyricResult = lyricb.toString()
 
                                         if (playbar.visibility != View.GONE && play_bar_lyrics) {
-                                            playbar.findViewById<TextView>(R.id.playbar_artist).text =
-                                                lyricResult
+                                            playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
                                         }
 
                                         bitrateFetcher.launch {
@@ -207,7 +205,6 @@ class PlayService : MediaSessionService(),
 
                                         if (car_lyrics || status_bar_lyrics) {
                                             if (car_lyrics) {
-                                                lyric = lyricResult
                                                 val sessionMetadata =
                                                     mediaSession.player.mediaMetadata
                                                 val sessionMediaItem =
@@ -534,12 +531,6 @@ class PlayService : MediaSessionService(),
             )
         }
 
-
-        playbar.findViewById<TextView>(R.id.playbar_artist).text =
-            mediaSession.player.mediaMetadata.artist
-        playbar.findViewById<TextView>(R.id.playbar_title).text =
-            mediaSession.player.currentMediaItem?.songtitle
-
         val fileName = Tools.sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
 
         val cachedData = Tools.readFromSubdirCache(MainActivity.lontext, subDir, fileName)
@@ -583,11 +574,7 @@ class PlayService : MediaSessionService(),
                             KugouAPi.getSearchSongLyrics(hash = hash)
                         }
                         if (b == null || b == "502" || b == "404") {
-                            Toast.makeText(
-                                return@launch,
-                                "歌词加载失败 json 是 $b",
-                                Toast.LENGTH_LONG
-                            ).show()
+                            e.printStackTrace()
                         } else {
                             try {
                                 val gson = Gson()
@@ -621,19 +608,9 @@ class PlayService : MediaSessionService(),
                                     }
                                 } catch (e: Exception) {
                                     e.printStackTrace()
-                                    Toast.makeText(
-                                        return@launch,
-                                        "歌词加载失败: ${e.message}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
                                 }
                             } catch (e: Exception) {
                                 e.printStackTrace()
-                                Toast.makeText(
-                                    return@launch,
-                                    "歌词加载失败: ${e.message}",
-                                    Toast.LENGTH_LONG
-                                ).show()
                             }
                         }
 
@@ -647,18 +624,13 @@ class PlayService : MediaSessionService(),
 
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+
         val itemCount = mediaSession.player.mediaItemCount
         mediaItems.value =
             List(itemCount) { index -> mediaSession.player.getMediaItemAt(index) }.toMutableList()
         currentMediaItemIndex.value = mediaSession.player.currentMediaItemIndex
 
         if (isPlaying) {
-            // 播放开始
-            playbar.findViewById<TextView>(R.id.playbar_artist).text =
-                mediaSession.player.mediaMetadata.artist
-            playbar.findViewById<TextView>(R.id.playbar_title).text =
-                mediaSession.player.currentMediaItem?.songtitle
-        } else {
             serviceScope.launch {
                 if (mediaSession.player.playbackState != Player.STATE_IDLE && mediaSession.player.currentTimeline.isEmpty.not()) {
                     val index = mediaSession.player.currentMediaItemIndex
@@ -670,12 +642,6 @@ class PlayService : MediaSessionService(),
                 }
 
             }
-            playbar.findViewById<TextView>(R.id.playbar_artist).text =
-                mediaSession.player.mediaMetadata.artist
-            playbar.findViewById<TextView>(R.id.playbar_title).text =
-                mediaSession.player.currentMediaItem?.songtitle
-
-
         }
     }
 
