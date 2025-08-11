@@ -143,7 +143,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+//            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -249,11 +249,11 @@ tasks.withType<PackageAndroidArtifact> {
 
 dependencies {
     // ErrorProne 注解
-    compileOnly("com.google.errorprone:error_prone_annotations:2.38.0")
-// JSR-305 注解
-    compileOnly("com.google.code.findbugs:jsr305:3.0.2")
-// Checker Framework 注解
-    compileOnly("org.checkerframework:checker-qual:3.43.0")
+    implementation("com.google.errorprone:error_prone_annotations:2.38.0")
+    // JSR-305 注解
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
+    // Checker Framework 注解
+    implementation("org.checkerframework:checker-qual:3.43.0")
 
     implementation(project(":hificore"))
     implementation(libs.androidx.core.ktx)
