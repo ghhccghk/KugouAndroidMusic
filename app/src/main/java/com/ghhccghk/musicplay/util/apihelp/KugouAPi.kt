@@ -581,7 +581,7 @@ object KugouAPi {
 
     fun getSongsUrl(hash: String,album_id: String? = null
                     ,free_part: String? = null , album_audio_id: String? = null,
-                    quality: String = perfs.getString("song_quality","128").toString()): String? {
+                    quality: String = "128"): String? {
         val url = "$apiaddress/song/url".toUri().buildUpon().apply {
             appendQueryParameter("hash",hash)
             album_id?.let { appendQueryParameter("album_id",it) }

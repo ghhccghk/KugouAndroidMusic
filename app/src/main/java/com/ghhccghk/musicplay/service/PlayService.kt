@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
 import android.os.Binder
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -53,8 +55,8 @@ import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
-import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
+import com.ghhccghk.musicplay.data.libraries.uri
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
@@ -104,6 +106,7 @@ class PlayService : MediaSessionService(),
 
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
+    val gson = Gson()
 
 
     //Node js 服务相关
@@ -135,6 +138,7 @@ class PlayService : MediaSessionService(),
     private var prefs =
         MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     val subDir = "cache/lyrics"
+    private var proxy: BtCodecInfo.Companion.Proxy? = null
 
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -424,6 +428,17 @@ class PlayService : MediaSessionService(),
             Bundle.EMPTY
         )
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O /* before 8, only sbc was supported */) {
+            proxy = BtCodecInfo.getCodec(this) {
+                Log.d("GramophonePlaybackService", "first bluetooth codec config $btInfo")
+                btInfo = it
+                mediaSession?.broadcastCustomCommand(
+                    SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                    Bundle.EMPTY
+                )
+            }
+        }
+
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
         val importance = NotificationManager.IMPORTANCE_NONE
@@ -458,6 +473,9 @@ class PlayService : MediaSessionService(),
     override fun onDestroy() {
         super.onDestroy()
         isNodeRunning = false
+        proxy?.let {
+            it.adapter.closeProfileProxy(BluetoothProfile.A2DP, it.a2dp)
+        }
     }
 
     // Configure commands available to the controller in onConnect()
@@ -539,87 +557,68 @@ class PlayService : MediaSessionService(),
             MediaViewModelObject.lrcEntries.value =
                 YosLrcFactory(false).formatLrcEntries(cachedData)
         } else {
-            if (MainActivity.isNodeRunning) {
-                val lyricid = mediaSession.player.currentMediaItem?.lrcId.toString()
-                val lyricAccess = mediaSession.player.currentMediaItem?.lrcAccesskey.toString()
-                val hash = mediaSession.player.currentMediaItem?.songHash.toString()
+            serviceScope.launch {
+                if (!MainActivity.isNodeRunning) return@launch
 
-                serviceScope.launch {
-                    val json = withContext(Dispatchers.IO) {
-                        KugouAPi.getSongLyrics(
-                            id = lyricid, accesskey = lyricAccess,
-                            fmt = "krc", decode = true
-                        )
+                val item = mediaSession.player.currentMediaItem
+                val hashA = item?.uri?.getQueryParameter("hash") ?: ""
+                val lyricId = item?.lrcId.orEmpty()
+                val lyricAccess = item?.lrcAccesskey.orEmpty()
+
+                // 1. 先直接用 lyricId + accessKey 尝试获取
+                val firstAttempt = fetchLyrics(lyricId, lyricAccess)
+                if (firstAttempt != null) {
+                    cacheAndLoadLyrics(firstAttempt)
+                    return@launch
+                }
+
+                // 2. 如果失败，尝试搜索
+                val searchJson = withContext(Dispatchers.IO) {
+                    KugouAPi.getSearchSongLyrics(hash = hashA)
+                }
+                if (searchJson.isNullOrEmpty() || searchJson == "502" || searchJson == "404") {
+                    return@launch
+                }
+
+                try {
+                    val searchResult = gson.fromJson(searchJson, searchLyricBase::class.java)
+                    val candidate = searchResult.candidates.getOrNull(0)
+                    val secondAttempt = fetchLyrics(
+                        id = candidate?.id.orEmpty(),
+                        accessKey = candidate?.accesskey.orEmpty()
+                    )
+                    if (secondAttempt != null) {
+                        cacheAndLoadLyrics(secondAttempt)
                     }
-                    try {
-                        val gson = Gson()
-                        val result = gson.fromJson(json, getLyricCode::class.java)
-                        val lyric = result.decodeContent
-                        val out = Tools.convertKrcToLrc(lyric)
-                        Tools.writeToSubdirCache(
-                            MainActivity.lontext,
-                            subDir,
-                            fileName,
-                            out.toString()
-                        )
-                        val cachedDataa =
-                            Tools.readFromSubdirCache(MainActivity.lontext, subDir, fileName)
-                        if (cachedDataa != null) {
-                            MediaViewModelObject.lrcEntries.value =
-                                YosLrcFactory(false).formatLrcEntries(cachedDataa)
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        val b = withContext(Dispatchers.IO) {
-                            KugouAPi.getSearchSongLyrics(hash = hash)
-                        }
-                        if (b == null || b == "502" || b == "404") {
-                            e.printStackTrace()
-                        } else {
-                            try {
-                                val gson = Gson()
-                                val resulta = gson.fromJson(b, searchLyricBase::class.java)
-                                val accesskey =
-                                    resulta.candidates.getOrNull(0)?.accesskey.toString()
-                                val id = resulta.candidates.getOrNull(0)?.id.toString()
-
-                                val json = withContext(Dispatchers.IO) {
-                                    KugouAPi.getSongLyrics(
-                                        id = id, accesskey = accesskey,
-                                        fmt = "krc", decode = true
-                                    )
-                                }
-                                try {
-                                    val gson = Gson()
-                                    val result = gson.fromJson(json, getLyricCode::class.java)
-                                    val lyric = result.decodeContent
-                                    val out = Tools.convertKrcToLrc(lyric)
-                                    Tools.writeToSubdirCache(
-                                        MainActivity.lontext,
-                                        subDir,
-                                        fileName,
-                                        out.toString()
-                                    )
-                                    val cachedDataa =
-                                        Tools.readFromSubdirCache(MainActivity.lontext, subDir, fileName)
-                                    if (cachedDataa != null) {
-                                        MediaViewModelObject.lrcEntries.value =
-                                            YosLrcFactory(false).formatLrcEntries(cachedDataa)
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-
-                    }
-
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
+
         }
 
+    }
+
+    private suspend fun fetchLyrics(id: String, accessKey: String): String? {
+        val json = withContext(Dispatchers.IO) {
+            KugouAPi.getSongLyrics(id = id, accesskey = accessKey, fmt = "krc", decode = true)
+        }
+        return try {
+            val result = gson.fromJson(json, getLyricCode::class.java)
+            result.decodeContent
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun cacheAndLoadLyrics(content: String) {
+        val fileName = Tools.sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
+        val out = Tools.convertKrcToLrc(content)
+        Tools.writeToSubdirCache(MainActivity.lontext, subDir, fileName, out.toString())
+        Tools.readFromSubdirCache(MainActivity.lontext, subDir, fileName)?.let { cached ->
+            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(cached)
+        }
     }
 
 

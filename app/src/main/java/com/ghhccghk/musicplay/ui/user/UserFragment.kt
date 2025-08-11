@@ -8,8 +8,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.core.content.edit
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
@@ -17,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.user.Data
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
 import com.ghhccghk.musicplay.databinding.FragmentUserBinding
@@ -25,7 +28,8 @@ import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.TokenManager.isLoggedIn
 import com.ghhccghk.musicplay.util.adapte.playlist.UserLikePLayListAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.google.gson.Gson
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +50,10 @@ class UserFragment : Fragment() {
     private var prefs =
         MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
 
+    val moshi = Moshi.Builder()
+        .addLast(KotlinJsonAdapterFactory()) // 让 Moshi 支持 Kotlin 默认值和非空
+        .build()
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -60,7 +68,6 @@ class UserFragment : Fragment() {
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = format.format(calendar.time)
         lifecycleScope.launch {
-            if (today != vipupdate) {
                 withContext(Dispatchers.IO) {
                     try {
                         val a = KugouAPi.getlitevip()
@@ -77,7 +84,6 @@ class UserFragment : Fragment() {
                     }
                 }
                 prefs.edit { putString("vipupdate", today) }
-            }
         }
 
         val root: View = binding.root
@@ -168,60 +174,89 @@ class UserFragment : Fragment() {
     @SuppressLint("SetTextI18n")
     fun setui() {
         lifecycleScope.launch {
-            val gson = Gson()
             val json = withContext(Dispatchers.IO) {
-                val a = KugouAPi.getUserPlayList()
                 KugouAPi.getUserDetail()
             }
-            if (json == null || json == "502" || json == "404") {
-                binding.notLoggedIn.visibility = View.VISIBLE
-                binding.layoutUserInfo.visibility = View.GONE
-                binding.userLikePlaylistViewBase.visibility = View.GONE
-            } else {
-                binding.layoutUserInfo.visibility = View.VISIBLE
-                val userinfo = gson.fromJson(json, UserDetail::class.java)
-                var data = userinfo.data
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(ZoneId.systemDefault()) // 使用本地时区
-                binding.textNickname.text = data.nickname
 
-                val gen = when (data.gender) {
-                    1 -> getString(R.string.gender_male)
-                    0 -> getString(R.string.gender_female)
-                    else -> getString(R.string.gender_secret)
-                }
-                binding.userGender.text = "$gen "
-                binding.textGrade.text = " " + data.p_grade.toString()
-                binding.textListTimeDuration.text = data.duration.toString()
-                binding.textLocation.text = data.province + " " + data.city
-                binding.textBirthday.text = data.birthday
-                binding.textOccupation.text = data.occupation
-                binding.textFans.text = data.fans.toString()
-                binding.textFollows.text = data.follows.toString()
-                binding.textVisitors.text = data.visitors.toString()
-                val utcMillis = data.logintime.toLong() * 1000
-                binding.textLastTime.text = formatter.format(Instant.ofEpochMilli(utcMillis))
-                val secureUrl = data.pic.replaceFirst("http://", "https://")
-
-                Glide.with(requireContext())
-                    .load(secureUrl)
-                    .into(binding.imageAvatar)
+            // 提前返回，减少 if 嵌套
+            if (json.isNullOrEmpty() || json == "502" || json == "404") {
+                showNotLoggedIn()
+                return@launch
             }
+
+            val userinfo = moshi.adapter(UserDetail::class.java).fromJson(json)
+            val data = userinfo?.data ?: run {
+                showNotLoggedIn()
+                return@launch
+            }
+
+            showUserInfo(data)
         }
 
     }
 
+    // 抽取显示未登录UI
+    private fun showNotLoggedIn() {
+        binding.notLoggedIn.isVisible = true
+        binding.layoutUserInfo.isVisible = false
+        binding.userLikePlaylistViewBase.isVisible = false
+    }
+
+    // 抽取显示用户信息UI
+    private fun showUserInfo(data: Data) {
+        binding.notLoggedIn.isVisible = false
+        binding.layoutUserInfo.isVisible = true
+
+        binding.textNickname.text = data.nickname
+        binding.userGender.text = getGenderLabel(data.gender)
+        binding.textGrade.text = " ${data.p_grade}"
+        binding.textListTimeDuration.text = data.duration.toString()
+        binding.textLocation.text = "${data.province} ${data.city}"
+        binding.textBirthday.text = data.birthday
+        binding.textOccupation.text = data.occupation
+        binding.textFans.text = data.fans.toString()
+        binding.textFollows.text = data.follows.toString()
+        binding.textVisitors.text = data.visitors.toString()
+
+        binding.textLastTime.text = data.logintime.toLocalDateTimeString()
+        binding.imageAvatar.loadHttpsImage(data.pic)
+    }
+
+    // 性别映射
+    private fun getGenderLabel(gender: Int): String = when (gender) {
+        1 -> getString(R.string.gender_male)
+        0 -> getString(R.string.gender_female)
+        else -> getString(R.string.gender_secret)
+    }
+
+    // 时间戳转格式化字符串
+    private fun Long.toLocalDateTimeString(): String {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+        return formatter.format(Instant.ofEpochSecond(this))
+    }
+
+    // 图片加载扩展
+    private fun ImageView.loadHttpsImage(url: String) {
+        val secureUrl = url.replaceFirst("http://", "https://")
+        Glide.with(context)
+            .load(secureUrl)
+            .into(this)
+    }
+
+
     fun setUserPlayList() {
         lifecycleScope.launch {
-            val gson = Gson()
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getUserPlayList()
             }
             if (json == null || json == "502" || json == "404") {
                 Toast.makeText(requireContext(), "获取用户歌单失败", Toast.LENGTH_SHORT).show()
             } else {
-                val userplaylist = gson.fromJson(json, LikePlayListBase::class.java)
-                val data = userplaylist.data.info
+//                val userplaylist = gson.fromJson(json, LikePlayListBase::class.java)
+                val adapters = moshi.adapter(LikePlayListBase::class.java)
+                val userplaylist = adapters.fromJson(json)
+                val data = userplaylist!!.data.info
                 binding.recyclerViewUserLikePlaylist.layoutManager =
                     LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
                 val adapter = UserLikePLayListAdapter(data) {

@@ -320,13 +320,15 @@ class PlaylistDetailFragment : Fragment() {
     }
 
     suspend fun Song.toMediaItemSuspend(): MediaItem? {
+        var perfs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", 0)
+        val quality = perfs.getString("song_quality","128").toString()
         if (this.name.isNullOrBlank() || this.hash.isNullOrBlank() || this.hash == "null" || this.shield != 0) {
             return null
         }
 
         return try {
             val json = withContext(Dispatchers.IO) {
-                KugouAPi.getSongsUrl(hash)
+                KugouAPi.getSongsUrl(hash, quality = quality)
             }
             if (json == null || json == "502" || json == "404") {
                 null

@@ -209,24 +209,36 @@ baselineProfile {
 aboutLibraries {
     offlineMode = false
     collect {
+        gitHubApiToken = if (project.hasProperty("github.pat")) property("github.pat").toString() else null
         configPath.file("config") // TODO(ASAP) libraries json ignored
-        filterVariants.add("release")
+        fetchRemoteLicense.set(false)
     }
     export {
         // Remove the "generated" timestamp to allow for reproducible builds
-        excludeFields.set(listOf("generated"))
+//        excludeFields.set(listOf("generated"))
+        prettyPrint.set(true)
     }
     license {
         // TODO https://github.com/mikepenz/AboutLibraries/issues/1190
         strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicensesMap.put("Other", listOf("com.github.bumptech.glide:glide"))
         allowedLicenses.addAll(
             "Apache-2.0",
-            "LGPL-3.0-only",
+            "LGPL",
+            "GNU Lesser General Public License v2.1",
             "BSD-2-Clause",
             "BSD-3-Clause",
             "CC0-1.0",
+            "MIT",
+            "EPL-1.0",
             "GPL-3.0-only"
         )
+    }
+    library {
+        // Enable the duplication mode, allows to merge, or link dependencies which relate
+        duplicationMode.set(com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE)
+        // Configure the duplication rule, to match "duplicates" with
+        duplicationRule.set(com.mikepenz.aboutlibraries.plugin.DuplicateRule.GROUP)
     }
 }
 
