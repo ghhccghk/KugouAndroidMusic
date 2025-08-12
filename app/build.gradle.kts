@@ -262,6 +262,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.ui.graphics)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -356,6 +357,7 @@ dependencies {
 
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance)
+    implementation("io.coil-kt:coil-compose:2.7.0")
     //implementation(libs.androidx.glance.wear.tiles)
 
 
