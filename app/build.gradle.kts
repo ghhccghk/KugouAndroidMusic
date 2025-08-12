@@ -37,8 +37,8 @@ android {
         // 由于nodejs 编译版本为 29 遂最低为 29
         minSdk = 29
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4"
+        versionCode = 5
+        versionName = "0.5"
         //noinspection ChromeOsAbiSupport
         ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a","x86_64")
         buildConfigField("long", "BUILD_TIME", "$buildTime")
