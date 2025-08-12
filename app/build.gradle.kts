@@ -316,16 +316,19 @@ dependencies {
     // Optional - Integration with RxJava
     implementation(libs.androidx.runtime.rxjava2)
 
-//    implementation(libs.androidx.media3.exoplayer)// Media3 ExoPlayer
-//    implementation(libs.androidx.media3.session)   // 媒体会话管理
-//    implementation(libs.androidx.media3.ui)   // 媒体会话管理
-//    implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
-//    implementation(libs.androidx.media3.common.ktx)
+    implementation(libs.androidx.media3.exoplayer)// Media3 ExoPlayer
+    implementation(libs.androidx.media3.session)   // 媒体会话管理
+    implementation(libs.androidx.media3.ui)   // 媒体会话管理
+    implementation(libs.androidx.media3.ui.compose)   // 媒体会话管理
+    implementation(libs.androidx.media3.common.ktx)
 
-    implementation(project(":media3-lib-exoplayer"))
-    implementation(project(":media3-lib-decoder-midi"))
-    implementation(project(":media3-lib-session"))
-    implementation(project(":media3-lib-common-ktx"))
+//    implementation(project(":media3-lib-exoplayer"))
+//    implementation(project(":media3-lib-decoder-midi"))
+//    implementation(project(":media3-lib-session"))
+//    implementation(project(":media3-lib-transformer"))
+//    implementation(project(":media3-lib-effect"))
+//    implementation(project(":media3-lib-common"))
+//    implementation(project(":media3-lib-common-ktx"))
 
     implementation(libs.superlyricapi)
 
