@@ -1,10 +1,7 @@
 package com.ghhccghk.musicplay.data.libraries
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
-import android.os.Parcelable
-import androidx.compose.runtime.Stable
 import androidx.media3.common.MediaItem
 
 const val defaultArtistsName = "Unknown Artist"
@@ -134,41 +131,3 @@ fun String.toMultipleArtists(): List<String> {
 fun List<String>.toArtistsString(): String {
     return this.joinToString("、")
 }
-
-@SuppressLint("ParcelCreator")
-@Stable
-abstract class YosMediaItem(
-    val uri: Uri?,
-    val mediaId: String?,
-    val mimeType: String?,
-    val title: String?,
-    val writer: String?,
-    val compilation: String?,
-    val composer: String?,
-    val artists: String?,
-    val album: String?,
-    val albumArtists: String?,
-    val thumb: Uri?,
-    val trackNumber: Int?,
-    val discNumber: Int?,
-    val genre: String?,
-    val recordingDay: Int?,
-    val recordingMonth: Int?,
-    val recordingYear: Int?,
-    val releaseYear: Int?,
-    val artistId: Long?,
-    val albumId: Long?,
-    val genreId: Long?,
-    val author: String?,
-    val addDate: Long?,
-    val duration: Long,
-    val modifiedDate: Long?,
-    val cdTrackNumber: Int?,
-    val songHash: String?,
-    val lrcId: String?,
-    var lrcAccesskey: String?
-
-
-    //val samplingRate: Int,
-    //val bitrate: Int
-) : Parcelable
