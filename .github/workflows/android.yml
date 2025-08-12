@@ -48,12 +48,6 @@ jobs:
           ./gradlew assemble
           ./gradlew bundleRelease
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          publish_dir: ./doc
-
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
