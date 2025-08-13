@@ -358,6 +358,12 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/vip_compose_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:ignore="MissingConstraints" />
+
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/user_like_playlist_view_base"
                 android:layout_width="match_parent"

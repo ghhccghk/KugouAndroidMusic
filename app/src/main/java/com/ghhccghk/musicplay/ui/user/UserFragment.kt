@@ -3,6 +3,7 @@ package com.ghhccghk.musicplay.ui.user
 import android.annotation.SuppressLint
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -10,6 +11,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -22,6 +30,7 @@ import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.user.Data
 import com.ghhccghk.musicplay.data.user.UserDetail
 import com.ghhccghk.musicplay.data.user.likeplaylist.LikePlayListBase
+import com.ghhccghk.musicplay.data.user.vipdata.VipResponse
 import com.ghhccghk.musicplay.databinding.FragmentUserBinding
 import com.ghhccghk.musicplay.ui.setting.MainSettingsActivity
 import com.ghhccghk.musicplay.util.TokenManager
@@ -68,22 +77,22 @@ class UserFragment : Fragment() {
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = format.format(calendar.time)
         lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val a = KugouAPi.getlitevip()
-                        if (a == null || a == "502" || a == "404") {
-                            Toast.makeText(
-                                requireContext(),
-                                R.string.token_update_error,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    } catch (e: Exception) {
-                        Log.e("User","format error",e)
-                        null
+            withContext(Dispatchers.IO) {
+                try {
+                    val a = KugouAPi.getlitevip()
+                    if (a == null || a == "502" || a == "404") {
+                        Toast.makeText(
+                            requireContext(),
+                            R.string.token_update_error,
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+                } catch (e: Exception) {
+                    Log.e("User","format error",e)
+                    null
                 }
-                prefs.edit { putString("vipupdate", today) }
+            }
+            prefs.edit { putString("vipupdate", today) }
         }
 
         val root: View = binding.root
@@ -122,14 +131,14 @@ class UserFragment : Fragment() {
                                     TokenManager.getUserId().toString()
                                 ).toString()
                             } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(
-                            MainActivity.lontext,
-                            R.string.token_update_error,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        null
-                    }
+                                e.printStackTrace()
+                                Toast.makeText(
+                                    MainActivity.lontext,
+                                    R.string.token_update_error,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                null
+                            }
                         }
                     }; true
 
@@ -145,8 +154,9 @@ class UserFragment : Fragment() {
         TokenManager.init(requireContext())
         KugouAPi.init()
         if (MainActivity.isNodeRunning && isLoggedIn()) {
-            setui()
+            setUserInfoUi()
             setUserPlayList()
+            setVipInfoUi()
         } else {
             binding.notLoggedIn.visibility = View.VISIBLE
             binding.layoutUserInfo.visibility = View.GONE
@@ -165,14 +175,59 @@ class UserFragment : Fragment() {
     override fun onStart() {
         super.onStart()
         if (MainActivity.isNodeRunning  && isLoggedIn() ) {
-            setui()
+            setUserInfoUi()
             setUserPlayList()
         }
     }
 
+    private fun setVipInfoUi(){
+        lifecycleScope.launch {
+            val json = withContext(Dispatchers.IO) {
+                KugouAPi.getUserVip()
+            }
+
+            // 提前返回，减少 if 嵌套
+            if (json.isNullOrEmpty() || json == "502" || json == "404") {
+                binding.vipComposeView.isVisible = false
+                return@launch
+            }
+
+            binding.vipComposeView.setContent {
+                val moshi = Moshi.Builder()
+                    .add(KotlinJsonAdapterFactory())
+                    .build()
+                val adapter = moshi.adapter(VipResponse::class.java)
+                val vipResponse = adapter.fromJson(json)
+
+                MaterialTheme(
+                    colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (isSystemInDarkTheme())
+                            dynamicDarkColorScheme(requireContext())
+                        else
+                            dynamicLightColorScheme(requireContext())
+                    } else {
+                        if (isSystemInDarkTheme()) {
+                            darkColorScheme()
+                        } else {
+                            lightColorScheme()
+                        }
+                    }
+                ) {
+                    if (vipResponse != null) {
+                        VipInfoScreen(vipResponse.data)
+                    } else {
+                        Text("解析失败")
+                    }
+                }
+            }
+
+        }
+
+    }
+
 
     @SuppressLint("SetTextI18n")
-    fun setui() {
+    private fun setUserInfoUi() {
         lifecycleScope.launch {
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getUserDetail()
@@ -200,6 +255,7 @@ class UserFragment : Fragment() {
         binding.notLoggedIn.isVisible = true
         binding.layoutUserInfo.isVisible = false
         binding.userLikePlaylistViewBase.isVisible = false
+        binding.vipComposeView.isVisible = false
     }
 
     // 抽取显示用户信息UI

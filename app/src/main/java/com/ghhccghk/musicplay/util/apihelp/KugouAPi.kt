@@ -224,7 +224,10 @@ object KugouAPi {
 
     /** 更新 token 登录信息 */
     fun updateToken(token: String,userid: String): String?{
-        val url = "$apiaddress/login/token"
+        val url = "$apiaddress/login/token".toUri().buildUpon().apply {
+            token.let { appendQueryParameter("token", it.toString()) }
+            userid.let { appendQueryParameter("userid", it.toString()) }
+        }.build().toString()
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -278,7 +281,10 @@ object KugouAPi {
 
     /** 获取用户 vip 信息 */
     fun getUserVip(): String?{
-        val url = "$apiaddress/user/vip/detail"
+        val url = "$apiaddress/user/vip/detail".toUri().buildUpon().apply {
+            token?.let { appendQueryParameter("token", it.toString()) }
+            userid?.let { appendQueryParameter("userid", it.toString()) }
+        }.build().toString()
         val request = Request.Builder().url(url).build()
 
         client.newCall(request).execute().use { response ->
