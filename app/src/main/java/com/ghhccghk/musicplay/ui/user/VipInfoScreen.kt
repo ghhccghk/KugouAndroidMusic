@@ -29,9 +29,8 @@ fun VipInfoScreen(vipData: VipData) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(text = "全局 VIP 状态: ${if (vipData.isVip == 1) "有效" else "无效"}", style = MaterialTheme.typography.titleMedium)
-                Text("全局有效期: ${vipData.vipBeginTime} ~ ${vipData.vipEndTime}")
-                Text("SVIP 等级: ${vipData.svipLevel}, 积分: ${vipData.svipScore}")
+                Text(text = "酷狗音乐VIP状态: ${if (vipData.isVip == 1) "未到期" else "到期"}", style = MaterialTheme.typography.titleMedium)
+                Text("到期时间 ${vipData.vipEndTime} VIP 等级: ${vipData.svipLevel}, 积分: ${vipData.svipScore}")
             }
         }
 
@@ -43,9 +42,9 @@ fun VipInfoScreen(vipData: VipData) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("类型: ${vip.productType.uppercase()}")
-                    Text("状态: ${if (vip.isVip == 1) "有效" else "无效"}")
-                    Text("有效期: ${vip.vipBeginTime} ~ ${vip.vipEndTime}")
+                    Text("类型: ${if (vip.productType.uppercase() == "SVIP") "概念SVIP" else "概念畅听VIP"}")
+                    Text("状态: ${if (vip.isVip == 1) "未到期" else "到期"}")
+                    Text("有效期至: ${vip.vipEndTime}")
                     vip.vipLimitQuota?.total?.let {
                         Text("配额: $it")
                     }

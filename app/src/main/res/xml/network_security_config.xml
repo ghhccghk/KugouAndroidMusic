@@ -5,5 +5,6 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">fs.youthandroid.kugou.com</domain>
         <domain includeSubdomains="true">c1.kgimg.com</domain>
+        <domain includeSubdomains="true">imge.kugou.com</domain>
     </domain-config>
 </network-security-config>

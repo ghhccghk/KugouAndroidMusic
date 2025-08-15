@@ -87,9 +87,9 @@ class PlaylistDetailFragment : Fragment() {
                             binding.tvPlaylistName.text = playList.name
                             binding.tvCreator.text = playList.list_create_username
                             binding.tvIntro.text = playList.intro
+                            val userPlayListIcon = playList.create_user_pic
 
                             if (picurl != "null" || picurl != ""){
-                                Log.d("PlaylistDetailFragment",picurl.toString())
                                 val urlcache = SmartImageCache.getOrDownload(picurl.toString(),picurl.hashCode().toString())
                                 if (urlcache != null){
                                     Glide.with(requireContext())
@@ -101,11 +101,20 @@ class PlaylistDetailFragment : Fragment() {
                             } else {
                                 val secureUrl = playList.create_user_pic.replaceFirst("/{size}/", "/")
                                 val urlcache = SmartImageCache.getOrDownload(secureUrl,secureUrl.hashCode().toString())
-                                Log.d("PlaylistDetailFragment",secureUrl.toString())
                                 Glide.with(requireContext())
                                     .load(urlcache)
                                     .into(binding.ivPlaylistCover)
                             }
+
+
+                            if (userPlayListIcon != "null" || userPlayListIcon != ""){
+                                val secureUrl = playList.create_user_pic.replaceFirst("/{size}/", "/")
+                                Glide.with(requireContext())
+                                    .load(secureUrl)
+                                    .into(binding.userPlaylistIcon)
+                            }
+
+
                         } catch (e: Exception) {
                             e.printStackTrace()
                             Toast.makeText(

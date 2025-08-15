@@ -5,7 +5,6 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +17,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -58,6 +58,7 @@ class UserFragment : Fragment() {
     private val binding get() = _binding!!
     private var prefs =
         MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private val vipState = mutableStateOf<VipResponse?>(null)
 
     val moshi = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory()) // 让 Moshi 支持 Kotlin 默认值和非空
@@ -76,23 +77,40 @@ class UserFragment : Fragment() {
         val calendar = Calendar.getInstance()
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = format.format(calendar.time)
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    val a = KugouAPi.getlitevip()
-                    if (a == null || a == "502" || a == "404") {
+        if (vipupdate != today){
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val a = KugouAPi.getlitevip()
+                        if (a == null || a == "502" || a == "404") {
+                            Toast.makeText(
+                                requireContext(),
+                                R.string.token_update_error,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                withContext(Dispatchers.IO) {
+                    try {
+                        KugouAPi.updateToken(
+                            TokenManager.getToken().toString(),
+                            TokenManager.getUserId().toString()
+                        ).toString()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                         Toast.makeText(
-                            requireContext(),
+                            MainActivity.lontext,
                             R.string.token_update_error,
                             Toast.LENGTH_SHORT
                         ).show()
+                        null
                     }
-                } catch (e: Exception) {
-                    Log.e("User","format error",e)
-                    null
                 }
+                prefs.edit { putString("vipupdate", today) }
             }
-            prefs.edit { putString("vipupdate", today) }
         }
 
         val root: View = binding.root
@@ -101,7 +119,6 @@ class UserFragment : Fragment() {
             when (item.itemId) {
                 R.id.action_update_token -> {
                     lifecycleScope.launch {
-                        if (today != vipupdate) {
                             withContext(Dispatchers.IO) {
                                 try {
                                     val a = KugouAPi.getlitevip()
@@ -122,8 +139,6 @@ class UserFragment : Fragment() {
                                     null
                                 }
                             }
-                            prefs.edit { putString("vipupdate", today) }
-                        }
                         withContext(Dispatchers.IO) {
                             try {
                                 KugouAPi.updateToken(
@@ -153,6 +168,23 @@ class UserFragment : Fragment() {
         }
         TokenManager.init(requireContext())
         KugouAPi.init()
+        //  初始化 ComposeView UI（只执行一次）
+        binding.vipComposeView.setContent {
+            val colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (isSystemInDarkTheme())
+                    dynamicDarkColorScheme(requireContext())
+                else
+                    dynamicLightColorScheme(requireContext())
+            } else {
+                if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+            }
+
+            MaterialTheme(colorScheme = colorScheme) {
+                vipState.value?.let {
+                    VipInfoScreen(it.data) // 显示 VIP 信息
+                } ?: Text(text = "解析失败",style = MaterialTheme.typography.titleMedium ) // 没数据时显示
+            }
+        }
         if (MainActivity.isNodeRunning && isLoggedIn()) {
             setUserInfoUi()
             setUserPlayList()
@@ -177,52 +209,34 @@ class UserFragment : Fragment() {
         if (MainActivity.isNodeRunning  && isLoggedIn() ) {
             setUserInfoUi()
             setUserPlayList()
+            setVipInfoUi()
         }
     }
 
-    private fun setVipInfoUi(){
+    private fun setVipInfoUi() {
+        // 请求数据
         lifecycleScope.launch {
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getUserVip()
             }
 
-            // 提前返回，减少 if 嵌套
             if (json.isNullOrEmpty() || json == "502" || json == "404") {
-                binding.vipComposeView.isVisible = false
+                vipState.value = null
                 return@launch
             }
 
-            binding.vipComposeView.setContent {
-                val moshi = Moshi.Builder()
-                    .add(KotlinJsonAdapterFactory())
-                    .build()
-                val adapter = moshi.adapter(VipResponse::class.java)
-                val vipResponse = adapter.fromJson(json)
+            val moshi = Moshi.Builder()
+                .add(KotlinJsonAdapterFactory())
+                .build()
+            val adapter = moshi.adapter(VipResponse::class.java)
 
-                MaterialTheme(
-                    colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        if (isSystemInDarkTheme())
-                            dynamicDarkColorScheme(requireContext())
-                        else
-                            dynamicLightColorScheme(requireContext())
-                    } else {
-                        if (isSystemInDarkTheme()) {
-                            darkColorScheme()
-                        } else {
-                            lightColorScheme()
-                        }
-                    }
-                ) {
-                    if (vipResponse != null) {
-                        VipInfoScreen(vipResponse.data)
-                    } else {
-                        Text("解析失败")
-                    }
-                }
+            try {
+                vipState.value = adapter.fromJson(json) // 成功解析更新 UI
+            } catch (e: Exception) {
+                e.printStackTrace()
+                vipState.value = null // 解析失败
             }
-
         }
-
     }
 
 

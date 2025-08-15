@@ -77,13 +77,33 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/play_user_creator"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:layout_marginStart="3dp"
+                            android:layout_marginEnd="3dp"
+                            app:cardBackgroundColor="@android:color/transparent"
+                            app:cardCornerRadius="10dp"
+                            app:cardElevation="0dp">
+
+                            <ImageView
+                                android:id="@+id/user_playlist_icon"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_gravity="center"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/lycaon_icon"/>
+
+                        </androidx.cardview.widget.CardView>
 
                         <TextView
                             android:id="@+id/tvCreator"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="14sp" />
+                            android:textSize="15sp" />
 
                     </LinearLayout>
 
