@@ -27,6 +27,28 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/media_control"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/rp_buttons"
+        android:contentDescription="@string/media_control_text"
+        app:icon="@drawable/ic_media_control"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="28dp"
+        app:iconTint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/album_cover_frame"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        app:tooltipText="@string/media_control_text"
+        />
+
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/album_cover_frame"
         android:layout_width="0dp"
@@ -397,22 +419,6 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="24dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/miplay"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:background="@drawable/rp_buttons"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_media_control"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="?attr/colorOnSurface" />
     </LinearLayout>
 
 
