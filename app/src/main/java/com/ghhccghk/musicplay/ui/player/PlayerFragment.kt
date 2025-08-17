@@ -494,7 +494,7 @@ class PlayerFragment() : Fragment() {
             true
         }
 
-        binding.miplay.setOnClickListener {
+        binding.mediaControl.setOnClickListener {
             SystemMediaControlResolver(context).intentSystemMediaDialog()
         }
 
