@@ -329,5 +329,7 @@
     <string name="settings_build_time">Compilation time</string>
     <string name="media_control_text">System Media Controller</string>
     <string name="media_control_text_error">Unable to open media output settings</string>
+    <string name="audio_signal_chain">Audio signal chain</string>
+    <string name="audio_not_initialized">The audio playback system is not initialized. Try playing something!</string>
 
 </resources>

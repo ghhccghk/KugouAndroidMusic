@@ -125,7 +125,7 @@ class UacManager(private val context: Context) {
 			device.deviceClass == UsbConstants.USB_CLASS_VIDEO
 		) {
 			Log.w(TAG, "eligible audio device is UVC device, missing camera " +
-					"permission to access, hence ignoring")
+						"permission to access, hence ignoring")
 			return false
 		}
 		// TODO: check that there is at least 1 audio sink streaming interface declared.

@@ -23,6 +23,7 @@
 package com.ghhccghk.musicplay.util
 
 import android.content.Context
+import android.media.AudioDeviceInfo
 import android.media.AudioRouting
 import android.media.AudioTrack
 import android.os.Build
@@ -32,19 +33,21 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.analytics.AnalyticsListener
-import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import kotlinx.parcelize.Parcelize
 import org.nift4.gramophone.hificore.AudioTrackHiddenApi
 
+
 @Parcelize
 data class AfFormatInfo(
     val routedDeviceName: String?, val routedDeviceId: Int?,
-    val routedDeviceType: Int?, val mixPortId: Int?, val mixPortName: String?,
-    val mixPortFlags: Int?, val ioHandle: Int?, val sampleRateHz: UInt?,
+    val routedDeviceType: Int?, val audioSessionId: Int, val mixPortId: Int?,
+    val mixPortName: String?, val mixPortFlags: Int?, val mixPortHwModule: Int?,
+    val mixPortFast: Boolean?, val ioHandle: Int?, val sampleRateHz: UInt?,
     val audioFormat: String?, val channelCount: Int?, val channelMask: Int?,
-    val grantedFlags: Int?, val policyPortId: Int?, val afTrackFlags: Int?
+    val grantedFlags: Int?, val policyPortId: Int?, val afTrackFlags: Int?,
+    val isBluetoothOffload: Boolean?
 ) : Parcelable
 
 @Parcelize
@@ -79,10 +82,14 @@ class AfFormatTracker(
     var formatChangedCallback: ((AfFormatInfo?) -> Unit)? = null
 
     private val routingChangedListener = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        AudioRouting.OnRoutingChangedListener { router -> this@AfFormatTracker.onRoutingChanged(router as AudioTrack) } as Any
+        AudioRouting.OnRoutingChangedListener {
+                router -> this@AfFormatTracker.onRoutingChanged(router as AudioTrack)
+        } as Any
     } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         @Suppress("deprecation")
-        AudioTrack.OnRoutingChangedListener { router -> this@AfFormatTracker.onRoutingChanged(router) } as Any
+        AudioTrack.OnRoutingChangedListener {
+                router -> this@AfFormatTracker.onRoutingChanged(router)
+        } as Any
     } else null
 
     private fun onRoutingChanged(router: AudioTrack) {
@@ -107,7 +114,7 @@ class AfFormatTracker(
 
     override fun onAudioTrackInitialized(
         eventTime: AnalyticsListener.EventTime,
-        audioTrackConfig: AudioSink.AudioTrackConfig
+        audioTrackConfig: AudioTrackConfig
     ) {
         format = null
         playbackHandler.post {
@@ -165,7 +172,8 @@ class AfFormatTracker(
             val ioHandle = AudioTrackHiddenApi.getOutput(audioTrack)
             val halSampleRate = AudioTrackHiddenApi.getHalSampleRate(audioTrack)
             val grantedFlags = AudioTrackHiddenApi.getGrantedFlags(audioTrack)
-            val mixPort = AudioTrackHiddenApi.getMixPortForThread(ioHandle, halSampleRate)
+            val mixPort = AudioTrackHiddenApi.getMixPortForThread(ioHandle)
+            val primaryHw = AudioTrackHiddenApi.getPrimaryMixPort()?.hwModule
             val latency = try {
                 // this call writes to mAfLatency and mLatency fields, hence call dump after this
                 AudioTrack::class.java.getMethod("getLatency").invoke(audioTrack) as Int
@@ -174,14 +182,20 @@ class AfFormatTracker(
                 null
             }
             val dump = AudioTrackHiddenApi.dump(audioTrack)
+            val isBluetoothOffload = if (deviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                || deviceType == AudioDeviceInfo.TYPE_BLE_SPEAKER
+                || deviceType == AudioDeviceInfo.TYPE_BLE_BROADCAST) {
+                mixPort?.hwModule?.let { it == primaryHw }
+            } else null
             AfFormatInfo(
                 deviceProductName, deviceId, deviceType,
-                mixPort?.id, mixPort?.name, mixPort?.flags,
-                ioHandle, halSampleRate,
-                audioFormatToString(AudioTrackHiddenApi.getHalFormat(audioTrack)),
+                audioTrack.audioSessionId,
+                mixPort?.id, mixPort?.name, mixPort?.flags, mixPort?.hwModule, mixPort?.fast,
+                ioHandle, halSampleRate ?: mixPort?.sampleRate,
+                audioFormatToString(AudioTrackHiddenApi.getHalFormat(audioTrack) ?: mixPort?.format),
                 AudioTrackHiddenApi.getHalChannelCount(audioTrack),
                 mixPort?.channelMask, grantedFlags, AudioTrackHiddenApi.getPortIdFromDump(dump),
-                AudioTrackHiddenApi.findAfTrackFlags(dump, latency, audioTrack, grantedFlags)
+                AudioTrackHiddenApi.findAfTrackFlags(dump, latency, audioTrack, grantedFlags), isBluetoothOffload
             )
         }.let {
             if (LOG_EVENTS)

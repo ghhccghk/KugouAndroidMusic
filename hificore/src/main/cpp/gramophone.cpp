@@ -70,7 +70,8 @@ typedef status_t(*ZN7android11AudioSystem14listAudioPortsE17audio_port_role_t17a
         LEGACY_audio_port_role_t, LEGACY_audio_port_type_t, unsigned int *, void *, unsigned int *);
 
 static ZN7android11AudioSystem14listAudioPortsE17audio_port_role_t17audio_port_type_tPjP13audio_port_v7S3__t ZN7android11AudioSystem14listAudioPortsE17audio_port_role_t17audio_port_type_tPjP13audio_port_v7S3_ = nullptr;
-static intptr_t gSampleRateOffset = 0;
+static intptr_t gIoHandleOffset = 0;
+static intptr_t gIoHandle2Offset = 0;
 static intptr_t gTrackFlagsOffset = 0;
 
 typedef bool(*ZN7android18ExtendedMediaUtils26AudioTrackIsTrackOffloadedEi_t)(void* thisptr, uint32_t output);
@@ -269,10 +270,10 @@ struct audio_gain_config {
 extern "C"
 JNIEXPORT jintArray JNICALL
 Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInternal(
-        JNIEnv *env, jobject, jint id, jint sampleRate) {
+        JNIEnv *env, jobject, jint id, jint io) {
     if (!initLib(env))
         return nullptr;
-    jint out[3] = { 0, 0, 0 };
+    jint out[6] = { 0, 0, 0, 0, 0, 0 };
     if (android_get_device_api_level() >= 28) {
         DLSYM_OR_ELSE(libaudioclient, ZN7android11AudioSystem12getAudioPortEP13audio_port_v7) {
             ZN7android11AudioSystem12getAudioPortEP13audio_port_v7 =
@@ -284,60 +285,75 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
                 return nullptr;
             }
         }
-        if (gSampleRateOffset == 0 && sampleRate == 0) {
-            ALOGE("wrong usage of findAfFlagsForPortInternal: not calibrated and sampleRate is 0");
-            return nullptr;
-        }
 #define BUFFER_SIZE 114000
         auto buffer = (uint8_t *) calloc(1, BUFFER_SIZE); // should be plenty
         *((int * /*audio_port_handle_t*/) buffer) = id;
         ZN7android11AudioSystem12getAudioPortEP13audio_port_v7(buffer);
         uint8_t *pos = buffer;
-        if (gSampleRateOffset == 0) {
+        if (gIoHandleOffset == 0) {
+            int i = 1; // skip over port.ext.mix.handle, we want port.active_config.ext.mix.handle
             pos += BUFFER_SIZE;
             while (buffer < pos) {
                 pos -= sizeof(unsigned int) / sizeof(uint8_t);
-                if (buffer < pos && *((unsigned int *) pos) == sampleRate)
-                    break;
+                if (buffer < pos && *((unsigned int *) pos) == io) {
+                    if (i-- == 1) {
+                        gIoHandle2Offset = buffer < pos ? pos - buffer : 0;
+                    } else
+                        break;
+                }
             }
-            gSampleRateOffset = buffer < pos ? pos - buffer : 0;
+            gIoHandleOffset = buffer < pos ? pos - buffer : 0;
         } else {
-            pos += gSampleRateOffset;
+            pos += gIoHandleOffset;
         }
-        if (buffer >= pos) {
-            ALOGE("buffer(%p) >= pos(%p) (BUFFER_SIZE(%d) id(%d) sampleRate(%d))",
-                  buffer, pos, BUFFER_SIZE, id, sampleRate);
-            gSampleRateOffset = 0;
+        if (gIoHandleOffset == 0 || gIoHandleOffset >= gIoHandle2Offset) {
+            ALOGE("bad gIoHandleOffset(%d) gIoHandle2Offset(%d) (BUFFER_SIZE(%d) id(%d) io(%d))",
+                  gIoHandleOffset, gIoHandle2Offset, BUFFER_SIZE, id, io);
+            gIoHandleOffset = 0;
             free(buffer);
             return nullptr;
         }
-        /*
-         * unsigned int             sample_rate;    <--- we are here
-         * audio_channel_mask_t     channel_mask;
-         * audio_format_t           format;
-         * struct audio_gain_config gain;
-         * union audio_io_flags     flags;          <--- we want to go here
-         */
-        pos += sizeof(unsigned int) / sizeof(uint8_t); // unsigned int (sample_rate)
-        uint8_t* pos2 = pos + sizeof(uint32_t) / sizeof(uint8_t); // audio_channel_mask_t (channel_mask)
-        uint8_t* pos3 = pos2 + sizeof(uint32_t) / sizeof(uint8_t); // audio_format_t (format)
-        pos3 += sizeof(struct audio_gain_config) / sizeof(uint8_t); // audio_gain_config (gain)
-        uint8_t* maxPos = android_get_device_api_level() >= 30 ? pos3 : pos2;
+        if (buffer >= pos) {
+            ALOGE("buffer(%p) >= pos(%p) (BUFFER_SIZE(%d) id(%d) io(%d))",
+                  buffer, pos, BUFFER_SIZE, id, io);
+            gIoHandleOffset = 0;
+            free(buffer);
+            return nullptr;
+        }
+        uint8_t *maxPos = buffer + gIoHandle2Offset + sizeof(uint32_t) / sizeof(uint8_t);
         if (maxPos >= buffer + BUFFER_SIZE) {
-            ALOGE("maxPos(%p) >= buffer(%p) + BUFFER_SIZE(%d) (id(%d) sampleRate(%d))",
-                  maxPos, buffer, BUFFER_SIZE, id, sampleRate);
-            gSampleRateOffset = 0;
+            ALOGE("maxPos(%p) >= buffer(%p) + BUFFER_SIZE(%d) (id(%d) io(%d))",
+                  maxPos, buffer, BUFFER_SIZE, id, io);
+            gIoHandleOffset = 0;
             free(buffer);
             return nullptr;
         }
 #undef BUFFER_SIZE
-        out[0] = (int32_t) (*((uint32_t *) pos));
-        out[1] = (int32_t) (*((uint32_t *) pos2));
+        out[5] = (int32_t) (*((uint32_t *) maxPos)); // port.ext.mix.latency_class
+        /*
+         * unsigned int             sample_rate;       <--- we want to go here
+         * audio_channel_mask_t     channel_mask;
+         * audio_format_t           format;
+         * struct audio_gain_config gain;
+         * union audio_io_flags     flags;  (only >=R)
+         * audio_module_handle_t    hw_module;
+         * audio_io_handle_t        handle;            <--- we are here
+         */
+        pos -= sizeof(uint32_t) / sizeof(uint8_t); // audio_io_handle_t (handle)
+        out[4] = (int32_t) (*((uint32_t *) pos));
         if (android_get_device_api_level() >= 30) {
+            pos -= sizeof(uint32_t) / sizeof(uint8_t); // union audio_io_flags (flags)
             // R added flags field to struct, but it is only populated since T. But app side may
             // want to bet on OEM modification that populates it in R/S.
-            out[2] = (int32_t) (*((uint32_t *) pos3));
+            out[3] = (int32_t) (*((uint32_t *) pos));
         }
+        pos -= sizeof(struct audio_gain_config) / sizeof(uint8_t); // audio_gain_config (gain)
+        pos -= sizeof(uint32_t) / sizeof(uint8_t); // audio_format_t (format)
+        out[2] = (int32_t) (*((uint32_t *) pos));
+        pos -= sizeof(uint32_t) / sizeof(uint8_t); // audio_channel_mask_t (channel_mask)
+        out[1] = (int32_t) (*((uint32_t *) pos));
+        pos -= sizeof(unsigned int) / sizeof(uint8_t); // unsigned int (sample_rate)
+        out[0] = (int32_t) (*((uint32_t *) pos));
         free(buffer);
     } else {
         DLSYM_OR_ELSE(libaudioclient, ZN7android11AudioSystem14listAudioPortsE17audio_port_role_t17audio_port_type_tPjP13audio_port_v7S3_) {
@@ -357,7 +373,7 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
         unsigned int generation1 = 0;
         unsigned int generation = 0;
         unsigned int numPorts = 0;
-        void* nPorts = nullptr; // TODO do we leak it?
+        void* nPorts = nullptr;
         int attempts = 5;
         // get the port count and all the ports until they both return the same generation
         do {
@@ -419,9 +435,13 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
         if (oreo) {
             for (auto port: *(std::vector<audio_port_oreo>*)nPorts) {
                 if (i++ == numPorts) break; // needed because vector size > numPorts
-                if (port.id == id) {
-                    out[0] = (int32_t) port.active_config.format;
-                    out[1] = (int32_t) port.active_config.channel_mask;
+                if (port.id == id && port.active_config.ext.mix.handle == io && port.ext.mix.handle == io) {
+                    out[0] = (int32_t) port.active_config.sample_rate;
+                    out[1] = (int32_t) port.active_config.format;
+                    out[2] = (int32_t) port.active_config.channel_mask;
+                    // out[3] / port.active_config.flags missing in action
+                    out[4] = (int32_t) port.active_config.ext.mix.hw_module;
+                    out[5] = (int32_t) port.ext.mix.latency_class;
                     found = true;
                     break;
                 }
@@ -430,9 +450,13 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
         } else {
             for (auto port: *(std::vector<audio_port_legacy>*)nPorts) {
                 if (i++ == numPorts) break; // needed because vector size > numPorts
-                if (port.id == id) {
-                    out[0] = (int32_t) port.active_config.format;
-                    out[1] = (int32_t) port.active_config.channel_mask;
+                if (port.id == id && port.active_config.ext.mix.handle == io && port.ext.mix.handle == io) {
+                    out[0] = (int32_t) port.active_config.sample_rate;
+                    out[1] = (int32_t) port.active_config.format;
+                    out[2] = (int32_t) port.active_config.channel_mask;
+                    // out[3] / port.active_config.flags missing in action
+                    out[4] = (int32_t) port.active_config.ext.mix.hw_module;
+                    out[5] = (int32_t) port.ext.mix.latency_class;
                     found = true;
                     break;
                 }
@@ -441,7 +465,7 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
         }
         if (!found) return nullptr;
     }
-    jintArray theOut = env->NewIntArray(3);
+    jintArray theOut = env->NewIntArray(sizeof(out)/sizeof(out[0]));
     if (theOut == nullptr) {
         return nullptr;
     }

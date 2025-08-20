@@ -439,6 +439,8 @@ class PlayService : MediaSessionService(),
             }
         }
 
+        player.addAnalyticsListener(afFormatTracker)
+
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
         val importance = NotificationManager.IMPORTANCE_NONE

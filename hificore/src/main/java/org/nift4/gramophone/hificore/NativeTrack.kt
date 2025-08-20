@@ -95,7 +95,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
                     }
                 } else {
                     hasDirect = @Suppress("deprecation") AudioTrack.isDirectPlaybackSupported(
-                        format, attributes)
+                            format, attributes)
                 }
             }
             if (!initDlsym()) {
@@ -143,11 +143,11 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
                         channelMask, null, 0x11, sessionId, 1.0f, null, bitrate, durationUs, false, false,
                         false, 0, 0, true, TransferMode.Sync, null, null, ENCAPSULATION_MODE_NONE, null
                     )
-                    val port = AudioTrackHiddenApi.getMixPortForThread(track.getOutput(), track.getHalSampleRate())
+                    val port = AudioTrackHiddenApi.getMixPortForThread(track.getOutput())
                     if (port == null) {
                         Log.w(TAG, "port is null")
                         hasOffload = false
-                    } else if (port.format != encoding.toInt()) {
+                    } else if (port.format != encoding) {
                         Log.e(
                             TAG,
                             "port ${port.name} was found, but is format ${port.format} instead of $encoding"
@@ -173,12 +173,12 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
                         channelMask, null, 0x1, sessionId, 1.0f, null, bitrate, durationUs, hasVideo = false, smallBuf = false,
                         false, 0, 0, true, TransferMode.Sync, null, null, ENCAPSULATION_MODE_NONE, null
                     )
-                    val port = AudioTrackHiddenApi.getMixPortForThread(track.getOutput(), track.getHalSampleRate())
+                    val port = AudioTrackHiddenApi.getMixPortForThread(track.getOutput())
                     Log.i(TAG, "got port $port")
                     if (port == null) {
                         Log.w(TAG, "port is null")
                         hasDirect = false
-                    } else if (port.format != encoding.toInt()) {
+                    } else if (port.format != encoding) {
                         Log.e(
                             TAG,
                             "port ${port.name} was found, but is format ${port.format} instead of $encoding"
@@ -327,10 +327,10 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
             throw NativeTrackException("failed to load libhificore.so", t)
         }
         if (!try {
-                initDlsym()
-            } catch (t: Throwable) {
-                throw NativeTrackException("initDlsym() failed", t)
-            })
+            initDlsym()
+        } catch (t: Throwable) {
+            throw NativeTrackException("initDlsym() failed", t)
+        })
             throw NativeTrackException("initDlsym() returned false")
         ptr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val ats = context.attributionSource
@@ -1153,7 +1153,7 @@ class NativeTrack(context: Context, attributes: AudioAttributes, streamType: Int
         if (myState == State.RELEASED)
             throw IllegalStateException("state is $myState")
         try {
-            releaseBufferInternal(ptr, frameSize(), buf, buf.limit())
+             releaseBufferInternal(ptr, frameSize(), buf, buf.limit())
         } catch (t: Throwable) {
             throw NativeTrackException("failed to release buffer $buf", t)
         }

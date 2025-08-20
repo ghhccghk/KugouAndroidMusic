@@ -60,6 +60,7 @@ import com.ghhccghk.musicplay.util.ui.ColorUtils
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +82,7 @@ class PlayerFragment() : Fragment() {
     private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
     private var enableQualityInfo = prefs.getBoolean("audio_quality_info",false)
     private var defaultprogressbar = prefs.getBoolean("default_progress_bar",false)
-
+    private var currentFormat: AudioFormatDetector.AudioFormats? = null
 
     //动态取色相关
     private var currentJob: Job? = null
@@ -258,6 +259,7 @@ class PlayerFragment() : Fragment() {
         }
 
         val format = player.getAudioFormat()
+        this.currentFormat = format
 
         if(_binding != null){
             updateQualityIndicators(
@@ -289,8 +291,9 @@ class PlayerFragment() : Fragment() {
                                 }
                             }
                         }
+                        this@PlayerFragment.currentFormat = format
                         updateQualityIndicators(if (enableQualityInfo)
-                            AudioFormatDetector.detectAudioFormat(format) else null)
+                            AudioFormatDetector.detectAudioFormat(currentFormat) else null)
                         Glide.with(binding.root)
                             .load(url)
                             .into(binding.fullSheetCover)
@@ -317,8 +320,9 @@ class PlayerFragment() : Fragment() {
                         }
 
                         val format = player.getAudioFormat()
+                        this@PlayerFragment.currentFormat = format
                         updateQualityIndicators(if (enableQualityInfo)
-                            AudioFormatDetector.detectAudioFormat(format) else null)
+                            AudioFormatDetector.detectAudioFormat(currentFormat) else null)
                         if (player.isPlaying) {
                             progressDrawable.animate = true
                             Glide.with(binding.root)
@@ -468,6 +472,17 @@ class PlayerFragment() : Fragment() {
 
         binding.playlist.setOnClickListener {
             GlobalPlaylistBottomSheetController.show()
+        }
+
+        binding.qualityDetails.setOnClickListener {
+            MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.audio_signal_chain)
+                .setMessage(
+                    currentFormat?.prettyToString(context)
+                        ?: context.getString(R.string.audio_not_initialized)
+                )
+                .setPositiveButton(android.R.string.ok) { _, _ -> }
+                .show()
         }
 
         val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

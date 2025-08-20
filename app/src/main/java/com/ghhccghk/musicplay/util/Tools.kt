@@ -197,7 +197,6 @@ object Tools {
                 it.getBundle("sink_format")?.let { bundle -> Format.fromBundle(bundle) },
                 BundleCompat.getParcelable(it, "track_format", AudioTrackInfo::class.java),
                 BundleCompat.getParcelable(it, "hal_format", AfFormatInfo::class.java),
-                if (it.containsKey("bitrate")) it.getLong("bitrate") else null,
                 BundleCompat.getParcelable(it, "bt", BtCodecInfo::class.java)
             )
         }
