@@ -326,7 +326,7 @@ dependencies {
 
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
-    ksp(libs.moshi.kotlin.codegen) //
+    ksp(libs.moshi.kotlin.codegen)
     implementation(libs.androidx.room.ktx)
 
     implementation( libs.kotlinx.coroutines.core)

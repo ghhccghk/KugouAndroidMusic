@@ -131,6 +131,7 @@
             <!-- 歌曲列表 -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvSongs"
+                android:layout_marginEnd="1dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false" />

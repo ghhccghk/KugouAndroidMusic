@@ -160,7 +160,12 @@ class PlaylistDetailFragment : Fragment() {
                                             uri,
                                             result,result.hash) }
 
-                                        item?.let { mediaItem -> MainActivity.controllerFuture.get().setMediaItem(mediaItem) }
+                                        item?.let { mediaItem ->
+                                            val controller = MainActivity.controllerFuture.get()
+                                            val currentIndex = controller.currentMediaItemIndex
+                                            controller.addMediaItem(currentIndex + 1, mediaItem) // 紧跟当前播放项后追加
+                                        }
+
 
                                     } catch (e: Exception) {
                                         e.printStackTrace()
