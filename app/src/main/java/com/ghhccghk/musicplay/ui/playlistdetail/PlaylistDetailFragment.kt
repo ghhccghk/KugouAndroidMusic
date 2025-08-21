@@ -126,12 +126,12 @@ class PlaylistDetailFragment : Fragment() {
                     }
                 }
 
-                lifecycleScope.launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     val json = mutableListOf<Song>()
 
                     try {
                         binding.playlistAllPlay.setOnClickListener {
-                            lifecycleScope.launch {
+                            viewLifecycleOwner.lifecycleScope.launch {
                                 withContext(Dispatchers.Main) {
                                     player.setMediaItems(json.toMediaItemListParallel())
                                 }
@@ -139,7 +139,7 @@ class PlaylistDetailFragment : Fragment() {
                         }
                         binding.rvSongs.layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
                         val adp = SongAdapter(json){
-                            lifecycleScope.launch {
+                            viewLifecycleOwner.lifecycleScope.launch {
                                 val json = withContext(Dispatchers.IO) {
                                     it.hash?.let { hash -> KugouAPi.getSongsUrl(hash) }
                                 }
@@ -190,6 +190,8 @@ class PlaylistDetailFragment : Fragment() {
                         Log.d("PlaylistDetailFragment", "onCreateView: ${e.message}")
                     }
                 }
+            } else {
+                Toast.makeText(context, "数据加载失败", Toast.LENGTH_LONG).show()
             }
         }
 
@@ -307,7 +309,7 @@ class PlaylistDetailFragment : Fragment() {
     }.flowOn(Dispatchers.IO)//协程网络请求
 
 
-    fun splitArtistAndTitle(text: String): Pair<String, String>? {
+    private fun splitArtistAndTitle(text: String): Pair<String, String>? {
         val parts = text.split(" - ", limit = 2)
         return if (parts.size == 2) {
             parts[0].trim() to parts[1].trim() // 保证去掉首尾空格，保留中间空格
