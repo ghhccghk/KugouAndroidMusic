@@ -63,10 +63,6 @@ class PlaylistDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         player = MainActivity.controllerFuture.get()
 
-        // 隐藏 BottomNavigationView
-        val a = requireActivity().findViewById<BottomNavigationView>(R.id.nav_view)
-        hideBottomNav(a)
-
         KugouAPi.init()
         if (MainActivity.isNodeRunning){
             val playlistId = arguments?.getString("playlistId",null)
