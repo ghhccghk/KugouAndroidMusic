@@ -10,13 +10,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.ServiceConnection
-import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.util.AttributeSet
-import android.util.Log
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -27,9 +24,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
+import androidx.core.view.isGone
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.MediaMetadata
@@ -51,8 +48,7 @@ import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.SmartImageCache
-import com.ghhccghk.musicplay.util.TokenManager
-import com.ghhccghk.musicplay.util.UrlCacheManager
+import com.ghhccghk.musicplay.util.Tools.isFirstRun
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -62,7 +58,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lsposed.hiddenapibypass.LSPass
-import org.nift4.gramophone.hificore.UacManager
 
 class MainActivity : AppCompatActivity() {
 
@@ -73,8 +68,6 @@ class MainActivity : AppCompatActivity() {
     var bound = false
     private val viewModel by viewModels<MainViewModel>()
     var isNodeRunning = false
-    lateinit var uacManager: UacManager
-        private set
 
     private val nodeReadyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -114,8 +107,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
-        uacManager = UacManager(this)
-        UrlCacheManager.init(this)
+
         val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
         val cacheSizeMB = prefs.getString("image_cache_size", "50")?.toLongOrNull() ?: 950L
 
@@ -127,22 +119,6 @@ class MainActivity : AppCompatActivity() {
             start()
         } else {
             start()
-        }
-        when (prefs.getString("theme_mode", "0")) {
-            "0" -> {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
-            }
-
-            "1" -> {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
-            }
-
-            "2" -> {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-                Log.d("MainActivity", "theme_mode is ${prefs.getString("theme_mode", "0")}")
-            }
         }
 
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
@@ -159,39 +135,24 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.playlistDetailFragment -> {
                     hideBottomNav(navView)
+                    if (playbar.isGone){
+                        showPlaybar(playbar)
+                    }
                 }
                 else -> {
-                    if (navView.visibility == View.GONE) {
+                    if (navView.isGone) {
                         showBottomNav(navView)
                     }
-                    if (playbar.visibility == View.GONE) {
+                    if (playbar.isGone && navView.isGone) {
                         showLinearLayout(playbar, navView)
+                    }
+                    if (playbar.isGone){
+                        showPlaybar(playbar)
                     }
                 }
             }
         }
     }
-
-    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
-        return super.onCreateView(name, context, attrs)
-        if (isFirstRun(this)) {
-            ZipExtractor.extractZipOnFirstRun(this, "api_js.zip", "nodejs_files")
-            start()
-        } else {
-            start()
-        }
-
-    }
-
-    fun isFirstRun(context: Context): Boolean {
-        val prefs = context.getSharedPreferences("app_prefs", MODE_PRIVATE)
-        val isFirst = prefs.getBoolean("is_first_run", true)
-        if (isFirst) {
-            prefs.edit().putBoolean("is_first_run", false).apply()
-        }
-        return isFirst
-    }
-
 
     override fun onStop() {
         super.onStop()
@@ -403,6 +364,18 @@ class MainActivity : AppCompatActivity() {
         slideOut.start()
     }
 
+    private fun showPlaybar(play: LinearLayout){
+        play.visibility = View.VISIBLE
+        val slideIn = ObjectAnimator.ofFloat(
+            play,
+            "translationY",
+            play.height.toFloat(),
+            0f
+        )
+        slideIn.duration = 100
+        slideIn.start()
+    }
+
     companion object {
         private lateinit var instance: MainActivity
         val lontext: Context
@@ -420,23 +393,22 @@ class MainActivity : AppCompatActivity() {
 
 
     @OptIn(UnstableApi::class)
-    fun start() {
-        TokenManager.init(this)
+    private fun start() {
         KugouAPi.init()
+        // 启动 Service
+        // 初始化媒体控制器
+        val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
+        viewModel.controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
 
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
+
         Intent(this, PlayService::class.java).also {
             bindService(it, connection, BIND_AUTO_CREATE)
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // 启动 Service
-        // 初始化媒体控制器
-        val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
-        viewModel.controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
 
         val navView: NavigationBarView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
@@ -528,11 +500,11 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    fun isDarkMode(context: Context): Boolean {
-        val uiMode = context.resources.configuration.uiMode
-        val nightMode = uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return nightMode == Configuration.UI_MODE_NIGHT_YES
-    }
+//    fun isDarkMode(context: Context): Boolean {
+//        val uiMode = context.resources.configuration.uiMode
+//        val nightMode = uiMode and Configuration.UI_MODE_NIGHT_MASK
+//        return nightMode == Configuration.UI_MODE_NIGHT_YES
+//    }
 
     @Composable
     fun Setplaylistui(player: Player) {

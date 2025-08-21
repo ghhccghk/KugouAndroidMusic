@@ -23,6 +23,7 @@
 
 
     <application
+        android:name=".MainApplication"
         android:appCategory="audio"
         android:allowBackup="true"
         android:networkSecurityConfig="@xml/network_security_config"

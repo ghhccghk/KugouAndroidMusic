@@ -143,7 +143,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -282,13 +281,6 @@ dependencies {
     // Choose one of the following:
     // Material Design 3
     implementation(libs.androidx.material3)
-    // or Material Design 2
-    implementation(libs.androidx.material)
-    // or skip Material Design and build directly on top of foundational components
-    implementation(libs.androidx.foundation)
-    // or only import the main APIs for the underlying toolkit systems,
-    // such as input and measurement/layout
-    implementation(libs.androidx.ui)
 
     // Android Studio Preview support
     implementation(libs.androidx.ui.tooling.preview)
@@ -360,7 +352,8 @@ dependencies {
 
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance)
-    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.coil.compose)
+    implementation(libs.hiddenapibypass)
     //implementation(libs.androidx.glance.wear.tiles)
 
 

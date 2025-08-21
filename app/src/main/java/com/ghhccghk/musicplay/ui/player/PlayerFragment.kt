@@ -237,7 +237,7 @@ class PlayerFragment() : Fragment() {
             val url = player.mediaMetadata.artworkUri
             val hash = player.currentMediaItem?.songHash
 
-            lifecycleScope.launch {
+            viewLifecycleOwner.lifecycleScope.launch {
                 withContext(Dispatchers.IO) {
                     val fileUrl = SmartImageCache.getOrDownload(url.toString(),hash)
                     val drawable = withContext(Dispatchers.IO) {
@@ -279,7 +279,7 @@ class PlayerFragment() : Fragment() {
                     val format = player.getAudioFormat()
                     val url = player.mediaMetadata.artworkUri
                     if (_binding != null ){
-                        lifecycleScope.launch {
+                        viewLifecycleOwner.lifecycleScope.launch {
                             withContext(Dispatchers.IO) {
                                 val a = Glide.with(context)
                                     .load(url)
@@ -306,7 +306,7 @@ class PlayerFragment() : Fragment() {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     if (_binding != null){
                         val url = player.mediaMetadata.artworkUri
-                        lifecycleScope.launch {
+                        viewLifecycleOwner.lifecycleScope.launch {
                             withContext(Dispatchers.IO) {
                                 val a = Glide.with(context)
                                     .load(url)
@@ -347,7 +347,7 @@ class PlayerFragment() : Fragment() {
                             Glide.with(binding.root)
                                 .load(player.mediaMetadata.artworkUri)
                                 .into(binding.fullSheetCover)
-                            lifecycleScope.launch {
+                            viewLifecycleOwner.lifecycleScope.launch {
                                 withContext(Dispatchers.IO) {
                                     val a = Glide.with(context)
                                         .load(url)
