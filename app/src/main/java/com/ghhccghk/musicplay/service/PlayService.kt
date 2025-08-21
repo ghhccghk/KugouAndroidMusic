@@ -27,6 +27,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -40,6 +41,7 @@ import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaLoadData
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -67,10 +69,12 @@ import com.ghhccghk.musicplay.ui.lyric.isManualNotificationUpdate
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
+import com.ghhccghk.musicplay.util.Flags
 import com.ghhccghk.musicplay.util.LyricSyncManager
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
+import com.ghhccghk.musicplay.util.Tools.getStringStrict
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
 import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
@@ -387,6 +391,20 @@ class PlayService : MediaSessionService(),
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .build(), true
             )
+            .setTrackSelector(DefaultTrackSelector(this).apply {
+                setParameters(buildUponParameters()
+                    .setAllowInvalidateSelectionsOnRendererCapabilitiesChange(true)
+                    .setAudioOffloadPreferences(
+                        TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                            .apply {
+                                val config = prefs.getStringStrict("offload", "0")?.toIntOrNull()
+                                if (config != null && config > 0 && Flags.OFFLOAD) {
+                                    setAudioOffloadMode(TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED)
+                                    setIsGaplessSupportRequired(config == 2)
+                                }
+                            }
+                            .build()))
+            })
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
             .build()
 

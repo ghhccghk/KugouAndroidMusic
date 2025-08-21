@@ -1,6 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.Musicplay" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
+        <item name="alertDialogTheme">@style/AppTheme.AlertDialog</item>
         <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="colorPrimaryVariant" >@color/material_grey_300</item>
@@ -9,6 +10,7 @@
 
 
     <style name="Theme.MyApplication" parent="Theme.Material3.DynamicColors.Light">
+        <item name="alertDialogTheme">@style/AppTheme.AlertDialog</item>
         <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="windowActionBar">false</item>
@@ -48,6 +50,13 @@
         <item name="android:progressBackgroundTint">?android:attr/textColorTertiary</item>
         <item name="android:clickable">true</item>
         <item name="android:splitTrack">false</item>
+    </style>
+
+    <style name="AppTheme.AlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="dialogCornerRadius">28dp</item>
+        <item name="cornerFamily">rounded</item>
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="android:layout" tools:ignore="PrivateResource">@layout/m3_alert_dialog</item>
     </style>
 
 

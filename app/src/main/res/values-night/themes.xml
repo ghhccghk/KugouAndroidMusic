@@ -1,6 +1,7 @@
 <resources>
 
     <style name="Theme.MyApplication" parent="Theme.Material3.DynamicColors.Dark">
+        <item name="alertDialogTheme">@style/AppTheme.AlertDialog</item>
         <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorPrimaryVariant">@color/material_grey_300</item>
@@ -21,6 +22,6 @@
         <item name="windowNoTitle">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="alertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/AppTheme.AlertDialog</item>
     </style>
 </resources>

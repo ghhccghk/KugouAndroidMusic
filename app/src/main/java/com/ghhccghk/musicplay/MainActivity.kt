@@ -12,6 +12,7 @@ import android.content.IntentFilter
 import android.content.ServiceConnection
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.AttributeSet
@@ -60,6 +61,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.lsposed.hiddenapibypass.LSPass
 import org.nift4.gramophone.hificore.UacManager
 
 class MainActivity : AppCompatActivity() {
@@ -97,6 +99,14 @@ class MainActivity : AppCompatActivity() {
             viewModel.noderun = isNodeRunning
             nodeService = null
         }
+    }
+
+    init {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            LSPass.setHiddenApiExemptions("")
+        }
+        if (BuildConfig.DEBUG)
+            System.setProperty("kotlinx.coroutines.debug", "on")
     }
 
     @SuppressLint("CommitTransaction")

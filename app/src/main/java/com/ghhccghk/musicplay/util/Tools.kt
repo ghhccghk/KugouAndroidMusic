@@ -26,6 +26,7 @@ package com.ghhccghk.musicplay.util
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -78,6 +79,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.MultiFormatWriter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import org.jetbrains.annotations.Contract
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -605,8 +607,38 @@ object Tools {
         dao.savePlaylist(entities)
     }
 
+    inline fun <reified T> SharedPreferences.use(
+        relax: Boolean = false,
+        doIt: SharedPreferences.() -> T
+    ): T {
+        return allowDiskAccessInStrictMode(relax) { doIt() }
+    }
 
 
+    // use below functions if accessing from UI thread only
+    @Suppress("NOTHING_TO_INLINE")
+    @Contract(value = "_,!null->!null")
+    inline fun SharedPreferences.getStringStrict(key: String, defValue: String?): String? {
+        return use { getString(key, defValue) }
+    }
 
+}
 
+// the whole point of this function is to do literally nothing at all (but without impacting
+// performance) in release builds and ignore StrictMode violations in debug builds
+inline fun <reified T> allowDiskAccessInStrictMode(relax: Boolean = false, doIt: () -> T): T {
+    return if (BuildConfig.DEBUG) {
+        if (Looper.getMainLooper() != Looper.myLooper()) {
+            if (relax) doIt() else
+                throw IllegalStateException("allowDiskAccessInStrictMode(false) on wrong thread")
+        } else {
+            val policy = StrictMode.allowThreadDiskReads()
+            try {
+                StrictMode.allowThreadDiskWrites()
+                doIt()
+            } finally {
+                StrictMode.setThreadPolicy(policy)
+            }
+        }
+    } else doIt()
 }

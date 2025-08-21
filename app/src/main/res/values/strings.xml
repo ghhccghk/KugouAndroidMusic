@@ -331,5 +331,10 @@
     <string name="media_control_text_error">Unable to open media output settings</string>
     <string name="audio_signal_chain">Audio signal chain</string>
     <string name="audio_not_initialized">The audio playback system is not initialized. Try playing something!</string>
+    <string name="disabled">Disabled</string>
+    <string name="offload_enabled_if_supported">Enabled (if format is supported)</string>
+    <string name="offload_enabled_if_gapless">Enabled if gapless playback possible</string>
+    <string name="settings_audio_offload">Audio offload (saves battery)</string>
+
 
 </resources>

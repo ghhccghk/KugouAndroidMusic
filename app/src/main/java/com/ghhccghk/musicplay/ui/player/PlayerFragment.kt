@@ -9,10 +9,12 @@ import android.content.Context.MODE_PRIVATE
 import android.content.res.ColorStateList
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.TransitionDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -20,6 +22,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewPropertyAnimator
 import android.widget.SeekBar
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.scale
 import androidx.core.view.HapticFeedbackConstantsCompat
@@ -475,14 +478,38 @@ class PlayerFragment() : Fragment() {
         }
 
         binding.qualityDetails.setOnClickListener {
-            MaterialAlertDialogBuilder(context)
+            val dialog = MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.audio_signal_chain)
                 .setMessage(
                     currentFormat?.prettyToString(context)
                         ?: context.getString(R.string.audio_not_initialized)
                 )
-                .setPositiveButton(android.R.string.ok) { _, _ -> }
-                .show()
+                .setPositiveButton(android.R.string.ok, null)
+                .create()
+
+            dialog.setOnShowListener {
+                val positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                positive.setTextColor(colorOnSecondaryContainerFinalColor)
+            }
+            dialog.show()
+
+            // 创建一个圆角背景 Drawable
+            val radius = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 16f, context.resources.displayMetrics
+            )
+            val drawable = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = radius
+                setColor(MediaViewModelObject.surfaceTransition.intValue)
+            }
+
+            // 设置对话框背景
+            dialog.window?.setBackgroundDrawable(drawable)
+            dialog.window?.setLayout(
+                (context.resources.displayMetrics.widthPixels * 0.8).toInt(),  // 宽度 = 屏幕 80%
+                (context.resources.displayMetrics.heightPixels * 0.6).toInt()   // 宽度 = 屏幕 50%
+            )
+
         }
 
         val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

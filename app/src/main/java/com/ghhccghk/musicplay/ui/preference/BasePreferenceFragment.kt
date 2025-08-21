@@ -28,9 +28,9 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
-import com.ghhccghk.musicplay.util.Tools.allowDiskAccessInStrictMode
 import com.ghhccghk.musicplay.util.Tools.dpToPx
 import com.ghhccghk.musicplay.util.Tools.enableEdgeToEdgePaddingListener
+import com.ghhccghk.musicplay.util.allowDiskAccessInStrictMode
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 

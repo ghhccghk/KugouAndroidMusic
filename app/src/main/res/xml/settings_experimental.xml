@@ -80,6 +80,18 @@
             app:iconSpaceReserved="false"/>
 
 
+        <ListPreference
+            android:defaultValue="0"
+            android:entries="@array/offload_switch"
+            android:entryValues="@array/offload_switch_val"
+            android:key="offload"
+            android:layout="@layout/preference_basic"
+            android:title="@string/settings_audio_offload"
+            app:iconSpaceReserved="false"
+            app:useSimpleSummaryProvider="true" />
+
+
+
     </PreferenceCategory>
 
 
