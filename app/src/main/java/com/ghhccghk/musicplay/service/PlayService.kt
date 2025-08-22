@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
 import android.os.Binder
@@ -139,8 +140,7 @@ class PlayService : MediaSessionService(),
     private var bitrate: Long? = null
     private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
     private lateinit var repo: PlaylistRepository
-    private var prefs =
-        MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private lateinit var prefs: SharedPreferences
     val subDir = "cache/lyrics"
     private var proxy: BtCodecInfo.Companion.Proxy? = null
 
@@ -311,6 +311,7 @@ class PlayService : MediaSessionService(),
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
+        prefs = this.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
