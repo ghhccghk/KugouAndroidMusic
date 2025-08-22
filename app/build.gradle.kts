@@ -354,6 +354,8 @@ dependencies {
     implementation(libs.androidx.glance)
     implementation(libs.coil.compose)
     implementation(libs.hiddenapibypass)
+    implementation(libs.lyrics.core)
+    implementation(libs.lyrics.ui)
     //implementation(libs.androidx.glance.wear.tiles)
 
 
