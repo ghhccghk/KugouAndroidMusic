@@ -185,5 +185,6 @@
     <string name="settings_nodejs_version">NodeJs 版本</string>
     <string name="settings_git_hash">Git 哈希</string>
     <string name="settings_build_time">编译时间</string>
+    <string name="user_vip_info">VIP Info</string>
 
 </resources>

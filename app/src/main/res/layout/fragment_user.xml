@@ -358,6 +358,17 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <TextView
+                android:id="@+id/user_vip_info_textview"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="@string/user_vip_info"
+                android:textSize="16sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/vip_compose_view"/>
+
             <androidx.compose.ui.platform.ComposeView
                 android:id="@+id/vip_compose_view"
                 android:layout_width="match_parent"
@@ -372,11 +383,13 @@
 
 
                 <TextView
-                    android:id="@+id/text_user_like_playlist_view"
+                    android:id="@+id/text_user_like_playlist_textview"
+                    android:layout_marginStart="10dp"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/user_playlist"
-                    android:textSize="16sp" />
+                    android:textSize="16sp"
+                    card_view:ignore="MissingConstraints" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/recycler_view_user_like_playlist"
@@ -384,7 +397,7 @@
                     android:layout_height="match_parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/text_user_like_playlist_view" />
+                    app:layout_constraintTop_toBottomOf="@id/text_user_like_playlist_textview" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </LinearLayout>

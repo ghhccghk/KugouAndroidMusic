@@ -11,6 +11,13 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -18,6 +25,8 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -182,7 +191,21 @@ class UserFragment : Fragment() {
             MaterialTheme(colorScheme = colorScheme) {
                 vipState.value?.let {
                     VipInfoScreen(it.data) // 显示 VIP 信息
-                } ?: Text(text = "解析失败",style = MaterialTheme.typography.titleMedium ) // 没数据时显示
+                } ?: Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(7.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "解析失败",style = MaterialTheme.typography.titleMedium ) // 没数据时显示
+                    }
+                }
             }
         }
         if (MainActivity.isNodeRunning && isLoggedIn()) {
