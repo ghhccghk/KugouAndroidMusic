@@ -25,6 +25,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
@@ -50,15 +60,13 @@ import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.BACKGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.FOREGROUND_COLOR_TRANSITION_SEC
-import com.ghhccghk.musicplay.ui.widgets.YosLyricView
 import com.ghhccghk.musicplay.util.SmartImageCache
-import com.ghhccghk.musicplay.util.lrc.YosMediaEvent
-import com.ghhccghk.musicplay.util.lrc.YosUIConfig
 import com.ghhccghk.musicplay.util.ui.ColorUtils
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.transition.platform.MaterialSharedAxis
+import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -106,6 +114,7 @@ class LyricsFragment: Fragment() {
         }
 
         returnTransition = customTransition
+        testlyric()
 
         return root
     }
@@ -117,7 +126,7 @@ class LyricsFragment: Fragment() {
         // 保存原始状态
         originalStatusBarColor = window.statusBarColor
         originalLightStatusBar = controller.isAppearanceLightStatusBars
-        testlyric()
+
 
     }
 
@@ -138,33 +147,38 @@ class LyricsFragment: Fragment() {
         })
         lifecycleScope.launch { updatebg() }
         binding.lyricsContainerComposeView.setContent {
-            showControl.value = false
-            YosLyricView(
-                uiConfig = YosUIConfig(),
-                liveTimeLambda = { ( play.currentPosition?: 0).toInt() },
-                mediaEvent = object : YosMediaEvent {
-                    override fun onSeek(position: Int) {
-                        play.seekTo(position.toLong())
-                    }
-                },
-                weightLambda = { showControl.value },
-                translationLambda = { translation },
-                blurLambda = { setting_blur },
-                onBackClick = {
-                    showControl.value = true
-                },
-                mainTextBasicColor = {
-                    androidx.compose.ui.graphics.Color(
-                        MediaViewModelObject.colorOnSecondaryContainerFinalColor.value
-                    )
-                },
-                subTextBasicColor = {
-                    androidx.compose.ui.graphics.Color(
-                        MediaViewModelObject.colorSecondaryContainerFinalColor.value
-                    )
+            val listState = rememberLazyListState()
+            val finalLyrics = MediaViewModelObject.newLrcEntries.value
+
+            val currentPosition = remember { mutableStateOf(0L) }
+
+            LaunchedEffect(play.isPlaying) {
+                while (play.isPlaying) {
+                    currentPosition.value = play.currentPosition ?: 0L
+                    delay(16) // 每 16ms 更新
                 }
+            }
+
+
+            showControl.value = false
+            KaraokeLyricsView(
+                listState = listState,
+                lyrics = finalLyrics,
+                currentPosition = currentPosition.value,
+                onLineClicked = { line ->
+                    play.seekTo(line.start.toLong())
+                },
+                onLinePressed = { line ->
+
+                },
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .graphicsLayer {
+                        blendMode = BlendMode.Plus
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    },
             )
-        }
+       }
     }
 
     override fun onResume() {

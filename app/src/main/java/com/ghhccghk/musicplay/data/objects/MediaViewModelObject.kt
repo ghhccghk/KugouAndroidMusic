@@ -11,10 +11,12 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 
 @Stable
 object MediaViewModelObject {
     val lrcEntries: MutableState<List<List<Pair<Float, String>>>> = mutableStateOf(listOf())
+    val newLrcEntries: MutableState<SyncedLyrics> = mutableStateOf(SyncedLyrics(listOf()))
     val otherSideForLines = mutableStateListOf<Boolean>()
 
     // var mainLyricLines = mutableStateListOf<AnnotatedString>()
