@@ -27,14 +27,18 @@ import android.view.ViewGroup
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
@@ -74,7 +78,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class LyricsFragment: Fragment() {
+class LyricsFragment : Fragment() {
 
     private var _binding: FragmentLyricsBinding? = null
     val play = MainActivity.controllerFuture.get()
@@ -90,10 +94,11 @@ class LyricsFragment: Fragment() {
     private var originalStatusBarColor: Int = 0
     private var originalLightStatusBar: Boolean = true
 
-    private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
-    private val colorbg = prefs.getBoolean("setting_color_background_set",false)
-    private val setting_blur = prefs.getBoolean("setting_blur",false)
-    private val translation = prefs.getBoolean("setting_translation",true)
+    private val prefs =
+        MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+    private val colorbg = prefs.getBoolean("setting_color_background_set", false)
+    private val setting_blur = prefs.getBoolean("setting_blur", false)
+    private val translation = prefs.getBoolean("setting_translation", true)
 
     @OptIn(UnstableApi::class)
     override fun onCreateView(
@@ -137,10 +142,10 @@ class LyricsFragment: Fragment() {
 
     @OptIn(UnstableApi::class)
     fun testlyric() {
-        play.addListener(object : Player.Listener{
+        play.addListener(object : Player.Listener {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
                 super.onMediaMetadataChanged(mediaMetadata)
-                if (_binding != null){
+                if (_binding != null) {
                     lifecycleScope.launch { updatebg() }
                 }
             }
@@ -149,22 +154,19 @@ class LyricsFragment: Fragment() {
         binding.lyricsContainerComposeView.setContent {
             val listState = rememberLazyListState()
             val finalLyrics = MediaViewModelObject.newLrcEntries.value
-
-            val currentPosition = remember { mutableStateOf(0L) }
+            var currentPosition by remember { mutableLongStateOf(0L) }
 
             LaunchedEffect(play.isPlaying) {
                 while (play.isPlaying) {
-                    currentPosition.value = play.currentPosition ?: 0L
-                    delay(16) // 每 16ms 更新
+                    currentPosition = play.currentPosition
+                    delay(16) // 60fps 刷新
                 }
             }
 
-
-            showControl.value = false
             KaraokeLyricsView(
                 listState = listState,
                 lyrics = finalLyrics,
-                currentPosition = currentPosition.value,
+                currentPosition = currentPosition,
                 onLineClicked = { line ->
                     play.seekTo(line.start.toLong())
                 },
@@ -172,18 +174,32 @@ class LyricsFragment: Fragment() {
 
                 },
                 modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .graphicsLayer {
-                        blendMode = BlendMode.Plus
-                        compositingStrategy = CompositingStrategy.Offscreen
+                    .padding(horizontal = 12.dp),
+                normalLineTextStyle = LocalTextStyle.current.copy(
+                    fontSize = 34.sp,
+                    fontStyle = FontStyle.Normal,
+                    fontWeight = when (prefs.getString("lyric_font_weight", "Bold")) {
+                        "Thin" -> FontWeight.Thin
+                        "ExtraLight" -> FontWeight.ExtraLight
+                        "Light" -> FontWeight.Light
+                        "Regular" -> FontWeight.Normal
+                        "Medium" -> FontWeight.Medium
+                        "SemiBold" -> FontWeight.SemiBold
+                        "Bold" -> FontWeight.Bold
+                        "ExtraBold" -> FontWeight.ExtraBold
+                        "Black" -> FontWeight.Black
+                        else -> FontWeight.ExtraBold
                     },
+                    textMotion = TextMotion.Animated,
+                )
             )
-       }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         showControl.value = false
+        testlyric()
     }
 
     override fun onStop() {
@@ -208,7 +224,7 @@ class LyricsFragment: Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d("Lyric","onDestroy")
+        Log.d("Lyric", "onDestroy")
         val window = requireActivity().window
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         // 恢复原来的状态栏颜色和图标颜色
@@ -246,20 +262,23 @@ class LyricsFragment: Fragment() {
     }
 
 
-    fun updatebg(){
+    fun updatebg() {
         val imageUrl = play.mediaMetadata.artworkUri
         val hash = play.currentMediaItem?.songHash
-        val fileUrl = SmartImageCache.getCachedUri(imageUrl.toString(),hash)
+        val fileUrl = SmartImageCache.getCachedUri(imageUrl.toString(), hash)
         Glide.with(this)
             .asBitmap()
             .load(fileUrl)
             .into(object : CustomTarget<Bitmap>() {
                 val times = 4  // 模糊叠加3次
                 val radius = 25f
-                override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
+                override fun onResourceReady(
+                    resource: Bitmap,
+                    transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                ) {
                     // 31+ 用 View 的 setRenderEffect 方式
                     val drawable = resource.toDrawable(resources)
-                    if (colorbg){
+                    if (colorbg) {
                         if (DynamicColors.isDynamicColorAvailable() &&
                             prefs.getBoolean("content_based_color", true)
                         ) {
@@ -280,9 +299,11 @@ class LyricsFragment: Fragment() {
                             controller.isAppearanceLightStatusBars = false
                         }
                         //选中字体颜色
-                        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = ContextCompat.getColor(MainActivity.lontext,R.color.lyric_main_bg)
+                        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue =
+                            ContextCompat.getColor(MainActivity.lontext, R.color.lyric_main_bg)
                         //未选中字体颜色
-                        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = ContextCompat.getColor(MainActivity.lontext,R.color.lyric_sub_bg)
+                        MediaViewModelObject.colorSecondaryContainerFinalColor.intValue =
+                            ContextCompat.getColor(MainActivity.lontext, R.color.lyric_sub_bg)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val heavilyBlurredBitmap = blurMultipleTimes(
                                 MainActivity.lontext,
@@ -301,7 +322,8 @@ class LyricsFragment: Fragment() {
                         } else {
                             // 手动模糊
                             val blurred = blurBitmapLegacy(MainActivity.lontext, resource, 25f)
-                            val heavilyBlurredBitmap = blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
+                            val heavilyBlurredBitmap =
+                                blurMultipleTimes(MainActivity.lontext, blurred, radius, times)
                             binding.backgroundImage.setImageBitmap(heavilyBlurredBitmap)
                             binding.backgroundImage.setColorFilter(
                                 "#66000000".toColorInt(), // 半透明黑色，66 是透明度（十六进制）
@@ -398,7 +420,7 @@ class LyricsFragment: Fragment() {
             addUpdateListener { animation ->
                 if (_binding != null) {
                     MediaViewModelObject.surfaceTransition.intValue = animation.animatedValue as Int
-                    if (colorbg){
+                    if (colorbg) {
                         binding.backgroundImage.setBackgroundColor(
                             animation.animatedValue as Int
                         )
@@ -419,7 +441,8 @@ class LyricsFragment: Fragment() {
         delay(FOREGROUND_COLOR_TRANSITION_SEC)
         colorSecondaryContainerFinalColor = colorSecondaryContainer
         colorOnSecondaryContainerFinalColor = colorOnSecondaryContainer
-        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue = colorOnSecondaryContainer
+        MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue =
+            colorOnSecondaryContainer
         MediaViewModelObject.colorSecondaryContainerFinalColor.intValue = colorSecondaryContainer
 
         currentJob = null

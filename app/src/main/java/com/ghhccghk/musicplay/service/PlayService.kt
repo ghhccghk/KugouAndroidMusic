@@ -79,7 +79,6 @@ import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
-import com.ghhccghk.musicplay.util.lrc.YosLrcFactory
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.common.util.concurrent.Futures
@@ -87,6 +86,9 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.SuperLyricPush
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.toSyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 import com.mocharealm.accompanist.lyrics.core.utils.LyricsFormatGuesser
 import kotlinx.coroutines.CoroutineScope
@@ -160,7 +162,7 @@ class PlayService : MediaSessionService(),
                 runCatching {
                     var isPlaying: Boolean?
                     var liveTime: Long
-                    var lastLyric = listOf<Pair<Float, String>>()
+                    var lastLyric = ""
                     val play_bar_lyrics = prefs.getBoolean("play_bar_lyrics",false)
 
                     handler.post {
@@ -171,36 +173,56 @@ class PlayService : MediaSessionService(),
                             if (isPlaying == true) {
                                 val car_lyrics = prefs.getBoolean("car_lyrics", false)
                                 val status_bar_lyrics = prefs.getBoolean("status_bar_lyrics", false)
+                                val newlyric = MediaViewModelObject.newLrcEntries.value
+
                                 MainViewModelObject.syncLyricIndex.intValue = currentLyricIndex
 
                                 liveTime = mediaSession.player.currentPosition
 
-                                val lrcEntries = MediaViewModelObject.lrcEntries.value
+//                                val lrcEntries = MediaViewModelObject.lrcEntries.value
 
-
-                                val nextIndex = lrcEntries.indexOfFirst { line ->
-                                    line.first().first >= liveTime
+                                val nextIndex = newlyric.lines.indexOfFirst { line ->
+                                    line.start >= liveTime
                                 }
+
+//
+//                                val nextIndex = lrcEntries.indexOfFirst { line ->
+//                                    line.first().first >= liveTime
+//                                }
 
 
                                 val sendLyric = fun() {
                                     try {
-                                        val line = lrcEntries[currentLyricIndex]
+                                        val newLine = newlyric.lines[currentLyricIndex]
 
-                                        if (line == lastLyric) {
-                                            return
+                                        when (newLine){
+                                            is KaraokeLine -> {
+                                                if (lastLyric == newLine.toSyncedLine().content) return
+                                            }
+                                            is SyncedLine -> {
+                                                if (lastLyric == newLine.content) return
+                                            }
                                         }
 
                                         val lyricb = StringBuffer("")
-
-                                        line.forEachIndexed { charIndex, char ->
-                                            if (charIndex >= line.size - 1) return@forEachIndexed
-                                            lyricb.append(char.second)
-                                        }
                                         //翻译
-                                        val translation = line.lastOrNull()?.second?.takeIf { it.isNotBlank() && line.size > 1 }
+                                        val translation = StringBuffer("")
+
+                                        when (newLine){
+                                            is KaraokeLine -> {
+                                                lyricb.append(newLine.toSyncedLine().content)
+                                                translation.append(newLine.toSyncedLine().translation)
+
+                                            }
+                                            is SyncedLine -> {
+                                                lyricb.append(newLine.content)
+                                                translation.append(newLine.translation)
+                                            }
+                                        }
+
 
                                         val lyricResult = lyricb.toString()
+                                        val translationResult = translation.toString()
 
                                         if (playbar.visibility != View.GONE && play_bar_lyrics) {
                                             playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
@@ -210,12 +232,13 @@ class PlayService : MediaSessionService(),
                                             withContext(Dispatchers.IO){
                                                 LyricSyncManager(
                                                     this@PlayService,
-                                                    MediaViewModelObject.lrcEntries.value
-                                                ).sync(liveTime)
+                                                    MediaViewModelObject.newLrcEntries.value
+                                                ).sync(currentLyricIndex)
                                             }
                                         }
 
                                         if (car_lyrics || status_bar_lyrics) {
+                                            lyric = lyricResult
                                             if (car_lyrics) {
                                                 val sessionMetadata =
                                                     mediaSession.player.mediaMetadata
@@ -234,14 +257,13 @@ class PlayService : MediaSessionService(),
                                                 )
                                             }
                                             if (status_bar_lyrics) {// 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
-                                                lyric = lyricResult
-                                                if (translation != null){
+                                                if (translationResult != "null"){
                                                     SuperLyricPush.onSuperLyric(
                                                         SuperLyricData()
                                                             .setLyric(lyricResult) // 设置歌词
                                                             .setBase64Icon(base64)
                                                             .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                            .setTranslation(translation)
+                                                            .setTranslation(translationResult)
                                                     ) // 发送歌词
                                                 } else {
                                                     SuperLyricPush.onSuperLyric(
@@ -260,7 +282,7 @@ class PlayService : MediaSessionService(),
                                                 isManualNotificationUpdate = false
                                             }
                                         }
-                                        lastLyric = line
+                                        lastLyric = lyricResult
                                     } catch (_: Exception) {
                                     }
                                 }
@@ -269,8 +291,8 @@ class PlayService : MediaSessionService(),
 
                                 if (nextIndex != -1 && nextIndex - 1 != currentLyricIndex) {
                                     newIndex = nextIndex - 1
-                                } else if (nextIndex == -1 && currentLyricIndex != lrcEntries.size - 1) {
-                                    newIndex = lrcEntries.size - 1
+                                } else if (nextIndex == -1 && currentLyricIndex != newlyric.lines.size - 1) {
+                                    newIndex = newlyric.lines.size - 1
                                 }
 
                                 if (newIndex != currentLyricIndex) {
@@ -597,8 +619,8 @@ class PlayService : MediaSessionService(),
             val lyricss = autoParserLyric.parse(cachedData)
             MediaViewModelObject.newLrcEntries.value = lyricss
 
-            MediaViewModelObject.lrcEntries.value =
-                YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cachedData))
+//            MediaViewModelObject.lrcEntries.value =
+//                YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cachedData))
         } else {
             serviceScope.launch {
                 if (!MainActivity.isNodeRunning?: false) return@launch
@@ -660,7 +682,7 @@ class PlayService : MediaSessionService(),
         val fileName = Tools.sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
         Tools.writeToSubdirCache(this.applicationContext, subDir, fileName, content.toString())
         Tools.readFromSubdirCache(this.applicationContext, subDir, fileName)?.let { cached ->
-            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cached))
+//            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cached))
         }
         val myCustomFormat = LyricsFormatGuesser.LyricsFormat(
             name = "MY_CUSTOM_FORMAT",
