@@ -2,6 +2,8 @@
 
 package com.ghhccghk.musicplay.ui.player
 
+import android.R.attr.colorAccent
+import android.R.attr.colorPrimary
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.content.Context
@@ -197,7 +199,7 @@ class PlayerFragment() : Fragment() {
         )
         colorPrimaryFinalColor = MaterialColors.getColor(
             root,
-            com.google.android.material.R.attr.colorPrimary
+            colorPrimary
         )
         colorOnSecondaryContainerFinalColor = MaterialColors.getColor(
             root,
@@ -402,7 +404,7 @@ class PlayerFragment() : Fragment() {
             it.setTint(
                 MaterialColors.getColor(
                     binding.sliderSquiggly,
-                    com.google.android.material.R.attr.colorPrimary,
+                    colorPrimary,
                 )
             )
         }
@@ -632,7 +634,7 @@ class PlayerFragment() : Fragment() {
         val colorPrimary =
             MaterialColors.getColor(
                 ctx,
-                com.google.android.material.R.attr.colorPrimary,
+                colorPrimary,
                 -1
             )
 
@@ -665,7 +667,7 @@ class PlayerFragment() : Fragment() {
         val colorAccent =
             MaterialColors.getColor(
                 ctx,
-                com.google.android.material.R.attr.colorAccent,
+                colorAccent,
                 -1
             )
 

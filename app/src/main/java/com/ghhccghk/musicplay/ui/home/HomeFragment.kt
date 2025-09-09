@@ -1,6 +1,6 @@
 package com.ghhccghk.musicplay.ui.home
 
-import com.ghhccghk.musicplay.util.adapte.LogicFragmentPagerAdapter
+import android.R.attr.colorPrimary
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,14 +11,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
 import com.ghhccghk.musicplay.ui.login.LoginPassWord
 import com.ghhccghk.musicplay.ui.login.LoginQrcode
 import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.TokenManager.isLoggedIn
+import com.ghhccghk.musicplay.util.adapte.LogicFragmentPagerAdapter
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.tabs.TabLayoutMediator
 
@@ -55,8 +56,8 @@ class HomeFragment : Fragment() {
                             setBackgroundColor(
                                 MaterialColors.getColor(
                                     requireContext(),
-                                    com.google.android.material.R.attr.colorPrimary,
-                                    com.google.android.material.R.attr.colorPrimary
+                                    colorPrimary,
+                                    colorPrimary
                                 )
                             )
                         }
