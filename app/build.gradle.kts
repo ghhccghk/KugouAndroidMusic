@@ -356,6 +356,7 @@ dependencies {
     implementation(libs.hiddenapibypass)
     implementation(libs.lyrics.core)
     implementation(libs.lyrics.ui)
+    implementation(libs.hyperfocusapi)
     //implementation(libs.androidx.glance.wear.tiles)
 
 

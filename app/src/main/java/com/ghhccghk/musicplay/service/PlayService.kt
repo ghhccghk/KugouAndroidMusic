@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.drawable.Icon
 import android.media.AudioDeviceInfo
 import android.os.Binder
 import android.os.Build
@@ -86,6 +87,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.SuperLyricPush
+import com.hyperfocus.api.FocusApi
+import com.hyperfocus.api.IslandApi
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.toSyncedLine
@@ -97,6 +100,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 
 
@@ -146,6 +150,7 @@ class PlayService : MediaSessionService(),
     private val bitrateFetcher = CoroutineScope(Dispatchers.IO.limitedParallelism(1))
     private lateinit var repo: PlaylistRepository
     private lateinit var prefs: SharedPreferences
+    private val nfBundle : Bundle = Bundle()
     val subDir = "cache/lyrics"
     private var proxy: BtCodecInfo.Companion.Proxy? = null
 
@@ -184,12 +189,6 @@ class PlayService : MediaSessionService(),
                                 val nextIndex = newlyric.lines.indexOfFirst { line ->
                                     line.start >= liveTime
                                 }
-
-//
-//                                val nextIndex = lrcEntries.indexOfFirst { line ->
-//                                    line.first().first >= liveTime
-//                                }
-
 
                                 val sendLyric = fun() {
                                     try {
@@ -274,6 +273,25 @@ class PlayService : MediaSessionService(),
                                                     ) // 发送歌词
                                                 }
                                             }
+
+                                            val param = JSONObject()
+                                            val paramV2 = JSONObject()
+                                            val island = JSONObject()
+
+                                            island.put("shareData", IslandApi.ShareData(
+                                                title = mediaSession?.player?.currentMediaItem?.songtitle?: "",
+                                                content = mediaSession?.player?.mediaMetadata?.artist.toString(),
+                                                pic = "miui.focus.pic_app",
+                                                shareContent = lyric
+                                            ))
+
+                                            paramV2.put("param_island",island)
+                                            param.put("param_v2",paramV2)
+
+                                            nfBundle.putBundle("miui.focus.pics", FocusApi.addpics("app", Icon.createWithResource(this@PlayService,R.drawable.lycaon_icon)))
+                                            nfBundle.putString("miui.focus.param.media",param.toString())
+
+
                                             mediaSession?.let {
                                                 if (Looper.myLooper() != it.player.applicationLooper)
                                                     throw UnsupportedOperationException("wrong looper for triggerNotificationUpdate")
@@ -513,7 +531,7 @@ class PlayService : MediaSessionService(),
         player.addListener(this)
 
         this.setMediaNotificationProvider(notificationProvider)
-        this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this) { lyric })
+        this.setMediaNotificationProvider(MeiZuLyricsMediaNotificationProvider(this, { lyric }, nfBundle))
 
     }
 

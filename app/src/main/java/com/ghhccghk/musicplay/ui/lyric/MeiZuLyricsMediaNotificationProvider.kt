@@ -20,7 +20,8 @@ private const val FLAG_ONLY_UPDATE_TICKER = 0x02000000
 @OptIn(UnstableApi::class)
 private class InnerMeiZuLyricsMediaNotificationProvider(
     context: Context,
-    private val tickerProvider: () -> CharSequence?
+    private val tickerProvider: () -> CharSequence?,
+    private val bundleProvider: Bundle
 ) : DefaultMediaNotificationProvider(context) {
     override fun addNotificationActions(
         mediaSession: MediaSession,
@@ -30,6 +31,8 @@ private class InnerMeiZuLyricsMediaNotificationProvider(
     ): IntArray {
         val ticker = tickerProvider()
         builder.setTicker(ticker)
+        builder.addExtras(bundleProvider)
+
         if (ticker != null) {
             builder.addExtras(Bundle().apply {
                 putInt("ticker_icon", R.drawable.ic_gramophone_mono16)
@@ -44,9 +47,10 @@ private class InnerMeiZuLyricsMediaNotificationProvider(
 @OptIn(UnstableApi::class)
 class MeiZuLyricsMediaNotificationProvider(
     context: MediaSessionService,
-    private val tickerProvider: () -> CharSequence?
+    private val tickerProvider: () -> CharSequence?,
+    private val bundleProvider: Bundle
 ) : MediaNotification.Provider {
-    private val inner = InnerMeiZuLyricsMediaNotificationProvider(context, tickerProvider).apply {
+    private val inner = InnerMeiZuLyricsMediaNotificationProvider(context, tickerProvider,bundleProvider).apply {
         setSmallIcon(R.drawable.ic_gramophone_monochrome)
     }
 

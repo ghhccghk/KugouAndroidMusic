@@ -49,6 +49,7 @@ lifecycleService = "2.9.3"
 preferenceKtx = "1.2.1"
 workRuntimeKtx = "2.10.3"
 uiGraphics = "1.9.0"
+hyperfocusapi = "1.9"
 
 [libraries]
 aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibrariesComposeM3" }
@@ -117,6 +118,7 @@ androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-s
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+hyperfocusapi = { module = "com.github.ghhccghk:HyperFocusApi", version.ref = "hyperfocusapi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
