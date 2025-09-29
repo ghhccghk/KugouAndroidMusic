@@ -1,4 +1,4 @@
-package com.ghhccghk.musicplay.ui
+package com.ghhccghk.musicplay.ui.widgets
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -35,9 +35,9 @@ class LyricGlanceWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
         setOf(
-        DpSize(120.dp, 60.dp),
-        DpSize(240.dp, 120.dp),
-        DpSize(480.dp, 200.dp),
+            DpSize(120.dp, 60.dp),
+            DpSize(240.dp, 120.dp),
+            DpSize(480.dp, 200.dp),
     ))
 
     @SuppressLint("RestrictedApi")
@@ -55,7 +55,7 @@ class LyricGlanceWidget : GlanceAppWidget() {
 
             GlanceTheme {
                 Box(
-                    modifier = GlanceModifier
+                    modifier = GlanceModifier.Companion
                         .fillMaxSize()
                         .background(ColorProvider(R.color.black)) // 自定义颜色
                         .padding(8.dp)
@@ -75,13 +75,13 @@ class LyricGlanceWidget : GlanceAppWidget() {
     @Composable
     fun CompactLayout(current: String) {
         Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = GlanceModifier.Companion.fillMaxSize(),
+            verticalAlignment = Alignment.Companion.CenterVertically,
+            horizontalAlignment = Alignment.Companion.CenterHorizontally
         ) {
             Text(
                 text = current,
-                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.White))
+                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Companion.White))
             )
         }
     }
@@ -89,15 +89,24 @@ class LyricGlanceWidget : GlanceAppWidget() {
     @Composable
     fun MediumLayout(last: String,current: String, next: String) {
         Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = GlanceModifier.Companion.fillMaxSize(),
+            verticalAlignment = Alignment.Companion.CenterVertically,
+            horizontalAlignment = Alignment.Companion.CenterHorizontally
         ) {
-            Text(text = last, style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Gray)))
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            Text(text = current, style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.White)))
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            Text(text = next, style = TextStyle(fontSize = 12.sp, color = ColorProvider(Color.Gray)))
+            Text(
+                text = last,
+                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Companion.Gray))
+            )
+            Spacer(modifier = GlanceModifier.Companion.height(4.dp))
+            Text(
+                text = current,
+                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Companion.White))
+            )
+            Spacer(modifier = GlanceModifier.Companion.height(4.dp))
+            Text(
+                text = next,
+                style = TextStyle(fontSize = 12.sp, color = ColorProvider(Color.Companion.Gray))
+            )
         }
     }
 
@@ -105,16 +114,24 @@ class LyricGlanceWidget : GlanceAppWidget() {
     @Composable
     fun FullLayout(last: String, current: String, next: String) {
         Column(
-            modifier = GlanceModifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = GlanceModifier.Companion.fillMaxSize(),
+            verticalAlignment = Alignment.Companion.CenterVertically,
+            horizontalAlignment = Alignment.Companion.CenterHorizontally
         ) {
-            Text(text = last, style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Gray)))
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            Text(text = current, style = TextStyle(fontSize = 20.sp, color = ColorProvider(Color.White)))
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            Text(text = next, style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Gray)))
+            Text(
+                text = last,
+                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Companion.Gray))
+            )
+            Spacer(modifier = GlanceModifier.Companion.height(4.dp))
+            Text(
+                text = current,
+                style = TextStyle(fontSize = 20.sp, color = ColorProvider(Color.Companion.White))
+            )
+            Spacer(modifier = GlanceModifier.Companion.height(4.dp))
+            Text(
+                text = next,
+                style = TextStyle(fontSize = 16.sp, color = ColorProvider(Color.Companion.Gray))
+            )
         }
     }
 }
-

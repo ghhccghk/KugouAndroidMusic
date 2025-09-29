@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
-import com.ghhccghk.musicplay.ui.LyricGlanceWidget
+import com.ghhccghk.musicplay.ui.widgets.LyricGlanceWidget
 import com.mocharealm.accompanist.lyrics.core.model.SyncedLyrics
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
