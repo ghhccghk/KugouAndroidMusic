@@ -278,7 +278,7 @@ class PlayService : MediaSessionService(),
                                             val paramV2 = JSONObject()
                                             val island = JSONObject()
 
-                                            island.put("shareData", IslandApi.ShareData(
+                                            island.put("shareData", IslandApi.shareData(
                                                 title = mediaSession?.player?.currentMediaItem?.songtitle?: "",
                                                 content = mediaSession?.player?.mediaMetadata?.artist.toString(),
                                                 pic = "miui.focus.pic_app",
