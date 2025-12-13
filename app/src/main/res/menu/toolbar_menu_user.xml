@@ -9,4 +9,8 @@
         android:id="@+id/action_update_token"
         android:title="@string/update_token"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/exit_logout"
+        android:title="@string/exit_logout"
+        app:showAsAction="never" />
 </menu>

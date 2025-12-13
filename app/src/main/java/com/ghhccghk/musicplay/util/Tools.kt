@@ -639,20 +639,18 @@ object Tools {
     fun Media3Metadata.toFramework(): MediaMetadata {
         val builder = MediaMetadata.Builder()
 
+
         title?.let {
+            Log.d("title",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_TITLE, it.toString())
         }
         artist?.let {
+            Log.d("artist",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_ARTIST, it.toString())
         }
         albumTitle?.let {
+            Log.d("albumTitle",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_ALBUM, it.toString())
-        }
-        artworkData?.let {
-            builder.putBitmap(
-                MediaMetadata.METADATA_KEY_ART,
-                android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
-            )
         }
         durationMs?.let {
             builder.putLong(MediaMetadata.METADATA_KEY_DURATION, it)

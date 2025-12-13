@@ -171,7 +171,10 @@ class UserFragment : Fragment() {
                     requireActivity().startActivity(Intent(requireActivity(), MainSettingsActivity::class.java))
                     true
                 }
-
+                R.id.exit_logout -> {
+                    TokenManager.clearAll()
+                    true
+                }
                 else -> false
             }
         }

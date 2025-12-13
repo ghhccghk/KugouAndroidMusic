@@ -194,6 +194,7 @@ class PlayService : MediaSessionService(),
                                 val sendLyric = fun() {
                                     try {
                                         val newLine = newlyric.lines[currentLyricIndex]
+                                        val metadata = mediaSession.player.mediaMetadata.toFramework()
 
                                         when (newLine){
                                             is KaraokeLine -> {
@@ -263,7 +264,7 @@ class PlayService : MediaSessionService(),
                                                             .setLyric(lyricResult) // 设置歌词
                                                             .setBase64Icon(base64)
                                                             .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                            .setMediaMetadata(mediaSession.player.mediaMetadata.toFramework())
+                                                            .setMediaMetadata(metadata)
                                                             .setTranslation(translationResult)
                                                     ) // 发送歌词
                                                 } else {
@@ -271,7 +272,7 @@ class PlayService : MediaSessionService(),
                                                         SuperLyricData()
                                                             .setLyric(lyricResult) // 设置歌词
                                                             .setBase64Icon(base64)
-                                                            .setMediaMetadata(mediaSession.player.mediaMetadata.toFramework())
+                                                            .setMediaMetadata(metadata)
                                                             .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
                                                     ) // 发送歌词
                                                 }
