@@ -262,6 +262,7 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.material3.window.size.class1)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -357,6 +358,8 @@ dependencies {
     implementation(libs.lyrics.core)
     implementation(libs.lyrics.ui)
     implementation(libs.hyperfocusapi)
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.androidx.compose)
     //implementation(libs.androidx.glance.wear.tiles)
 
 

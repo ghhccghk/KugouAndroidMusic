@@ -1,7 +1,5 @@
 package com.ghhccghk.musicplay.ui.playlistdetail
 
-import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -30,7 +28,6 @@ import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.adapte.SongAdapter
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.others.toMediaItem
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -155,7 +152,7 @@ class PlaylistDetailFragment : Fragment() {
 
                                         val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
 
-                                        val item = it?.let { artist -> createMediaItemWithId(name?.first,
+                                        val item = it?.let { _ -> createMediaItemWithId(name?.first,
                                             name?.second,
                                             uri,
                                             result,result.hash) }
@@ -205,18 +202,6 @@ class PlaylistDetailFragment : Fragment() {
         _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
         val root: View = binding.root
         return root
-    }
-
-
-    private fun hideBottomNav(bottomNav: BottomNavigationView) {
-        val slideOut = ObjectAnimator.ofFloat(bottomNav, "translationY", 0f, bottomNav.height.toFloat())
-        slideOut.duration = 100
-        slideOut.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                bottomNav.visibility = View.GONE
-            }
-        })
-        slideOut.start()
     }
 
     suspend fun createMediaItemWithId(artist: String?, title: String?, url: String, result: GetSongUrlBase,hash: String): MediaItem {

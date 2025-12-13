@@ -8,6 +8,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.media3.common.util.UnstableApi
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.UrlCacheManager
+import com.ghhccghk.musicplay.util.di.uiModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
 import org.nift4.gramophone.hificore.UacManager
 
 class MainApplication: Application() {
@@ -21,6 +24,10 @@ class MainApplication: Application() {
         uacManager = UacManager(this)
         UrlCacheManager.init(this)
         TokenManager.init(this)
+        startKoin {
+            modules(uiModule)
+            androidContext(this@MainApplication)
+        }
 
         val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
 

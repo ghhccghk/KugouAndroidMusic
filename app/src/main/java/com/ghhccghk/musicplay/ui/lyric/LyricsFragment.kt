@@ -1,4 +1,5 @@
 @file:Suppress("DEPRECATION")
+@file:kotlin.OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 
 package com.ghhccghk.musicplay.ui.lyric
 
@@ -19,21 +20,26 @@ import android.renderscript.Allocation
 import android.renderscript.Element
 import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextMotion
@@ -44,7 +50,6 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import androidx.core.graphics.toColorInt
-import androidx.core.view.WindowCompat
 import androidx.fragment.app.Fragment
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
@@ -62,6 +67,13 @@ import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
+import com.ghhccghk.musicplay.ui.components.ModalScaffold
+import com.ghhccghk.musicplay.ui.components.adaptive.AdaptiveLayoutProvider
+import com.ghhccghk.musicplay.ui.components.adaptive.WindowLayoutType
+import com.ghhccghk.musicplay.ui.components.background.BackgroundVisualState
+import com.ghhccghk.musicplay.ui.components.share.ShareContext
+import com.ghhccghk.musicplay.ui.components.share.ShareScreen
+import com.ghhccghk.musicplay.ui.components.share.ShareViewModel
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.BACKGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.ui.player.PlayerFragment.Companion.FOREGROUND_COLOR_TRANSITION_SEC
 import com.ghhccghk.musicplay.util.SmartImageCache
@@ -70,6 +82,7 @@ import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.transition.platform.MaterialSharedAxis
+import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.ui.composable.lyrics.KaraokeLyricsView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +90,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.androidx.compose.koinViewModel
 
 class LyricsFragment : Fragment() {
 
@@ -93,6 +107,7 @@ class LyricsFragment : Fragment() {
     private var colorOnSecondaryContainerFinalColor: Int = Color.BLACK
     private var originalStatusBarColor: Int = 0
     private var originalLightStatusBar: Boolean = true
+    private var bitmap: Bitmap? = null
 
     private val prefs =
         MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
@@ -124,23 +139,12 @@ class LyricsFragment : Fragment() {
         return root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        val window = requireActivity().window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // 保存原始状态
-        originalStatusBarColor = window.statusBarColor
-        originalLightStatusBar = controller.isAppearanceLightStatusBars
-
-
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
     }
 
-    @OptIn(UnstableApi::class)
+    @OptIn(UnstableApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
     fun testlyric() {
         play.addListener(object : Player.Listener {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -152,14 +156,40 @@ class LyricsFragment : Fragment() {
         })
         lifecycleScope.launch { updatebg() }
         binding.lyricsContainerComposeView.setContent {
-            val listState = rememberLazyListState()
-            val finalLyrics = MediaViewModelObject.newLrcEntries.value
-            var currentPosition by remember { mutableLongStateOf(0L) }
+            AdaptiveLayoutProvider {
+                val WindowLayoutType = WindowLayoutType.current
+                startUi(WindowLayoutType= WindowLayoutType)
+            }
+
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        showControl.value = false
+        testlyric()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        showControl.value = true
+    }
+    @Composable
+    fun startUi(shareViewModel: ShareViewModel = koinViewModel(),
+                WindowLayoutType: WindowLayoutType
+    ){
+        val listState = rememberLazyListState()
+        val finalLyrics = MediaViewModelObject.newLrcEntries.value
+        var currentPosition by remember { mutableLongStateOf(0L) }
+
+        var isShareVisible by remember { mutableStateOf(false) }
+
+        Box(modifier = Modifier.fillMaxSize()) {
 
             LaunchedEffect(play.isPlaying) {
                 while (play.isPlaying) {
                     currentPosition = play.currentPosition
-                    delay(16) // 60fps 刷新
+                    delay(16)
                 }
             }
 
@@ -171,6 +201,16 @@ class LyricsFragment : Fragment() {
                     play.seekTo(line.start.toLong())
                 },
                 onLinePressed = { line ->
+                    val context = ShareContext(
+                        lyrics = finalLyrics,
+                        initialLine = line as KaraokeLine,
+                        backgroundState = BackgroundVisualState(
+                            bitmap = bitmap?.asImageBitmap(),
+                            isBright = false
+                        )
+                    )
+                    shareViewModel.prepareForSharing(context)
+                    isShareVisible = true
 
                 },
                 modifier = Modifier
@@ -193,45 +233,35 @@ class LyricsFragment : Fragment() {
                     textMotion = TextMotion.Animated,
                 )
             )
+
+            if (isShareVisible) {
+                ShareModal(
+                    isVisible = isShareVisible,
+                    onDismiss = { isShareVisible = false },
+                    shareViewModel = shareViewModel
+                )
+            }
+        }
+
+    }
+
+    @Composable
+    fun ShareModal(
+        isVisible: Boolean,
+        onDismiss: () -> Unit,
+        shareViewModel: ShareViewModel
+    ) {
+        if (isVisible) {
+            ModalScaffold(
+                isModalOpen = isVisible,
+                modifier = Modifier.fillMaxSize(),
+                onDismissRequest = onDismiss,
+                modalContent = {
+                    ShareScreen(it, shareViewModel = shareViewModel)
+                }
+            ) {}
         }
     }
-
-    override fun onResume() {
-        super.onResume()
-        showControl.value = false
-        testlyric()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        showControl.value = true
-        val window = requireActivity().window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // 恢复原来的状态栏颜色和图标颜色
-        window.statusBarColor = originalStatusBarColor
-        controller.isAppearanceLightStatusBars = originalLightStatusBar
-    }
-
-    override fun onPause() {
-        super.onPause()
-        showControl.value = true
-        val window = requireActivity().window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // 恢复原来的状态栏颜色和图标颜色
-        window.statusBarColor = originalStatusBarColor
-        controller.isAppearanceLightStatusBars = originalLightStatusBar
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("Lyric", "onDestroy")
-        val window = requireActivity().window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // 恢复原来的状态栏颜色和图标颜色
-        window.statusBarColor = originalStatusBarColor
-        controller.isAppearanceLightStatusBars = originalLightStatusBar
-    }
-
 
     @Suppress("DEPRECATION")
     fun blurBitmapLegacy(context: Context, bitmap: Bitmap, radius: Float): Bitmap {
@@ -277,6 +307,7 @@ class LyricsFragment : Fragment() {
                     transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
                 ) {
                     // 31+ 用 View 的 setRenderEffect 方式
+                    bitmap = resource
                     val drawable = resource.toDrawable(resources)
                     if (colorbg) {
                         if (DynamicColors.isDynamicColorAvailable() &&
@@ -287,17 +318,6 @@ class LyricsFragment : Fragment() {
                             removeColorScheme()
                         }
                     } else {
-                        val window = requireActivity().window
-                        val controller = WindowCompat.getInsetsController(window, window.decorView)
-                        // 保存原始状态
-                        originalStatusBarColor = window.statusBarColor
-                        originalLightStatusBar = controller.isAppearanceLightStatusBars
-                        //强制状态栏为白色
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                            requireActivity().window.statusBarColor = Color.WHITE
-                        } else {
-                            controller.isAppearanceLightStatusBars = false
-                        }
                         //选中字体颜色
                         MediaViewModelObject.colorOnSecondaryContainerFinalColor.intValue =
                             ContextCompat.getColor(MainActivity.lontext, R.color.lyric_main_bg)

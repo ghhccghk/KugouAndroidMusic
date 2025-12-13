@@ -106,6 +106,17 @@
         <!-- allow multi-resume for some Android 9 devices in multi-window -->
         <meta-data android:name="android.allow_multiple_resumed_activities" android:value="true" />
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+
     </application>
 
     <queries>
@@ -118,6 +129,5 @@
             <data android:scheme="mailto" />
         </intent>
     </queries>
-
 
 </manifest>
