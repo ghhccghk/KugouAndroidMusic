@@ -37,6 +37,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.VectorDrawable
+import android.media.MediaMetadata
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.Bundle
@@ -88,6 +89,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.Locale
 import kotlin.math.max
+import androidx.media3.common.MediaMetadata as Media3Metadata
 
 object Tools {
     /** 显示二维码 */
@@ -632,6 +634,33 @@ object Tools {
         }
         return isFirst
     }
+
+
+    fun Media3Metadata.toFramework(): MediaMetadata {
+        val builder = MediaMetadata.Builder()
+
+        title?.let {
+            builder.putString(MediaMetadata.METADATA_KEY_TITLE, it.toString())
+        }
+        artist?.let {
+            builder.putString(MediaMetadata.METADATA_KEY_ARTIST, it.toString())
+        }
+        albumTitle?.let {
+            builder.putString(MediaMetadata.METADATA_KEY_ALBUM, it.toString())
+        }
+        artworkData?.let {
+            builder.putBitmap(
+                MediaMetadata.METADATA_KEY_ART,
+                android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
+            )
+        }
+        durationMs?.let {
+            builder.putLong(MediaMetadata.METADATA_KEY_DURATION, it)
+        }
+
+        return builder.build()
+    }
+
 
 
 }

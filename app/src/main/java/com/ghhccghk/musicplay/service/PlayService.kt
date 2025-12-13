@@ -78,6 +78,7 @@ import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
+import com.ghhccghk.musicplay.util.Tools.toFramework
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
@@ -262,6 +263,7 @@ class PlayService : MediaSessionService(),
                                                             .setLyric(lyricResult) // 设置歌词
                                                             .setBase64Icon(base64)
                                                             .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
+                                                            .setMediaMetadata(mediaSession.player.mediaMetadata.toFramework())
                                                             .setTranslation(translationResult)
                                                     ) // 发送歌词
                                                 } else {
@@ -269,6 +271,7 @@ class PlayService : MediaSessionService(),
                                                         SuperLyricData()
                                                             .setLyric(lyricResult) // 设置歌词
                                                             .setBase64Icon(base64)
+                                                            .setMediaMetadata(mediaSession.player.mediaMetadata.toFramework())
                                                             .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
                                                     ) // 发送歌词
                                                 }
