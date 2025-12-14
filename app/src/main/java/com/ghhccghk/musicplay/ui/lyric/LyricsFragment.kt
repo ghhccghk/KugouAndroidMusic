@@ -144,7 +144,7 @@ class LyricsFragment : Fragment() {
         _binding = null
     }
 
-    @OptIn(UnstableApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
+    @OptIn(UnstableApi::class)
     fun testlyric() {
         play.addListener(object : Player.Listener {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -235,6 +235,7 @@ class LyricsFragment : Fragment() {
             )
 
             if (isShareVisible) {
+                @Suppress("KotlinConstantConditions")
                 ShareModal(
                     isVisible = isShareVisible,
                     onDismiss = { isShareVisible = false },
@@ -252,6 +253,7 @@ class LyricsFragment : Fragment() {
         shareViewModel: ShareViewModel
     ) {
         if (isVisible) {
+            @Suppress("KotlinConstantConditions")
             ModalScaffold(
                 isModalOpen = isVisible,
                 modifier = Modifier.fillMaxSize(),
