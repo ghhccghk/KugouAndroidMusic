@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,7 +23,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -51,6 +54,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextMotion
@@ -302,7 +306,8 @@ private fun ColumnScope.ShareGenerateStep(
                         backgroundState = context.backgroundState,
                         showTranslation = showTranslation,
                         selectedLines = selectedLines,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
+                        shareViewModel =  shareViewModel,
                     )
                 }
 
@@ -311,7 +316,8 @@ private fun ColumnScope.ShareGenerateStep(
                         capturableController = capturableControllers[pageNumber],
                         showTranslation = showTranslation,
                         selectedLines = selectedLines,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier.align(Alignment.Center),
+                        shareViewModel = shareViewModel
                     )
                 }
             }
@@ -406,8 +412,11 @@ fun ShareCardApple(
     backgroundState: BackgroundVisualState,
     showTranslation: Boolean,
     selectedLines: List<KaraokeLine>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shareViewModel: ShareViewModel
 ) {
+    val uiState = shareViewModel.uiState.collectAsStateWithLifecycle()
+    val context = uiState.value.context ?: return // If context isn't ready, don't render anything
     Box(
         modifier
             .sizeIn(maxWidth = 300.dp)
@@ -463,20 +472,51 @@ fun ShareCardApple(
                         )
                     }
                     item("logo") {
+
                         Row(
                             Modifier
                                 .fillMaxWidth()
                                 .background(Color.White.copy(0.1f))
                                 .padding(16.dp)
                         ) {
-                            Text(
-                                "by Accompanist",
-                                style = LocalTextStyle.current.copy(
-                                    fontSize = 16.sp,
-                                    textMotion = TextMotion.Animated
-                                ),
-                                color = Color.White
-                            )
+                            context.backgroundState.bitmap?.let { img ->
+                                Image(
+                                    bitmap = img,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(65.dp).clip(RoundedCornerShape(8.dp)), // 宽高 40dp,圆角8dp
+                                    contentScale = ContentScale.FillBounds // 填充整个 10x10
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(top = 4.dp, bottom = 4.dp,end = 4.dp),
+                                verticalArrangement = Arrangement.SpaceBetween, // 元素均匀分布，首尾在两端
+                                horizontalAlignment = Alignment.End // 水平方向对齐方式
+                            ) {
+                                if (context.artist != "" || context.title != "") {
+                                    Text(
+                                        "${context.artist} - ${context.title}",
+                                        style = LocalTextStyle.current.copy(
+                                            fontSize = 16.sp,
+                                            textMotion = TextMotion.Animated
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "by Accompanist",
+                                    style = LocalTextStyle.current.copy(
+                                        fontSize = 16.sp,
+                                        textMotion = TextMotion.Animated
+                                    ),
+                                    color = Color.White
+                                )
+                            }
+
+
                         }
                     }
                 }
@@ -492,7 +532,8 @@ fun ShareCardSpotify(
     capturableController: CapturableController,
     showTranslation: Boolean,
     selectedLines: List<KaraokeLine>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shareViewModel: ShareViewModel
 ) {
     Box(
         modifier

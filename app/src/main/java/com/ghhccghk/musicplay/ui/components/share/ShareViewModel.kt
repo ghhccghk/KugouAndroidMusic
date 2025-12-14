@@ -29,7 +29,9 @@ enum class ShareStep {
 data class ShareContext(
     val lyrics: SyncedLyrics,
     val initialLine: KaraokeLine,
-    val backgroundState: BackgroundVisualState
+    val backgroundState: BackgroundVisualState,
+    val title: String = "",
+    val artist: String = ""
 )
 
 data class ShareUiState(

@@ -63,7 +63,9 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.libraries.artists
 import com.ghhccghk.musicplay.data.libraries.songHash
+import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.showControl
 import com.ghhccghk.musicplay.databinding.FragmentLyricsBinding
@@ -207,7 +209,9 @@ class LyricsFragment : Fragment() {
                         backgroundState = BackgroundVisualState(
                             bitmap = bitmap?.asImageBitmap(),
                             isBright = false
-                        )
+                        ),
+                        title = play.currentMediaItem?.songtitle?:"",
+                        artist = play.currentMediaItem?.artists?.joinToString(separator = ", ") ?: ""
                     )
                     shareViewModel.prepareForSharing(context)
                     isShareVisible = true
