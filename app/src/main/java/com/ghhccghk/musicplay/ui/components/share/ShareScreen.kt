@@ -417,6 +417,10 @@ fun ShareCardApple(
 ) {
     val uiState = shareViewModel.uiState.collectAsStateWithLifecycle()
     val context = uiState.value.context ?: return // If context isn't ready, don't render anything
+    val modifierGraphicsLayer = Modifier.graphicsLayer {
+        blendMode = BlendMode.Plus
+        compositingStrategy = CompositingStrategy.Offscreen
+    }
     Box(
         modifier
             .sizeIn(maxWidth = 300.dp)
@@ -433,11 +437,6 @@ fun ShareCardApple(
                     modifier = Modifier.matchParentSize()
                 )
                 LazyColumn(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            blendMode = BlendMode.Plus
-                            compositingStrategy = CompositingStrategy.Offscreen
-                        }
                 ) {
                     items(selectedLines, key = { it.start }) { line ->
                         Column(
@@ -447,6 +446,7 @@ fun ShareCardApple(
                         ) {
                             Text(
                                 line.content(),
+                                modifier = modifierGraphicsLayer,
                                 style = LocalTextStyle.current.copy(
                                     fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold,
@@ -458,6 +458,7 @@ fun ShareCardApple(
                                 line.translation?.let { translation ->
                                     Text(
                                         translation,
+                                        modifier = modifierGraphicsLayer,
                                         color = Color.White.copy(0.8f)
                                     )
                                 }
@@ -483,8 +484,8 @@ fun ShareCardApple(
                                 Image(
                                     bitmap = img,
                                     contentDescription = null,
-                                    modifier = Modifier.size(65.dp).clip(RoundedCornerShape(8.dp)), // 宽高 40dp,圆角8dp
-                                    contentScale = ContentScale.FillBounds // 填充整个 10x10
+                                    modifier = Modifier.size(65.dp).clip(RoundedCornerShape(8.dp)), // 宽高 65dp,圆角8dp
+                                    contentScale = ContentScale.FillBounds,// 填充整个 10x10
                                 )
                             }
 
@@ -497,7 +498,18 @@ fun ShareCardApple(
                             ) {
                                 if (context.artist != "" || context.title != "") {
                                     Text(
-                                        "${context.artist} - ${context.title}",
+                                        context.title,
+                                        modifier = modifierGraphicsLayer,
+                                        style = LocalTextStyle.current.copy(
+                                            fontSize = 16.sp,
+                                            textMotion = TextMotion.Animated
+                                        ),
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        context.artist,
+                                        modifier = modifierGraphicsLayer,
                                         style = LocalTextStyle.current.copy(
                                             fontSize = 16.sp,
                                             textMotion = TextMotion.Animated
@@ -507,7 +519,8 @@ fun ShareCardApple(
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    "by Accompanist",
+                                    "Design by Accompanist",
+                                    modifier = modifierGraphicsLayer,
                                     style = LocalTextStyle.current.copy(
                                         fontSize = 16.sp,
                                         textMotion = TextMotion.Animated
