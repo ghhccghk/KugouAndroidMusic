@@ -258,5 +258,6 @@
     <string name="settings_build_time">编译时间</string>
     <string name="user_vip_info">VIP Info</string>
     <string name="exit_logout">退出登录</string>
+    <string name="contributors_ghhccghk">主要维护者</string>
 
 </resources>

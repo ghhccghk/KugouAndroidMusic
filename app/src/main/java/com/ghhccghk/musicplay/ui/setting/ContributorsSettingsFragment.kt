@@ -2,109 +2,158 @@
 
 package com.ghhccghk.musicplay.ui.setting
 
-import android.annotation.SuppressLint
-import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.ImageView
+import android.widget.Toast
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection.Ltr
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
+import coil.compose.AsyncImage
 import com.ghhccghk.musicplay.R
+import com.ghhccghk.musicplay.data.Contributors
 import com.ghhccghk.musicplay.data.GitHubUser
-import com.ghhccghk.musicplay.util.apihelp.fetchGitHubUser
 
-class ContributorsSettingsActivity : BaseSettingsActivity(
-    R.string.settings_contributors, { ContributorsFragment() })
-
-class ContributorsFragment : BaseFragment(null) {
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return ComposeView(requireContext()).apply {
-            setContent {
-                PreviewContributorsSettings() // 这里是你的 Compose Composable 函数
+class ContributorsSettingsActivity  : AppCompatActivity() {
+    @OptIn(ExperimentalMaterial3Api::class)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            MaterialTheme(
+                colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    // TODO(ASAP) dedupe with other compose frags and add amoled theme
+                    if (isSystemInDarkTheme())
+                        dynamicDarkColorScheme(applicationContext)
+                    else
+                        dynamicLightColorScheme(applicationContext)
+                } else {
+                    if (isSystemInDarkTheme()) {
+                        darkColorScheme()
+                    } else {
+                        lightColorScheme()
+                    }
+                }
+            ) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(stringResource(R.string.settings_contributors)) },
+                            navigationIcon = {
+                                IconButton(onClick = { finish() }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer)
+                        )
+                    },
+                    content = { paddingValues ->
+                        ContributorsSettingsScreen(paddingValues)
+                    },
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
             }
         }
     }
 
     @Composable
-    fun ContributorCard(contributor: GitHubUser) {
+    fun SimpleCard(shape: Shape, url: String, icon: @Composable () -> Unit,
+                   name: String?, login: String?, subtitle: String) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            shape = MaterialTheme.shapes.medium,
+                .padding(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = shape,
             onClick = {
-                val url = "https://github.com/${contributor.login}"
                 val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-                startActivity(intent) }
+                try {
+                    startActivity(intent)
+                } catch (_: ActivityNotFoundException) {
+                    Toast.makeText(this, R.string.no_app_found, Toast.LENGTH_LONG).show()
+                }
+            }
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.padding(12.dp)
             ) {
-                // 头像
-                GlideComposeImage(
-                    contributor.avatar_url,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape),
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                // 贡献者信息
+                icon()
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = contributor.name,
-                            style = MaterialTheme.typography.titleMedium
+                            text = name ?: login ?: "",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall
                         )
-                        Text(
-                            text = "@${contributor.login}",
-                            modifier = Modifier.padding(start = 8.dp),
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        if (name != null && name != login && login != null)
+                            Text(
+                                text = "@$login",
+                                modifier = Modifier.padding(start = 8.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Normal,
+                                fontFamily = FontFamily.Monospace,
+                                color = LocalContentColor.current.copy(alpha = 0.8f)
+                            )
                     }
                     Text(
-                        text = contributor.contribute,
-                        style = MaterialTheme.typography.titleMedium
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Normal,
+                        color = LocalContentColor.current.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -112,108 +161,57 @@ class ContributorsFragment : BaseFragment(null) {
     }
 
     @Composable
-    fun ContributorList(contributors: List<GitHubUser>) {
-        LazyColumn {
-            items(contributors) { contributor ->
-                ContributorCard(contributor)
-            }
-        }
-    }
-
-    @Composable
-    fun ContributorsSettingsScreen() {
-        val contributors = remember { mutableStateOf<List<GitHubUser>>(emptyList()) }
-
-        LaunchedEffect(Unit) {
-            contributors.value = getContributorsList(requireContext())
-        }
-        MaterialTheme(
-            colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (isSystemInDarkTheme())
-                    dynamicDarkColorScheme(requireContext())
-                else
-                    dynamicLightColorScheme(requireContext())
-            } else {
-                if (isSystemInDarkTheme()) {
-                    darkColorScheme()
-                } else {
-                    lightColorScheme()
-                }
-            }
-        ) {
-            ContributorList(contributors = contributors.value)
-
-        }
-    }
-
-    @Preview(showBackground = true)
-    @Composable
-    fun PreviewContributorsSettings() {
-        ContributorsSettingsScreen()
-    }
-
-
-    @SuppressLint("CheckResult")
-    @Composable
-    fun GlideComposeImage(
-        url: String?,
-        modifier: Modifier = Modifier,
-        placeholderResId: Int? = null,
-        errorResId: Int? = null,
-        circleCrop: Boolean = false,
-    ) {
-        AndroidView(
-            modifier = modifier,
-            factory = { context ->
-                ImageView(context).apply {
-                    scaleType = ImageView.ScaleType.CENTER_CROP
-                }
+    fun ContributorCard(shape: Shape, contributor: GitHubUser) {
+        SimpleCard(
+            shape,
+            url = "https://github.com/${contributor.login}",
+            icon = {
+                AsyncImage(
+                    model = contributor.avatar,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                )
             },
-            update = { imageView ->
-                val request = Glide.with(imageView.context)
-                    .load(url?.toUri())
-                    .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
-
-                if (placeholderResId != null) {
-                    request.placeholder(placeholderResId)
-                }
-                if (errorResId != null) {
-                    request.error(errorResId)
-                }
-                if (circleCrop) {
-                    request.apply(RequestOptions.circleCropTransform())
-                }
-
-                request.into(imageView)
-            }
+            name = contributor.name,
+            login = contributor.login,
+            subtitle = stringResource(contributor.contributed)
         )
     }
 
-    // 获取 contributors_user 数组中的用户名并获取 GitHubUser 信息
-    suspend fun getContributorsList(context: Context): List<GitHubUser> {
-        val usernames = context.resources.getStringArray(R.array.contributors_user)  // 读取字符串数组
-        val contributorsList = mutableListOf<GitHubUser>()
+    @Composable
+    fun ContributorsSettingsScreen(contentPaddingValues: PaddingValues) {
+        val configuration = LocalConfiguration.current
+        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        val contribute = context.resources.getStringArray(R.array.contributors_contribute)
+        val cutoutInsets = WindowInsets.displayCutout.asPaddingValues()
 
-        // 遍历用户名，获取每个用户的 GitHub 信息
-        for (username in usernames) {
-            try {
-                val user =
-                    fetchGitHubUser(context = context, username = username)  // 从缓存中获取 GitHub 用户信息
-                if (user != null) {
-                    contributorsList.add(user.copy(contribute = contribute[usernames.indexOf(username)]))
-                } else {
-                    // 错误处理：可以记录日志或者添加空用户
-                    contributorsList.add(GitHubUser(username, "$username", "", "${contribute[usernames.indexOf(username)]}"))
-                }
-            } catch (e: Exception) {
-                // 错误处理：可以记录日志或者添加空用户
-                contributorsList.add(GitHubUser(username, "$username", "", "${contribute[usernames.indexOf(username)]}"))
+        LazyColumn(
+            contentPadding = if (isLandscape)
+                PaddingValues(horizontal = 16.dp, vertical = 2.dp) + contentPaddingValues + cutoutInsets
+            else
+                PaddingValues(horizontal = 16.dp, vertical = 2.dp) + contentPaddingValues
+        ) {
+            itemsIndexed(Contributors.LIST) { i, contributor ->
+                val top = if (i == 0) CornerSize(16.dp) else
+                    CornerSize(8.dp)
+                val bottom = CornerSize(8.dp)
+                ContributorCard(RoundedCornerShape(
+                    top, top, bottom, bottom
+                ), contributor)
             }
         }
-
-        return contributorsList
     }
-}
 
+    operator fun PaddingValues.plus(other: PaddingValues): PaddingValues {
+        return PaddingValues(
+            start = this.calculateStartPadding(Ltr) + other.calculateStartPadding(Ltr),
+            top = this.calculateTopPadding() + other.calculateTopPadding(),
+            end = this.calculateEndPadding(Ltr) + other.calculateEndPadding(Ltr),
+            bottom = this.calculateBottomPadding() + other.calculateBottomPadding()
+        )
+    }
+
+}
