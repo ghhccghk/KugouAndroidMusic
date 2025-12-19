@@ -1,25 +1,3 @@
-/*
- *     Copyright (C) 2025 Akane Foundation
- *
- *     Gramophone is free software: you can redistribute it and/or modify
- *     it under the terms of the GNU General Public License as published by
- *     the Free Software Foundation, either version 3 of the License, or
- *     (at your option) any later version.
- *
- *     Gramophone is distributed in the hope that it will be useful,
- *     but WITHOUT ANY WARRANTY; without even the implied warranty of
- *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *     GNU General Public License for more details.
- *
- *     You should have received a copy of the GNU General Public License
- *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
-
-/**
- * 保留来自 Gramophone 的开源协议 */
-
-
 package com.ghhccghk.musicplay.util
 
 import android.content.Context
@@ -29,15 +7,13 @@ import android.media.AudioTrack
 import android.os.Build
 import android.os.Handler
 import android.os.Parcelable
-import android.util.Log
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Log
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink.AudioTrackConfig
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import kotlinx.parcelize.Parcelize
+import org.nift4.gramophone.hificore.AudioSystemHiddenApi
 import org.nift4.gramophone.hificore.AudioTrackHiddenApi
-
 
 @Parcelize
 data class AfFormatInfo(
@@ -56,7 +32,6 @@ data class AudioTrackInfo(
     val offload: Boolean
 ) : Parcelable {
     companion object {
-        @OptIn(UnstableApi::class)
         fun fromMedia3AudioTrackConfig(config: AudioTrackConfig) =
             AudioTrackInfo(
                 config.encoding, config.sampleRate, config.channelConfig,
@@ -65,7 +40,6 @@ data class AudioTrackInfo(
     }
 }
 
-@OptIn(UnstableApi::class)
 class AfFormatTracker(
     private val context: Context, private val playbackHandler: Handler,
     private val handler: Handler
@@ -76,10 +50,11 @@ class AfFormatTracker(
     }
     // only access sink or track on PlaybackThread
     private var lastAudioTrack: AudioTrack? = null
+    private var lastPeriodUid: Any? = null
     private var audioSink: DefaultAudioSink? = null
     var format: AfFormatInfo? = null
         private set
-    var formatChangedCallback: ((AfFormatInfo?) -> Unit)? = null
+    var formatChangedCallback: ((AfFormatInfo?, Any?) -> Unit)? = null
 
     private val routingChangedListener = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         AudioRouting.OnRoutingChangedListener {
@@ -97,7 +72,8 @@ class AfFormatTracker(
             "audioSink is null in onAudioTrackInitialized"
         )).getAudioTrack()
         if (router !== audioTrack) return // stale callback
-        buildFormat(audioTrack)
+        // reaching here implies router == lastAudioTrack
+        buildFormat(audioTrack, lastPeriodUid)
     }
 
     // TODO why do we have to reflect on app code, there must be a better solution
@@ -132,7 +108,9 @@ class AfFormatTracker(
                         routingChangedListener as AudioTrack.OnRoutingChangedListener
                     )
                 }
+                lastPeriodUid?.let { formatChangedCallback?.invoke(null, it) }
                 this.lastAudioTrack = audioTrack
+                this.lastPeriodUid = eventTime.mediaPeriodId?.periodUid
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     audioTrack?.addOnRoutingChangedListener(
                         routingChangedListener as AudioRouting.OnRoutingChangedListener,
@@ -146,11 +124,35 @@ class AfFormatTracker(
                     )
                 }
             }
-            buildFormat(audioTrack)
+            buildFormat(audioTrack, eventTime.mediaPeriodId?.periodUid)
         }
     }
 
-    private fun buildFormat(audioTrack: AudioTrack?) {
+    override fun onAudioTrackReleased(
+        eventTime: AnalyticsListener.EventTime,
+        audioTrackConfig: AudioTrackConfig
+    ) {
+        playbackHandler.post {
+            if (lastAudioTrack?.state == AudioTrack.STATE_UNINITIALIZED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    lastAudioTrack?.removeOnRoutingChangedListener(
+                        routingChangedListener as AudioRouting.OnRoutingChangedListener
+                    )
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    @Suppress("deprecation")
+                    lastAudioTrack?.removeOnRoutingChangedListener(
+                        routingChangedListener as AudioTrack.OnRoutingChangedListener
+                    )
+                }
+                lastAudioTrack = null
+                formatChangedCallback?.invoke(null, lastPeriodUid)
+                lastPeriodUid = null
+                format = null
+            }
+        }
+    }
+
+    private fun buildFormat(audioTrack: AudioTrack?, periodUid: Any?) {
         audioTrack?.let {
             if (audioTrack.state == AudioTrack.STATE_UNINITIALIZED) return@let null
             val rd = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
@@ -172,13 +174,13 @@ class AfFormatTracker(
             val ioHandle = AudioTrackHiddenApi.getOutput(audioTrack)
             val halSampleRate = AudioTrackHiddenApi.getHalSampleRate(audioTrack)
             val grantedFlags = AudioTrackHiddenApi.getGrantedFlags(audioTrack)
-            val mixPort = AudioTrackHiddenApi.getMixPortForThread(ioHandle)
-            val primaryHw = AudioTrackHiddenApi.getPrimaryMixPort()?.hwModule
+            val mixPort = AudioSystemHiddenApi.getMixPortForThread(ioHandle)
+            val primaryHw = AudioSystemHiddenApi.getPrimaryMixPort()?.hwModule
             val latency = try {
                 // this call writes to mAfLatency and mLatency fields, hence call dump after this
                 AudioTrack::class.java.getMethod("getLatency").invoke(audioTrack) as Int
             } catch (t: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(t))
+                Log.e(TAG, Log.getThrowableString(t)!!)
                 null
             }
             val dump = AudioTrackHiddenApi.dump(audioTrack)
@@ -201,7 +203,7 @@ class AfFormatTracker(
             if (LOG_EVENTS)
                 Log.d(TAG, "audio hal format changed to: $it")
             format = it
-            formatChangedCallback?.invoke(it)
+            formatChangedCallback?.invoke(it, periodUid)
         }
     }
 

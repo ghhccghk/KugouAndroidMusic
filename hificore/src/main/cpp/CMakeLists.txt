@@ -11,6 +11,9 @@ cmake_minimum_required(VERSION 3.22.1)
 # build script scope).
 project("hificore")
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -26,10 +29,14 @@ project("hificore")
 # used in the AndroidManifest.xml file.
 add_library(${CMAKE_PROJECT_NAME} SHARED
         # List C/C++ source files with relative paths to this CMakeLists.txt.
-        gramophone.cpp android_linker_ns.cpp NativeTrack.cpp uac/uac.cpp)
+        gramophone.cpp
+		android_linker_ns.cpp
+		NativeTrack.cpp
+		compressor/dynamic_range_compression.cpp)
+		# uac/uac.cpp)
 
 find_package(dlfunc)
-add_subdirectory(libusb-cmake)
+#add_subdirectory(libusb-cmake)
 
 # Specifies libraries CMake should link to your target library. You
 # can link libraries from various origins, such as libraries defined in this
@@ -37,8 +44,8 @@ add_subdirectory(libusb-cmake)
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         log
-        dlfunc::dlfunc
-		usb-1.0)
+        dlfunc::dlfunc)
+		#usb-1.0)
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -fvisibility=hidden -fomit-frame-pointer -fno-unroll-loops -Xclang -fmerge-functions)
 

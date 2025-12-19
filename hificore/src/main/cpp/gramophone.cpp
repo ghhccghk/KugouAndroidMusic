@@ -1,5 +1,6 @@
 /*
- *     Copyright (C) 2025 nift4
+ *     Copyright (C) 2011 The Android Open Source Project
+ *                   2025 nift4
  *
  *     Gramophone is free software: you can redistribute it and/or modify
  *     it under the terms of the GNU General Public License as published by
@@ -76,6 +77,9 @@ static intptr_t gTrackFlagsOffset = 0;
 
 typedef bool(*ZN7android18ExtendedMediaUtils26AudioTrackIsTrackOffloadedEi_t)(void* thisptr, uint32_t output);
 static ZN7android18ExtendedMediaUtils26AudioTrackIsTrackOffloadedEi_t ZN7android18ExtendedMediaUtils26AudioTrackIsTrackOffloadedEi = nullptr;
+
+typedef int32_t(*ZN7android11AudioEffect10getConfigsEP17audio_config_baseS2__t)(void* thisptr, void* c1, void* c2);
+static ZN7android11AudioEffect10getConfigsEP17audio_config_baseS2__t ZN7android11AudioEffect10getConfigsEP17audio_config_baseS2_ = nullptr;
 
 bool initLib(JNIEnv *env) {
     if (init_done)
@@ -269,7 +273,7 @@ struct audio_gain_config {
 
 extern "C"
 JNIEXPORT jintArray JNICALL
-Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInternal(
+Java_org_nift4_gramophone_hificore_AudioSystemHiddenApi_findAfFlagsForPortInternal(
         JNIEnv *env, jobject, jint id, jint io) {
     if (!initLib(env))
         return nullptr;
@@ -297,7 +301,7 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
                 pos -= sizeof(unsigned int) / sizeof(uint8_t);
                 if (buffer < pos && *((unsigned int *) pos) == io) {
                     if (i-- == 1) {
-                        gIoHandle2Offset = buffer < pos ? pos - buffer : 0;
+						gIoHandle2Offset = buffer < pos ? pos - buffer : 0;
                     } else
                         break;
                 }
@@ -320,16 +324,23 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
             free(buffer);
             return nullptr;
         }
-        uint8_t *maxPos = buffer + gIoHandle2Offset + sizeof(uint32_t) / sizeof(uint8_t);
-        if (maxPos >= buffer + BUFFER_SIZE) {
-            ALOGE("maxPos(%p) >= buffer(%p) + BUFFER_SIZE(%d) (id(%d) io(%d))",
-                  maxPos, buffer, BUFFER_SIZE, id, io);
-            gIoHandleOffset = 0;
-            free(buffer);
-            return nullptr;
-        }
+	    uint8_t *maxPos;
+	    if (android_get_device_api_level() < 33) {
+		    maxPos = buffer + gIoHandle2Offset + sizeof(uint32_t) / sizeof(uint8_t);
+	    } else {
+			maxPos = pos;
+		}
+	    if (maxPos >= buffer + BUFFER_SIZE) {
+		    ALOGE("maxPos(%p) >= buffer(%p) + BUFFER_SIZE(%d) (id(%d) io(%d))",
+		          maxPos, buffer, BUFFER_SIZE, id, io);
+		    gIoHandleOffset = 0;
+		    free(buffer);
+		    return nullptr;
+	    }
 #undef BUFFER_SIZE
-        out[5] = (int32_t) (*((uint32_t *) maxPos)); // port.ext.mix.latency_class
+	    if (android_get_device_api_level() < 33) { // not populated by AudioAidlConversion on T+
+		    out[5] = (int32_t) (*((uint32_t *) maxPos)); // port.ext.mix.latency_class
+	    }
         /*
          * unsigned int             sample_rate;       <--- we want to go here
          * audio_channel_mask_t     channel_mask;
@@ -343,8 +354,7 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_findAfFlagsForPortInterna
         out[4] = (int32_t) (*((uint32_t *) pos));
         if (android_get_device_api_level() >= 30) {
             pos -= sizeof(uint32_t) / sizeof(uint8_t); // union audio_io_flags (flags)
-            // R added flags field to struct, but it is only populated since T. But app side may
-            // want to bet on OEM modification that populates it in R/S.
+            // R added flags field to struct, but it is only populated since T.
             out[3] = (int32_t) (*((uint32_t *) pos));
         }
         pos -= sizeof(struct audio_gain_config) / sizeof(uint8_t); // audio_gain_config (gain)
@@ -688,4 +698,26 @@ Java_org_nift4_gramophone_hificore_AudioTrackHiddenApi_getFlagsInternal(JNIEnv *
 #else
     return (int32_t)*(uint32_t*)((uintptr_t)audio_track_ptr + 0x1e8 + extra);
 #endif
+}
+
+struct audio_config_base {
+	uint32_t sample_rate;
+	uint32_t channel_mask;
+	uint32_t format;
+};
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_org_nift4_gramophone_hificore_ReflectionAudioEffect_00024Companion_getEffectConfigs(JNIEnv *env, jobject,
+                                                                        jlong ptr, jintArray out) {
+	if (!initLib(env))
+		return 1;
+	audio_config_base c1 = {};
+	audio_config_base c2 = {};
+	DLSYM_OR_RETURN(libaudioclient, ZN7android11AudioEffect10getConfigsEP17audio_config_baseS2_, 1)
+	int32_t ret = ZN7android11AudioEffect10getConfigsEP17audio_config_baseS2_((void*) ptr, &c1, &c2);
+	env->SetIntArrayRegion(out, 0, sizeof(audio_config_base) / sizeof(int32_t), (int32_t*)&c1);
+	env->SetIntArrayRegion(out, sizeof(audio_config_base) / sizeof(int32_t),
+						   sizeof(audio_config_base) / sizeof(int32_t), (int32_t*)&c2);
+	return ret;
 }

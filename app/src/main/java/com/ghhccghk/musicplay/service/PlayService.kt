@@ -68,6 +68,7 @@ import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
 import com.ghhccghk.musicplay.ui.lyric.isManualNotificationUpdate
+import com.ghhccghk.musicplay.util.AfFormatInfo
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
@@ -154,7 +155,7 @@ class PlayService : MediaSessionService(),
     private val nfBundle : Bundle = Bundle()
     val subDir = "cache/lyrics"
     private var proxy: BtCodecInfo.Companion.Proxy? = null
-
+    private var afTrackFormat: Pair<Any, AfFormatInfo>? = null
 
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -413,11 +414,18 @@ class PlayService : MediaSessionService(),
         playbackHandler = Handler(Looper.getMainLooper())
 
         afFormatTracker = AfFormatTracker(this, playbackHandler,handler)
-        afFormatTracker.formatChangedCallback = {
-            mediaSession?.broadcastCustomCommand(
-                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                Bundle.EMPTY
-            )
+        afFormatTracker.formatChangedCallback = { format, period ->
+            if (period != null) {
+                handler.post {
+                        afTrackFormat = format?.let { period to it }
+                        mediaSession?.broadcastCustomCommand(
+                            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                            Bundle.EMPTY
+                        )
+                    }
+            } else {
+                Log.e("afFormatTracker", "mediaPeriodId is NULL in formatChangedCallback!!")
+            }
         }
 
         // 初始化 ExoPlayer
@@ -573,7 +581,7 @@ class PlayService : MediaSessionService(),
                         it.extras.putBundle("file_format", downstreamFormat?.toBundle())
                         it.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
                         it.extras.putParcelable("track_format", audioTrackInfo)
-                        it.extras.putParcelable("hal_format", afFormatTracker.format)
+                        it.extras.putParcelable("hal_format", afTrackFormat?.second)
                         bitrate?.let { value -> it.extras.putLong("bitrate", value) }
                         if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
                             it.extras.putParcelable("bt", btInfo)
@@ -749,7 +757,13 @@ class PlayService : MediaSessionService(),
     override fun onPlaybackStateChanged(state: Int) {
         val car_lyrics = prefs.getBoolean("car_lyrics", false)
         when (state) {
-            Player.STATE_IDLE -> println("空闲")
+            Player.STATE_IDLE -> {
+                println("空闲")
+                if (afTrackFormat != null) {
+                    Log.e("afTrackFormat", "leaked track format: $afTrackFormat")
+                    afTrackFormat = null
+                }
+            }
             Player.STATE_BUFFERING -> println("缓冲中")
             Player.STATE_READY -> println("准备好")
             Player.STATE_ENDED -> {

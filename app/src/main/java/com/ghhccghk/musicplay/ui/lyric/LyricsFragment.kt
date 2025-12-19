@@ -235,7 +235,14 @@ class LyricsFragment : Fragment() {
                         else -> FontWeight.ExtraBold
                     },
                     textMotion = TextMotion.Animated,
-                )
+                ),
+                verticalFadeMask = Modifier,
+                textColor = if (colorbg) { androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor) } else { androidx.compose.ui.graphics.Color(Color.WHITE) },
+                breathingDotsColor = if (colorbg) {
+                    androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor)
+                } else {
+                    androidx.compose.ui.graphics.Color(Color.WHITE)
+                }
             )
 
             if (isShareVisible) {
@@ -312,7 +319,7 @@ class LyricsFragment : Fragment() {
                     resource: Bitmap,
                     transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
                 ) {
-                    // 31+ 用 View 的 setRenderEffect 方式
+
                     bitmap = resource
                     val drawable = resource.toDrawable(resources)
                     if (colorbg) {
@@ -330,6 +337,7 @@ class LyricsFragment : Fragment() {
                         //未选中字体颜色
                         MediaViewModelObject.colorSecondaryContainerFinalColor.intValue =
                             ContextCompat.getColor(MainActivity.lontext, R.color.lyric_sub_bg)
+                        // 31+ 用 View 的 setRenderEffect 方式
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                             val heavilyBlurredBitmap = blurMultipleTimes(
                                 MainActivity.lontext,

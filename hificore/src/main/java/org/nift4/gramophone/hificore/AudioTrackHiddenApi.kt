@@ -1,28 +1,45 @@
+/*
+ *     Copyright (C) 2025 nift4
+ *
+ *     Gramophone is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     Gramophone is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package org.nift4.gramophone.hificore
 
 import android.annotation.SuppressLint
 import android.media.AudioTrack
 import android.os.Build
-import android.os.IBinder
-import android.os.Parcel
-import android.util.Log
+import androidx.media3.common.util.Log
 
 object AudioTrackHiddenApi {
     private const val TAG = "AudioTrackHiddenApi"
     private const val TRACE_TAG = "GpNativeTrace"
-    private var libLoaded = false
+    var libLoaded = false
+        private set
 
-    data class MixPort(val id: Int, val ioHandle: Int, val name: String?, val flags: Int?, val channelMask: Int?, val format: UInt?, val sampleRate: UInt?, val hwModule: Int?, val fast: Boolean?)
     init {
         if (canLoadLib()) {
-            try {
-                Log.d(TRACE_TAG, "Loading libhificore.so")
-                System.loadLibrary("hificore")
-                libLoaded = true
-                Log.d(TRACE_TAG, "Done loading libhificore.so")
-            } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
-            }
+            if (!AdaptiveDynamicRangeCompression.libLoaded) {
+                try {
+                    Log.d(TRACE_TAG, "Loading libhificore.so")
+                    System.loadLibrary("hificore")
+                    libLoaded = true
+                    Log.d(TRACE_TAG, "Done loading libhificore.so")
+                } catch (e: Throwable) {
+                    Log.e(TAG, Log.getThrowableString(e)!!)
+                }
+            } else libLoaded = true
         }
     }
 
@@ -35,7 +52,9 @@ object AudioTrackHiddenApi {
      */
     fun canLoadLib(): Boolean {
         return !(Build.VERSION.SDK_INT == 33 && Build.BRAND == "TECNO" &&
-                Build.PRODUCT.startsWith("BG6-")) // Tecno SPARK Go 2024
+                Build.PRODUCT.startsWith("BG6-")) && // Tecno SPARK Go 2024
+            !(Build.VERSION.SDK_INT == 34 && Build.BRAND == "samsung" &&
+                    Build.DEVICE == "dm1q") // Samsung Galaxy S23
     }
 
     @SuppressLint("PrivateApi")
@@ -59,46 +78,17 @@ object AudioTrackHiddenApi {
             val ret = try {
                 getHalSampleRateInternal(getAudioTrackPtr(audioTrack))
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Log.e(TAG, Log.getThrowableString(e)!!)
                 null
             }
             if (ret != null && ret != 0)
                 return ret.toUInt()
             return null
         }
-        val output = getOutput(audioTrack)
-        if (output == null)
-            return null
-        val af = getAfService()
-        if (af == null)
-            return null
-        val inParcel = obtainParcel(af)
-        val outParcel = obtainParcel(af)
-        try {
-            inParcel.writeInterfaceToken(af.interfaceDescriptor!!)
-            inParcel.writeInt(output)
-            // IAudioFlingerService.sampleRate(audio_io_handle_t)
-            Log.d(TRACE_TAG, "trying to call sampleRate() via binder")
-            try {
-                af.transact(3, inParcel, outParcel, 0)
-            } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
-                return null
-            }
-            Log.d(TRACE_TAG, "done calling format() via binder")
-            if (!readStatus(outParcel))
-                return null
-            return outParcel.readInt().toUInt()
-        } finally {
-            inParcel.recycle()
-            outParcel.recycle()
-        }
+        val output = getOutput(audioTrack) ?: return null
+        return AudioSystemHiddenApi.getSampleRate(output)
     }
     private external fun getHalSampleRateInternal(@Suppress("unused") audioTrackPtr: Long): Int
-
-    private fun obtainParcel(binder: IBinder) =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            Parcel.obtain(binder) else Parcel.obtain()
 
     fun getHalChannelCount(audioTrack: AudioTrack): Int? {
         if (!libLoaded)
@@ -113,7 +103,7 @@ object AudioTrackHiddenApi {
                 Log.d(TRACE_TAG, "calling native getHalChannelCountInternal/getAudioTrackPtr")
                 getHalChannelCountInternal(getAudioTrackPtr(audioTrack))
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Log.e(TAG, Log.getThrowableString(e)!!)
                 null
             }.also { Log.d(TRACE_TAG, "native getHalChannelCountInternal/getAudioTrackPtr is done: $it") }
     }
@@ -131,112 +121,25 @@ object AudioTrackHiddenApi {
                 Log.d(TRACE_TAG, "calling native getHalFormatInternal/getAudioTrackPtr")
                 getHalFormatInternal(getAudioTrackPtr(audioTrack))
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Log.e(TAG, Log.getThrowableString(e)!!)
                 null
             }.also { Log.d(TRACE_TAG, "native getHalChannelCountInternal/getAudioTrackPtr is done: $it") }
             if (ret != null && ret != 0)
                 return ret.toUInt()
             return null
         }
-        val output = getOutput(audioTrack)
-        if (output == null)
-            return null
-        val af = getAfService()
-        if (af == null)
-            return null
-        val inParcel = obtainParcel(af)
-        val outParcel = obtainParcel(af)
-        try {
-            inParcel.writeInterfaceToken(af.interfaceDescriptor!!)
-            inParcel.writeInt(output)
-            // IAudioFlingerService.format(audio_io_handle_t)
-            Log.d(TRACE_TAG, "trying to call format() via binder")
-            try {
-                af.transact(
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) 4 else 5,
-                    inParcel, outParcel, 0
-                )
-            } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
-                return null
-            }
-            Log.d(TRACE_TAG, "done calling format() via binder")
-            if (!readStatus(outParcel))
-                return null
-            // In T, return value changed from legacy audio_format_t to AudioFormatDescription
-            // https://cs.android.com/android/_/android/platform/frameworks/av/+/b60bd1b586b74ddf375257c4d07323e271d84ff3
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (outParcel.readInt() != 1 /* kNonNullParcelableFlag */) {
-                    Log.e(TAG, "got a null parcelable unexpectedly")
-                    return null
-                }
-                return simplifyAudioFormatDescription(outParcel)?.toUInt()
-            } else
-                return outParcel.readInt().toUInt()
-        } finally {
-            inParcel.recycle()
-            outParcel.recycle()
-        }
+        val output = getOutput(audioTrack) ?: return null
+        return AudioSystemHiddenApi.getFormat(output)
     }
     private external fun getHalFormatInternal(@Suppress("unused") audioTrackPtr: Long): Int
-
-    @SuppressLint("PrivateApi") // sorry, not sorry...
-    private fun listAudioPorts(): Pair<List<Any>, Int>? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            return null // while listAudioPorts exists in L, it just returns an error
-        val ports = ArrayList<Any?>()
-        val generation = IntArray(1)
-        try {
-            Class.forName("android.media.AudioSystem").getMethod(
-                "listAudioPorts", ArrayList::class.java, IntArray::class.java
-            ).invoke(null, ports, generation) as Int
-        } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
-            return null
-        }
-        if (ports.contains(null))
-            Log.e(TAG, "why does listAudioPorts() return a null port?!")
-        return ports.filterNotNull() to generation[0]
-    }
-
-    @SuppressLint("PrivateApi") // only Android T, private API stability
-    private fun simplifyAudioFormatDescription(out: Parcel): Int? {
-        return try {
-            Class.forName("android.media.audio.common.AidlConversion").getDeclaredMethod(
-                "aidl2legacy_AudioFormatDescription_Parcel_audio_format_t", Parcel::class.java
-            ).also {
-                it.isAccessible = true
-            }.invoke(null, out) as Int
-        } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
-            null
-        }
-    }
-
-    private fun getMixPortMetadata(id: Int, io: Int): IntArray? {
-        if (!libLoaded)
-            return null
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            return null // need listAudioPorts or getAudioPort
-        return try {
-            Log.d(TRACE_TAG, "calling native findAfFlagsForPortInternal")
-            val result = findAfFlagsForPortInternal(id, io)
-                .also { Log.d(TRACE_TAG, "native findAfFlagsForPortInternal is done: $it") }
-            if (result == null) return null // something went wrong. native layer logged reason to logcat
-            return result
-        } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
-            null
-        }
-    }
-    @Suppress("unused") // for parameters
-    private external fun findAfFlagsForPortInternal(id: Int, sr: Int): IntArray?
 
     fun findAfTrackFlags(dump: String?, latency: Int?, track: AudioTrack, grantedFlags: Int?): Int? {
         if (!libLoaded)
             return null
         // First exposure to client process was below commit, which first appeared in U QPR2.
         // https://cs.android.com/android/_/android/platform/frameworks/av/+/94ed47c6b6ca5a69b90238f6ae97af2ce7df9be0
+        // Offload is added here only since V:
+        // https://cs.android.com/android/_/android/platform/frameworks/av/+/2b51523207689cfa3047e0ca45451f3068a545c0
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
             return null
         try {
@@ -268,7 +171,7 @@ object AudioTrackHiddenApi {
                 } else it
             }.also { Log.d(TRACE_TAG, "native findAfTrackFlagsInternal is done: $it") }
         } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Log.e(TAG, Log.getThrowableString(e)!!)
             return null
         }
     }
@@ -285,7 +188,7 @@ object AudioTrackHiddenApi {
         return try {
             getOutputInternal(getAudioTrackPtr(audioTrack))
         } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Log.e(TAG, Log.getThrowableString(e)!!)
             null
         }.also { Log.d(TRACE_TAG, "native getOutputInternal/getAudioTrackPtr is done: $it") }
     }
@@ -304,7 +207,7 @@ object AudioTrackHiddenApi {
                 else it
             }
         } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Log.e(TAG, Log.getThrowableString(e)!!)
             null
         }.also { Log.d(TRACE_TAG, "native getOutputInternal/getAudioTrackPtr is done: $it") }
     }
@@ -320,79 +223,11 @@ object AudioTrackHiddenApi {
         return try {
             dumpInternal(getAudioTrackPtr(audioTrack))
         } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Log.e(TAG, Log.getThrowableString(e)!!)
             null
         }.also { Log.d(TRACE_TAG, "native dump/getAudioTrackPtr is done: $it") }
     }
     /*private*/ external fun dumpInternal(@Suppress("unused") audioTrackPtr: Long): String
-
-    @SuppressLint("PrivateApi") // only used below U, stable private API
-    private fun getAfService(): IBinder? {
-        return try {
-            Class.forName("android.os.ServiceManager").getMethod(
-                "getService", String::class.java
-            ).invoke(null, "media.audio_flinger") as IBinder?
-        } catch (e: Throwable) {
-            Log.e(TAG, Log.getStackTraceString(e))
-            null
-        }
-    }
-
-    private fun readStatus(parcel: Parcel): Boolean {
-        if (Build.VERSION.SDK_INT < 31) return true
-        val status = parcel.readInt()
-        if (status == 0) return true
-        Log.e(TAG, "binder transaction failed with status $status")
-        return false
-    }
-
-    fun getMixPortForThread(oid: Int?): MixPort? {
-        if (oid == null)
-            return null
-        val ports = listAudioPorts()
-        if (ports != null)
-            for (port in ports.first) {
-                try {
-                    if (port.javaClass.canonicalName != "android.media.AudioMixPort") continue
-                    val ioHandle = port.javaClass.getMethod("ioHandle").invoke(port) as Int
-                    if (ioHandle != oid) continue
-                    return getMixPort(port)
-                } catch (t: Throwable) {
-                    Log.e(TAG, Log.getStackTraceString(t))
-                }
-            }
-        return null
-    }
-
-    fun getPrimaryMixPort(): MixPort? {
-        val ports = listAudioPorts()
-        if (ports != null)
-            for (port in ports.first) {
-                try {
-                    if (port.javaClass.canonicalName != "android.media.AudioMixPort") continue
-                    val mixPort = getMixPort(port)
-                    // TODO: support android below T where flags is null
-                    if (mixPort.flags != null && (mixPort.flags and 2 /* AUDIO_OUTPUT_FLAG_PRIMARY */) != 0)
-                        return mixPort
-                } catch (t: Throwable) {
-                    Log.e(TAG, Log.getStackTraceString(t))
-                }
-            }
-        return null
-    }
-
-    private fun getMixPort(port: Any): MixPort {
-        val ioHandle = port.javaClass.getMethod("ioHandle").invoke(port) as Int
-        val id = port.javaClass.getMethod("id").invoke(port) as Int
-        val name = port.javaClass.getMethod("name").invoke(port) as String?
-        val mixPortData = getMixPortMetadata(id, ioHandle)
-        // flags exposed to app process since below commit which first appeared in T release.
-        // https://cs.android.com/android/_/android/platform/frameworks/av/+/99809024b36b243ad162c780c1191bb503a8df47
-        return MixPort(id, ioHandle, name, flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            mixPortData?.get(3) else null, channelMask = mixPortData?.get(2),
-            format = mixPortData?.get(1)?.toUInt(), sampleRate = mixPortData?.get(0)?.toUInt(),
-            hwModule = mixPortData?.get(4), fast = mixPortData?.let { it[5] == 0 }) // TODO fast is wrong on recent Android versions (fine on O)?
-    }
 
     private val idRegex = Regex(".*id\\((.*)\\) .*")
     fun getPortIdFromDump(dump: String?): Int? {

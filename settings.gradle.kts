@@ -14,6 +14,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -36,5 +37,9 @@ includeBuild(file("media").toPath().toRealPath().toAbsolutePath().toString()) {
         substitute(module("androidx.media3:media3-session")).using(project(":lib-session"))
     }
 }
+include(":misc:audiofxstub")
+include(":misc:audiofxstub2")
+include(":misc:audiofxfwd")
+include(":misc:alacdecoder")
 include(":hificore",":app")
  
