@@ -99,6 +99,14 @@ val MediaItem.lrcAccesskey: String?
 val MediaItem.songtitle: String?
     get() = this.mediaMetadata.extras?.getString("songtitle")
 
+val MediaItem.albumAudioId: String?
+    get() = this.mediaMetadata.extras?.getString("albumAudioId")
+
+val MediaItem.audioId: String?
+    get() = this.mediaMetadata.extras?.getString("audioId")
+
+
+
 
 
 

@@ -186,7 +186,6 @@ class PlayerFragment() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         context = requireContext()
-        //MainActivity.controllerFuture.addListener({  })
         player = MainActivity.controllerFuture.get()
 
         val seekBar = binding.sliderSquiggly

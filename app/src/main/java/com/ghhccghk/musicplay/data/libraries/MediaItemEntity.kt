@@ -36,4 +36,6 @@ data class MediaItemEntity(
     val lrcId: String?  = "",
     val lrcAccesskey: String?  = "",
     val songtitle: String? = "",
+    val albumAudioId : String? = "",
+    val audioId : String? = ""
 )
