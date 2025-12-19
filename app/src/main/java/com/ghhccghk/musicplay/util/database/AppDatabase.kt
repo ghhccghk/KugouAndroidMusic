@@ -1,4 +1,4 @@
-package com.ghhccghk.musicplay.util
+package com.ghhccghk.musicplay.util.database
 
 import android.content.Context
 import androidx.room.Database

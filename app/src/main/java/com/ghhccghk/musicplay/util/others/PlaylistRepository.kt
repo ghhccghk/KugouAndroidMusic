@@ -3,7 +3,7 @@ package com.ghhccghk.musicplay.util.others
 import android.content.Context
 import android.util.Log
 import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
-import com.ghhccghk.musicplay.util.AppDatabase
+import com.ghhccghk.musicplay.util.database.AppDatabase
 import kotlinx.coroutines.flow.Flow
 
 class PlaylistRepository(context: Context) {
