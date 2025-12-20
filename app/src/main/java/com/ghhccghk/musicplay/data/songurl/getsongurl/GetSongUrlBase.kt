@@ -20,6 +20,6 @@ data class GetSongUrlBase(
     val trans_param: TransParam,
     val url: List<String> = emptyList(),
     val volume: String = "",
-    val volume_gain: String= "",
-    val volume_peak: Double
+    val volume_gain: String = "",
+    val volume_peak: Double = 0.0
 )
