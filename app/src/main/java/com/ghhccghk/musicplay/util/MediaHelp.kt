@@ -165,7 +165,7 @@ object MediaHelp {
 
                 val (title, artist) = splitArtistAndTitle(name ?: "未知歌曲") ?: return null
 
-                createMediaItemWithId(title, artist, uri, re,re.hash,this.mixsongid.toString())
+                createMediaItemWithId(title, artist, uri, re,re.hash,this.add_mixsongid.toString())
             }
         } catch (e: Exception) {
             e.printStackTrace()

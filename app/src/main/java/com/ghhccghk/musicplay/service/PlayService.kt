@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.drawable.Icon
 import android.media.AudioDeviceInfo
 import android.os.Binder
 import android.os.Build
@@ -28,6 +27,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -57,8 +57,10 @@ import com.ghhccghk.musicplay.MainActivity.Companion.playbar
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
+import com.ghhccghk.musicplay.data.libraries.albumAudioId
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
+import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.libraries.uri
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
@@ -89,7 +91,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.SuperLyricPush
-import com.hyperfocus.api.FocusApi
 import com.hyperfocus.api.IslandApi
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
@@ -102,7 +103,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import java.io.File
 
 
@@ -278,24 +278,6 @@ class PlayService : MediaSessionService(),
                                                     ) // 发送歌词
                                                 }
                                             }
-
-                                            val param = JSONObject()
-                                            val paramV2 = JSONObject()
-                                            val island = JSONObject()
-
-                                            island.put("shareData", IslandApi.shareData(
-                                                title = mediaSession?.player?.currentMediaItem?.songtitle?: "",
-                                                content = mediaSession?.player?.mediaMetadata?.artist.toString(),
-                                                pic = "miui.focus.pic_app",
-                                                shareContent = lyric
-                                            ))
-
-                                            paramV2.put("param_island",island)
-                                            param.put("param_v2",paramV2)
-
-                                            nfBundle.putBundle("miui.focus.pics", FocusApi.addpics("app", Icon.createWithResource(this@PlayService,R.drawable.lycaon_icon)))
-                                            nfBundle.putString("miui.focus.param.media",param.toString())
-
 
                                             mediaSession?.let {
                                                 if (Looper.myLooper() != it.player.applicationLooper)
@@ -567,6 +549,22 @@ class PlayService : MediaSessionService(),
             .setAvailableSessionCommands(availableSessionCommands.build())
             .build()
     }
+
+    override fun onMediaMetadataChanged(metadata: MediaMetadata) {
+        val albumId = mediaSession.player.currentMediaItem?.albumAudioId?: ""
+        val hash = mediaSession.player.currentMediaItem?.songHash
+
+        Log.d("分享歌曲","hash = $hash albumId = $albumId")
+
+        val bundle = IslandApi.isLandMusicShare(
+            addpic = Bundle(),
+            title = mediaSession.player.mediaMetadata.title.toString(),
+            content = mediaSession.player.mediaMetadata.artist.toString(),
+            shareContent = "https://activity.kugou.com/share/v-98650b10/index.html?hash=$hash&album_audio_id=$albumId"
+        )
+        nfBundle.putAll(bundle)
+    }
+
 
     override fun onCustomCommand(
         session: MediaSession,

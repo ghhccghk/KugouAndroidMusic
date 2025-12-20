@@ -133,17 +133,20 @@ class PlaylistDetailFragment : Fragment() {
                                         val url = re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
 
 
-                                        val mixsongid = it.mixsongid?: ""
+                                        val mixsongid = it.add_mixsongid?: ""
                                         // 含真实 URL 和 ID 的占位 URI
                                         val encodedUrl = URLEncoder.encode(url, "UTF-8")
                                         val uri = "musicplay://playurl?id=${it?.name + it?.hash}&url=${encodedUrl}&hash=${it?.hash}".toUri().toString()
 
                                         val name = it.name?.let { it1 -> splitArtistAndTitle(it1) }
 
-                                        val item = it?.let { _ -> createMediaItemWithId(name?.first,
+                                        val item = it?.let { _ -> createMediaItemWithId(
+                                            name?.first,
                                             name?.second,
                                             uri,
-                                            result,result.hash,mixsongid) }
+                                            result,
+                                            result.hash,
+                                            mixsongid.toString()) }
 
                                         item?.let { mediaItem ->
                                             val controller = MainActivity.controllerFuture.get()

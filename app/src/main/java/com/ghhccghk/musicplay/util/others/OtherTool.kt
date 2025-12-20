@@ -9,9 +9,11 @@ import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.addDate
 import com.ghhccghk.musicplay.data.libraries.album
 import com.ghhccghk.musicplay.data.libraries.albumArtists
+import com.ghhccghk.musicplay.data.libraries.albumAudioId
 import com.ghhccghk.musicplay.data.libraries.albumId
 import com.ghhccghk.musicplay.data.libraries.artistId
 import com.ghhccghk.musicplay.data.libraries.artistsName
+import com.ghhccghk.musicplay.data.libraries.audioId
 import com.ghhccghk.musicplay.data.libraries.author
 import com.ghhccghk.musicplay.data.libraries.cdTrackNumber
 import com.ghhccghk.musicplay.data.libraries.compilation
@@ -65,7 +67,9 @@ fun MediaItem.toEntity(): MediaItemEntity {
         songHash = this.songHash?.toString(),
         lrcId = this.lrcId,
         lrcAccesskey = this.lrcAccesskey,
-        songtitle = this.songtitle
+        songtitle = this.songtitle,
+        albumAudioId = this.albumAudioId,
+        audioId = this.audioId
 
     )
 }
@@ -101,6 +105,8 @@ fun MediaItemEntity.toMediaItem(): MediaItem {
             putString("lrcId", lrcId)
             putString("lrcAccesskey", lrcAccesskey)
             putString("songtitle",songtitle)
+            putString("albumAudioId",albumAudioId)
+            putString("audioId",audioId)
         })
         .build()
 
