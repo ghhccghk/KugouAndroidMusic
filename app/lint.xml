@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+	<!--
+	<issue id="UnusedAttribute">
+		<ignore regexp="textFontWeight"/> - - backported in ViewCompatInflater - -
+		<ignore regexp="tooltipText"/> - - backported in ViewCompatInflater - -
+	</issue>
+	-->
+	<issue id="UnsafeOptInUsageError">
+		<option name="opt-in" value="androidx.media3.common.util.UnstableApi" />
+	</issue>
+</lint>
