@@ -19,18 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# JNI
--keep class org.nift4.gramophone.hificore.NativeTrack {
-    onAudioDeviceUpdate(...);
-    onUnderrun(...);
-    onMarker(...);
-    onNewPos(...);
-    onStreamEnd(...);
-    onNewIAudioTrack(...);
-    onNewTimestamp(...);
-    onLoopEnd(...);
-    onBufferEnd(...);
-    onMoreData(...);
-    onCanWriteMoreData(...);
-}
