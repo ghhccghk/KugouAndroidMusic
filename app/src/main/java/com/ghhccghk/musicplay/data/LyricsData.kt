@@ -8,13 +8,13 @@ data class LyricLine(
 
 
 data class getLyricCode(
-    val status: Int,
-    val info : String,
-    val error_code: String,
-    val contenttype: String,
-    val _source : String,
-    val charset: String,
-    val content: String,
-    val id: String,
-    val decodeContent: String
+    val status: Int = 0,
+    val info : String = "",
+    val error_code: String = "",
+    val contenttype: String = "",
+    val _source : String = "",
+    val charset: String = "",
+    val content: String = "",
+    val id: String = "",
+    val decodeContent: String= ""
 )

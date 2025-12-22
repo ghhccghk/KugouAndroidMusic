@@ -74,7 +74,6 @@ import com.ghhccghk.musicplay.util.AfFormatInfo
 import com.ghhccghk.musicplay.util.AfFormatTracker
 import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
-import com.ghhccghk.musicplay.util.CustomKrcParser
 import com.ghhccghk.musicplay.util.Flags
 import com.ghhccghk.musicplay.util.LyricSyncManager
 import com.ghhccghk.musicplay.util.NodeBridge
@@ -96,7 +95,6 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.toSyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
-import com.mocharealm.accompanist.lyrics.core.utils.LyricsFormatGuesser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -629,26 +627,10 @@ class PlayService : MediaSessionService(),
         val cachedData = Tools.readFromSubdirCache(this.applicationContext, subDir, fileName)
 
         if (cachedData != null) {
-
-//            Log.d("lyrictest",lyricss.title)
-//            Log.d("lyrictest",lyricss.lines.toString())
-
-            val myCustomFormat = LyricsFormatGuesser.LyricsFormat(
-                name = "MY_CUSTOM_FORMAT",
-                detector = { content ->
-                    val a = isEnhancedKrc(content)
-                    Log.d("CustomKrcParser",a.toString())
-                    a
-                }
-            )
             val autoParserLyric = AutoParser.Builder()
-                .withFormat(myCustomFormat, CustomKrcParser())
                 .build()
             val lyricss = autoParserLyric.parse(cachedData)
             MediaViewModelObject.newLrcEntries.value = lyricss
-
-//            MediaViewModelObject.lrcEntries.value =
-//                YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cachedData))
         } else {
             serviceScope.launch {
                 if (!MainActivity.isNodeRunning?: false) return@launch
@@ -706,32 +688,19 @@ class PlayService : MediaSessionService(),
     }
 
     private fun cacheAndLoadLyrics(content: String) {
-        
         val fileName = Tools.sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
-        Tools.writeToSubdirCache(this.applicationContext, subDir, fileName, content.toString())
+        Tools.writeToSubdirCache(this.applicationContext, subDir, fileName, content)
         Tools.readFromSubdirCache(this.applicationContext, subDir, fileName)?.let { cached ->
-//            MediaViewModelObject.lrcEntries.value = YosLrcFactory(false).formatLrcEntries(Tools.convertKrcToLrc(cached))
+            val autoParserLyric = AutoParser.Builder().build()
+            val lyricss = autoParserLyric.parse(cached)
+            MediaViewModelObject.newLrcEntries.value = lyricss
         }
-        val myCustomFormat = LyricsFormatGuesser.LyricsFormat(
-            name = "MY_CUSTOM_FORMAT",
-            detector = { content ->
-                // Example: check for a unique tag
-                val a = isEnhancedKrc(content)
-                Log.d("CustomKrcParser",a.toString())
-               a
-            }
-        )
-        val autoParserLyric = AutoParser.Builder()
-            .withFormat(myCustomFormat, CustomKrcParser())
-            .build()
-        val lyricss = autoParserLyric.parse(content)
-        MediaViewModelObject.newLrcEntries.value = lyricss
+
 
     }
 
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-
         val itemCount = mediaSession.player.mediaItemCount
         mediaItems.value =
             List(itemCount) { index -> mediaSession.player.getMediaItemAt(index) }.toMutableList()
@@ -843,21 +812,6 @@ class PlayService : MediaSessionService(),
                 SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
                 Bundle.EMPTY
             )
-        }
-    }
-
-    fun isEnhancedKrc(content: String): Boolean {
-        val lines = content.lines().map { it.trim() }.filter { it.isNotEmpty() }
-
-        // 行时间戳正则 [0,3946]
-        val lineTimeRegex = Regex("""^\[\d+,\d+]""")
-
-        // 字时间戳正则 <0,171,0>字
-        val wordTimeRegex = Regex("""<\d+,\d+,\d+>.{1}""")
-
-        // 至少有一行符合格式
-        return lines.any { line ->
-            lineTimeRegex.containsMatchIn(line) && wordTimeRegex.containsMatchIn(line)
         }
     }
 }
