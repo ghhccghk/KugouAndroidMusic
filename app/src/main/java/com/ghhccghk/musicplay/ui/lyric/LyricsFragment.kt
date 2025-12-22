@@ -112,7 +112,7 @@ class LyricsFragment : Fragment() {
     private fun addPlayerListener() {
         play.addListener(object : Player.Listener {
             override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                updateBg()
+                if (isAdded && view != null) updateBg()
             }
         })
     }
