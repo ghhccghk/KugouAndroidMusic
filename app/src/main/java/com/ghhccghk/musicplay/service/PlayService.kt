@@ -500,12 +500,12 @@ class PlayService : MediaSessionService(),
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
-        val importance = NotificationManager.IMPORTANCE_NONE
+        val importance = NotificationManager.IMPORTANCE_LOW
         val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
             description = descriptionText
-            enableVibration(false)
-            vibrationPattern = longArrayOf(0)
             setSound(null, null)
+            enableVibration(false)
+            setShowBadge(false)
         }
         val notificationManager: NotificationManager =
             ContextCompat.getSystemService(
