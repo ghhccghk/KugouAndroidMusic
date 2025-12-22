@@ -27,13 +27,11 @@ import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.os.Build
 import android.os.Parcelable
-import android.util.Log
-import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
-import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.Util
 import com.ghhccghk.musicplay.R
 import kotlinx.parcelize.Parcelize
@@ -146,12 +144,13 @@ object AudioFormatDetector {
         // TODO
     }
 
-    @OptIn(UnstableApi::class)
     enum class Encoding(val enc: Int?, val enc2: String?, val native: UInt?, val sdkRange: IntRange?, val res: Int) {
         ENCODING_INVALID(C.ENCODING_INVALID, null, 0xFFFFFFFFU, 0, R.string.spk_encoding_invalid),
         ENCODING_PCM_8BIT(C.ENCODING_PCM_8BIT, "AUDIO_FORMAT_PCM_8_BIT", 0x2U, 21, R.string.spk_encoding_pcm_8bit),
         ENCODING_PCM_16BIT(C.ENCODING_PCM_16BIT, "AUDIO_FORMAT_PCM_16_BIT", 0x1U, 21, R.string.spk_encoding_pcm_16bit),
         ENCODING_PCM_16BIT_BIG_ENDIAN(C.ENCODING_PCM_16BIT_BIG_ENDIAN, null, null, null, R.string.spk_encoding_pcm_16bit_big_endian),
+        ENCODING_PCM_20BIT(C.ENCODING_PCM_20BIT, null, null, null, R.string.spk_encoding_pcm_20bit),
+        ENCODING_PCM_20BIT_BIG_ENDIAN(C.ENCODING_PCM_20BIT_BIG_ENDIAN, null, null, null, R.string.spk_encoding_pcm_20bit_big_endian),
         ENCODING_PCM_24BIT(C.ENCODING_PCM_24BIT, "AUDIO_FORMAT_PCM_24_BIT_PACKED", 0x6U, 21, R.string.spk_encoding_pcm_24bit),
         ENCODING_PCM_8_24BIT(null, "AUDIO_FORMAT_PCM_8_24_BIT", 0x4U, 21, R.string.spk_encoding_pcm_8_24bit),
         ENCODING_PCM_24BIT_BIG_ENDIAN(C.ENCODING_PCM_24BIT_BIG_ENDIAN, null, null, null, R.string.spk_encoding_pcm_24bit_big_endian),
@@ -264,8 +263,8 @@ object AudioFormatDetector {
             get() = sdkRange?.contains(Build.VERSION.SDK_INT) == true && native != null
 
         companion object {
-            fun get(enc: Int) = Encoding.entries.find { it.enc == enc }
-            fun get2(enc2: String) = Encoding.entries.find { it.enc2 == enc2 }
+            fun get(enc: Int) = entries.find { it.enc == enc }
+            fun get2(enc2: String) = entries.find { it.enc2 == enc2 }
             fun getString(context: Context, enc: Int) = get(enc)?.getString(context)
             fun getStringFromString(context: Context, enc2: String) = get2(enc2)?.getString(context)
         }
@@ -274,10 +273,11 @@ object AudioFormatDetector {
     @Parcelize
     enum class AudioQuality : Parcelable {
         UNKNOWN,    // Unable to determine quality
-        LOSSY,      // Compressed formats (MP3, AAC, OGG)
-        CD,         // 16-bit/44.1kHz or 16-bit/48kHz (Red Book)
-        HD,         // 24-bit/44.1kHz or 24-bit/48kHz
-        HIRES       // 24-bit/88.2kHz+ (Hi-Res Audio standard)
+        LOSSY,      // Compressed lossy formats (MP3, AAC, OGG)
+        CD,         // 16-bit/44.1kHz (Red Book) lossless
+        HQ,         // other lossless formats that do not qualify as HD
+        HD,         // 24-bit/44.1kHz or 24-bit/48kHz lossless
+        HIRES       // 24-bit/88.2kHz+ (JAS Hi-Res Audio standard) lossless
     }
 
     @Parcelize
@@ -297,7 +297,7 @@ object AudioFormatDetector {
         DTS,            // DTS
         DTS_EXPRESS,    // DTS Express
         DTS_HD,         // DTS-HD
-        DTSX,           // DTS-X (DTS-UHD Profile 2)
+        DTS_UHD,        // DTS-UHD Profile 2
         OTHER
     }
 
@@ -330,9 +330,8 @@ object AudioFormatDetector {
         }
     }
 
-    @OptIn(UnstableApi::class)
     data class AudioFormats(
-        val downstreamFormat: Format?, val audioSinkInputFormat: Format?,
+        val downstreamFormat: List<Pair<Int, Format>>?, val audioSinkInputFormat: Format?,
         val audioTrackInfo: AudioTrackInfo?, val halFormat: AfFormatInfo?,
         val btCodecInfo: BtCodecInfo?
     ) {
@@ -341,9 +340,11 @@ object AudioFormatDetector {
                 return null
             // TODO localization and handle nulls in data nicely
             return StringBuilder().apply {
-                append("== Downstream format ==\n")
-                prettyPrintFormat(context, downstreamFormat)
-                append("\n")
+                downstreamFormat.forEachIndexed { i, it ->
+                    append("== Downstream format [$i] ==\n")
+                    prettyPrintFormat(context, it.second)
+                    append("\n")
+                }
                 append("== Audio sink input format ==\n")
                 prettyPrintFormat(context, audioSinkInputFormat)
                 append("\n")
@@ -396,7 +397,7 @@ object AudioFormatDetector {
 
             append("Bit depth: ")
             val bitDepth = try {
-                Util.getByteDepth(format.pcmEncoding) * 8
+                Util.getBitDepth(format.pcmEncoding)
             } catch (_: IllegalArgumentException) {
                 null
             }
@@ -417,7 +418,7 @@ object AudioFormatDetector {
                 append("Not applicable to this format\n")
             }
 
-            if (format.sampleMimeType != "audio/raw") {
+            if (format.sampleMimeType != MimeTypes.AUDIO_RAW) {
                 append("Bitrate: ")
                 if (format.bitrate != Format.NO_VALUE) {
                     append("~")
@@ -456,8 +457,9 @@ object AudioFormatDetector {
         private fun StringBuilder.prettyPrintAfFormatInfo(context: Context, format: AfFormatInfo) {
             append("Mix port: ${format.mixPortName} (ID: ${format.mixPortId})\n")
             append("Mix port flags: ${mixPortFlagsToString(context, format.mixPortFlags)}")
-            append(" (fast: ${format.mixPortFast})\n")
-            append("Mix port device hw module ID: ${format.mixPortHwModule}\n")
+            if (format.mixPortFast != null)
+                append(" (fast: ${format.mixPortFast})")
+            append("\nMix port hw module ID: ${format.mixPortHwModule}\n")
             append("I/O handle: ${format.ioHandle}\n")
             append("Sample rate: ${format.sampleRateHz} Hz\n")
             append(
@@ -482,28 +484,30 @@ object AudioFormatDetector {
         }
     }
 
-    @OptIn(UnstableApi::class)
     fun detectAudioFormat(
         f: AudioFormats?
     ): AudioFormatInfo? {
         if (f == null) return null
-        val format = f.downstreamFormat
-        if (format == null) return null
-        val bitrate = format.bitrate.takeIf { it != Format.NO_VALUE }?.toLong()
+        val formats = f.downstreamFormat?.filter { it.first == C.TRACK_TYPE_AUDIO }
+        if (formats?.size != 1) return null
+        val format = formats.first().second
         val sampleRate = format.sampleRate.takeIf { it != Format.NO_VALUE }
         val bitDepth = try {
-            Util.getByteDepth(format.pcmEncoding) * 8
+            Util.getBitDepth(format.pcmEncoding)
         } catch (_: IllegalArgumentException) {
             null
         }
         val isLossless = isLosslessFormat(format.sampleMimeType)
+        val bitrate = if (isLossless != true)
+            format.bitrate.takeIf { it != Format.NO_VALUE }?.toLong() else null
         val spatialFormat = detectSpatialFormat(format)
         val sourceChannels = format.channelCount.takeIf { it != Format.NO_VALUE }
 
         val quality = determineQualityTier(
             sampleRate = sampleRate,
             bitDepth = bitDepth,
-            isLossless = isLossless
+            isLossless = isLossless,
+            mimeType = format.sampleMimeType
         )
 
         return AudioFormatInfo(
@@ -520,21 +524,22 @@ object AudioFormatDetector {
         )
     }
 
-    @OptIn(UnstableApi::class)
     private fun isLosslessFormat(mimeType: String?): Boolean? = when (mimeType) {
         MimeTypes.AUDIO_FLAC,
         MimeTypes.AUDIO_ALAC,
         MimeTypes.AUDIO_WAV,
         MimeTypes.AUDIO_RAW,
-        MimeTypes.AUDIO_TRUEHD -> true
+        MimeTypes.AUDIO_TRUEHD,
+        MimeTypes.AUDIO_MIDI,
+        MimeTypes.AUDIO_EXOPLAYER_MIDI -> true
 
         // TODO distinguish lossless DTS-HD MA vs other lossy DTS-HD encoding schemes
+        //  https://github.com/androidx/media/issues/2487
         MimeTypes.AUDIO_DTS_HD, MimeTypes.AUDIO_DTS_X -> null
 
         else -> false
     }
 
-    @UnstableApi
     private fun detectSpatialFormat(format: Format): SpatialFormat {
         val mimeFormat = when (format.sampleMimeType) {
             MimeTypes.AUDIO_AC3 -> SpatialFormat.DOLBY_AC3
@@ -545,7 +550,7 @@ object AudioFormatDetector {
             MimeTypes.AUDIO_DTS -> SpatialFormat.DTS
             MimeTypes.AUDIO_DTS_EXPRESS -> SpatialFormat.DTS_EXPRESS
             MimeTypes.AUDIO_DTS_HD -> SpatialFormat.DTS_HD
-            MimeTypes.AUDIO_DTS_X -> SpatialFormat.DTSX
+            MimeTypes.AUDIO_DTS_X -> SpatialFormat.DTS_UHD
             else -> null
         }
 
@@ -553,7 +558,7 @@ object AudioFormatDetector {
 
         // Standard multichannel formats
         // TODO can we just go by channel count? isn't there any way to distinguish QUAD
-        //  from QUAD_BACK?
+        //  from QUAD_SIDE?
         //  answer: until https://github.com/androidx/media/issues/1471 happens we cannot
         return when (format.channelCount) {
             1 -> SpatialFormat.NONE          // Mono
@@ -672,7 +677,8 @@ object AudioFormatDetector {
     private fun determineQualityTier(
         sampleRate: Int?,
         bitDepth: Int?,
-        isLossless: Boolean?
+        isLossless: Boolean?,
+        mimeType: String?
     ): AudioQuality = when {
         isLossless == false -> AudioQuality.LOSSY
 
@@ -680,15 +686,19 @@ object AudioFormatDetector {
         bitDepth != null && sampleRate != null &&
                 bitDepth >= 24 && sampleRate >= 88200 -> AudioQuality.HIRES
 
-        // HD: 24bit at standard rates OR 16bit at high rates
-        bitDepth != null && sampleRate != null && (
-                (bitDepth >= 24 && sampleRate in setOf(44100, 48000)) ||
-                        (bitDepth == 16 && sampleRate >= 88200)) -> AudioQuality.HD
+        // HD: >16bit at standard rates OR 16bit at high rates
+        bitDepth != null && sampleRate != null &&
+                (bitDepth > 16 || sampleRate > 48000) -> AudioQuality.HD
 
-        // CD: 16bit at standard rates
-        bitDepth == 16 && sampleRate in setOf(44100, 48000) -> AudioQuality.CD
+        // CD: 16bit at 44.1kHz
+        bitDepth == 16 && sampleRate == 44100 -> AudioQuality.CD
 
         // Fallback for non-standard combinations
+        bitDepth != null && sampleRate != null -> AudioQuality.HQ
+
+        mimeType == MimeTypes.AUDIO_EXOPLAYER_MIDI ||
+                mimeType == MimeTypes.AUDIO_MIDI -> AudioQuality.HQ
+
         else -> AudioQuality.UNKNOWN
     }
 }

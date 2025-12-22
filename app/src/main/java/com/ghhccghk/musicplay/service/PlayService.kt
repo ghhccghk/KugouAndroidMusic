@@ -28,6 +28,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
@@ -42,6 +43,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -104,6 +106,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 
+private val PlayService.TAG: String
+    get() = "PlayService"
+
 @UnstableApi
 class PlayService : MediaSessionService(),
     MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, AnalyticsListener {
@@ -138,7 +143,8 @@ class PlayService : MediaSessionService(),
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private lateinit var afFormatTracker: AfFormatTracker
-    private var downstreamFormat: Format? = null
+    private var downstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
+    private val pendingDownstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
     private lateinit var playbackHandler: Handler
     private lateinit var handler: Handler
     private var audioSinkInputFormat: Format? = null
@@ -573,14 +579,29 @@ class PlayService : MediaSessionService(),
         return Futures.immediateFuture(
             when (customCommand.customAction) {
                 SERVICE_GET_AUDIO_FORMAT -> {
-                    SessionResult(SessionResult.RESULT_SUCCESS).also {
-                        it.extras.putBundle("file_format", downstreamFormat?.toBundle())
-                        it.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
-                        it.extras.putParcelable("track_format", audioTrackInfo)
-                        it.extras.putParcelable("hal_format", afTrackFormat?.second)
-                        bitrate?.let { value -> it.extras.putLong("bitrate", value) }
+                    SessionResult(SessionResult.RESULT_SUCCESS).also { res ->
+                        if (downstreamFormat.isNotEmpty()) {
+                            res.extras.putParcelableArrayList(
+                                "file_format",
+                                ArrayList(downstreamFormat.map { Bundle().apply {
+                                    putInt("type", it.second.first)
+                                    val bitrate = bitrate
+                                    // TODO: should this be done here? this will create a new format object every query
+                                    val format = if (it.second.first == C.TRACK_TYPE_AUDIO &&
+                                        bitrate != null &&
+                                        it.second.second.sampleMimeType == MimeTypes.AUDIO_OPUS) {
+                                        it.second.second.buildUpon().setAverageBitrate(bitrate.toInt()).build()
+                                    } else it.second.second
+                                    putBundle("format", format.toBundle())
+                                } })
+                            )
+                        }
+                        res.extras.putBundle("sink_format", audioSinkInputFormat?.toBundle())
+                        res.extras.putParcelable("track_format", audioTrackInfo)
+                        res.extras.putParcelable("hal_format", afTrackFormat?.second)
+                        bitrate?.let { value -> res.extras.putLong("bitrate", value) }
                         if (afFormatTracker.format?.routedDeviceType == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) {
-                            it.extras.putParcelable("bt", btInfo)
+                            res.extras.putParcelable("bt", btInfo)
                         }
                     }
                 }
@@ -726,9 +747,26 @@ class PlayService : MediaSessionService(),
         when (state) {
             Player.STATE_IDLE -> {
                 println("空闲")
+                var changed = false
                 if (afTrackFormat != null) {
-                    Log.e("afTrackFormat", "leaked track format: $afTrackFormat")
+                    Log.e(TAG, "leaked track format: $afTrackFormat")
                     afTrackFormat = null
+                    changed = true
+                }
+                if (downstreamFormat.isNotEmpty()) {
+                    Log.e(TAG, "leaked downstream formats: $downstreamFormat")
+                    downstreamFormat.clear()
+                    changed = true
+                }
+                if (pendingDownstreamFormat.isNotEmpty()) {
+                    Log.e(TAG, "leaked pending downstream formats: $pendingDownstreamFormat")
+                    pendingDownstreamFormat.clear()
+                }
+                if (changed) {
+                    mediaSession?.broadcastCustomCommand(
+                        SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                        Bundle.EMPTY
+                    )
                 }
             }
             Player.STATE_BUFFERING -> println("缓冲中")
@@ -786,15 +824,38 @@ class PlayService : MediaSessionService(),
         }
     }
 
+    override fun onLoadCanceled(
+        eventTime: AnalyticsListener.EventTime,
+        loadEventInfo: LoadEventInfo,
+        mediaLoadData: MediaLoadData
+    ) {
+        pendingDownstreamFormat.removeAll { eventTime.mediaPeriodId?.periodUid == it.first }
+    }
+
+
     override fun onDownstreamFormatChanged(
         eventTime: AnalyticsListener.EventTime,
         mediaLoadData: MediaLoadData
     ) {
-        downstreamFormat = mediaLoadData.trackFormat
-        mediaSession?.broadcastCustomCommand(
-            SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
+        if (eventTime.mediaPeriodId == null) { // https://github.com/androidx/media/issues/2812
+            Log.e(TAG, "mediaPeriodId is NULL in onDownstreamFormatChanged()!!")
+            return
+        }
+        val controller = mediaSession.player
+        val currentPeriod = controller?.currentPeriodIndex?.takeIf { it != C.INDEX_UNSET &&
+                (controller?.currentTimeline?.periodCount ?: 0) > it }
+            ?.let { controller!!.currentTimeline.getUidOfPeriod(it) }
+        val item = eventTime.mediaPeriodId!!.periodUid to
+                (mediaLoadData.trackType to mediaLoadData.trackFormat!!)
+        if (currentPeriod != item.first) {
+            pendingDownstreamFormat += item
+        } else {
+            downstreamFormat += item
+            mediaSession?.broadcastCustomCommand(
+                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
     }
 
     private fun onAudioSinkInputFormatChanged(inputFormat: Format?) {
@@ -805,13 +866,4 @@ class PlayService : MediaSessionService(),
         )
     }
 
-    override fun onPlaybackStateChanged(eventTime: AnalyticsListener.EventTime, state: Int) {
-        if (state == Player.STATE_IDLE) {
-            downstreamFormat = null
-            mediaSession?.broadcastCustomCommand(
-                SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
-                Bundle.EMPTY
-            )
-        }
-    }
 }

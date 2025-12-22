@@ -164,6 +164,8 @@
     <string name="spk_encoding_pcm_16bit_offload" translatable="false">16-bit PCM Offload</string>
     <string name="spk_encoding_pcm_24bit_offload" translatable="false">24-bit (8.24) PCM offload</string>
     <string name="spk_encoding_dts_lbr" translatable="false">DTS Express</string>
+    <string name="spk_encoding_pcm_20bit">20-bit PCM</string>
+    <string name="spk_encoding_pcm_20bit_big_endian">20-bit PCM (big endian)</string>
 
     <string name="mix_port_flag_none" translatable="false">None</string>
     <string name="mix_port_flag_bit_perfect" translatable="false">Bit perfect</string>

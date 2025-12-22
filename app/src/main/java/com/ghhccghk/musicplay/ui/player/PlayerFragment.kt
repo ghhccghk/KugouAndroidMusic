@@ -1,11 +1,8 @@
 @file:Suppress("DEPRECATION")
-
 package com.ghhccghk.musicplay.ui.player
 
 import android.R.attr.colorAccent
-import android.R.attr.colorPrimary
 import android.animation.ValueAnimator
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.res.ColorStateList
@@ -18,10 +15,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.GestureDetector
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewPropertyAnimator
 import android.widget.SeekBar
 import androidx.appcompat.app.AlertDialog
@@ -75,28 +70,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
-class PlayerFragment() : Fragment() {
+class PlayerFragment : Fragment() {
 
     private var _binding: FragmentPlayerBinding? = null
     private val binding get() = _binding!!
-    val handler = Handler(Looper.getMainLooper())
+    private val handler = Handler(Looper.getMainLooper())
     private lateinit var progressDrawable: SquigglyProgress
-    private lateinit var player : MediaController
+    private lateinit var player: MediaController
     private var isUserTracking = false
     private lateinit var context: Context
-    private val prefs = MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
-    private var enableQualityInfo = prefs.getBoolean("audio_quality_info",false)
-    private var defaultprogressbar = prefs.getBoolean("default_progress_bar",false)
+    private val prefs by lazy { MainActivity.lontext.getSharedPreferences("play_setting_prefs", MODE_PRIVATE) }
+    private var enableQualityInfo = prefs.getBoolean("audio_quality_info", false)
+    private var defaultProgressBar = prefs.getBoolean("default_progress_bar", false)
     private var currentFormat: AudioFormatDetector.AudioFormats? = null
 
-    //动态取色相关
+    // 动态色彩
     private var currentJob: Job? = null
     private var wrappedContext: Context? = null
-    private var fullPlayerFinalColor: Int = -1
-    private var colorPrimaryFinalColor: Int = -1
-    private var colorSecondaryContainerFinalColor: Int = -1
-    private var colorOnSecondaryContainerFinalColor: Int = -1
-    private var colorContrastFaintedFinalColor: Int = -1
+    private var fullPlayerFinalColor = -1
+    private var colorPrimaryFinalColor = -1
+    private var colorSecondaryContainerFinalColor = -1
+    private var colorOnSecondaryContainerFinalColor = -1
+    private var colorContrastFaintedFinalColor = -1
 
     companion object {
         const val BACKGROUND_COLOR_TRANSITION_SEC: Long = 300
@@ -105,77 +100,80 @@ class PlayerFragment() : Fragment() {
 
     private val touchListener =
         object : SeekBar.OnSeekBarChangeListener, Slider.OnSliderTouchListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-            }
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {}
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 isUserTracking = true
                 progressDrawable.animate = false
             }
-
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                val mediaId = player?.currentMediaItem
-                if (mediaId != null) {
-                    if (seekBar != null) {
-                        player.seekTo((seekBar.progress.toLong()))
-                    }
-                }
+                player.currentMediaItem?.let { player.seekTo(seekBar?.progress?.toLong() ?: 0L) }
                 isUserTracking = false
-                progressDrawable.animate =
-                    player?.isPlaying == true || player?.playWhenReady == true
+                progressDrawable.animate = player.isPlaying
             }
 
-            override fun onStartTrackingTouch(slider: Slider) {
-                isUserTracking = true
-            }
-
+            override fun onStartTrackingTouch(slider: Slider) { isUserTracking = true }
             override fun onStopTrackingTouch(slider: Slider) {
-                val mediaId = player?.currentMediaItem
-                if (mediaId != null) {
-                    player.seekTo((slider.value.toLong()))
-                }
+                player.currentMediaItem?.let { player.seekTo(slider.value.toLong()) }
                 isUserTracking = false
             }
         }
 
-    // 每 500ms 更新一次进度
+    // 更新进度条
     private val updateRunnable = object : Runnable {
         override fun run() {
             val seekBar = binding.sliderSquiggly
             val slider = binding.sliderVert
 
-            slider.addOnChangeListener { _, value, fromUser ->
-                if (fromUser) {
-                    player.seekTo(value.toLong())
-                }
-            }
-
-            if (binding.fullSongName.text  != player.currentMediaItem?.songtitle){
+            if (binding.fullSongName.text != player.currentMediaItem?.songtitle) {
                 binding.fullSongName.text = player.currentMediaItem?.songtitle
                 binding.fullSongArtist.text = player.mediaMetadata.artist
             }
+
             if (player.isPlaying) {
                 seekBar.max = player.duration.toInt()
-                slider.valueTo = player.duration.toFloat() // 设置最大值
+                slider.valueTo = player.duration.toFloat()
                 slider.value = player.currentPosition.toFloat()
                 seekBar.progress = player.currentPosition.toInt()
                 binding.position.text = formatMillis(player.currentPosition)
                 binding.duration.text = formatMillis(player.duration)
+                if (binding.sheetMidButton.tag != 1) {
+                    binding.sheetMidButton.icon =
+                        AppCompatResources.getDrawable(
+                            context, R.drawable.play_anim
+                        )
+                    binding.sheetMidButton.background =
+                        AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
+                    binding.sheetMidButton.icon.startAnimation()
+                    binding.sheetMidButton.background.startAnimation()
+                    binding.sheetMidButton.tag = 1
+                }
+            } else {
+                if (player.playbackState != Player.STATE_BUFFERING) {
+                    if (binding.sheetMidButton.tag != 2) {
+                        binding.sheetMidButton.icon =
+                            AppCompatResources.getDrawable(
+                                context,
+                                R.drawable.pause_anim
+                            )
+                        binding.sheetMidButton.background =
+                            AppCompatResources.getDrawable(
+                                context,
+                                R.drawable.bg_pause_anim
+                            )
+                        binding.sheetMidButton.icon.startAnimation()
+                        binding.sheetMidButton.background.startAnimation()
+                        binding.sheetMidButton.tag = 2
+                    }
+                }
             }
+
             handler.postDelayed(this, 130)
         }
     }
 
-
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: android.view.LayoutInflater, container: android.view.ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentPlayerBinding.inflate(inflater, container, false)
-        val root: View = binding.root
-
-        return root
+        return binding.root
     }
 
     fun switchToNextFragment() {
@@ -188,210 +186,36 @@ class PlayerFragment() : Fragment() {
         context = requireContext()
         player = MainActivity.controllerFuture.get()
 
-        val seekBar = binding.sliderSquiggly
-        val slider = binding.sliderVert
-        val root: View = binding.root
+        val root = binding.root
+        fullPlayerFinalColor = MaterialColors.getColor(root, com.google.android.material.R.attr.colorSurface)
+        colorPrimaryFinalColor = MaterialColors.getColor(root, androidx.appcompat.R.attr.colorPrimary)
+        colorOnSecondaryContainerFinalColor = MaterialColors.getColor(root, com.google.android.material.R.attr.colorOnSecondaryContainer)
+        colorSecondaryContainerFinalColor = MaterialColors.getColor(root, com.google.android.material.R.attr.colorSecondaryContainer)
 
-        fullPlayerFinalColor = MaterialColors.getColor(
-            root,
-            com.google.android.material.R.attr.colorSurface
-        )
-        colorPrimaryFinalColor = MaterialColors.getColor(
-            root,
-            colorPrimary
-        )
-        colorOnSecondaryContainerFinalColor = MaterialColors.getColor(
-            root,
-            com.google.android.material.R.attr.colorOnSecondaryContainer
-        )
-        colorSecondaryContainerFinalColor = MaterialColors.getColor(
-            root,
-            com.google.android.material.R.attr.colorSecondaryContainer
-        )
-
-        val seekBarProgressWavelength =
-            context.resources
-                .getDimensionPixelSize(R.dimen.media_seekbar_progress_wavelength)
-                .toFloat()
-        val seekBarProgressAmplitude =
-            context.resources
-                .getDimensionPixelSize(R.dimen.media_seekbar_progress_amplitude)
-                .toFloat()
-        val seekBarProgressPhase =
-            context.resources
-                .getDimensionPixelSize(R.dimen.media_seekbar_progress_phase)
-                .toFloat()
-        val seekBarProgressStrokeWidth =
-            context.resources
-                .getDimensionPixelSize(R.dimen.media_seekbar_progress_stroke_width)
-                .toFloat()
-
-        binding.slideDown.setOnClickListener {
-            requireActivity().onBackPressedDispatcher.onBackPressed()
-        }
-
-        binding.lyrics.setOnClickListener {
-            switchToNextFragment()
-        }
-
-        if (player.mediaMetadata.artworkUri != null ){
-            val url = player.mediaMetadata.artworkUri
-            val hash = player.currentMediaItem?.songHash
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    val fileUrl = SmartImageCache.getOrDownload(url.toString(),hash)
-                    val drawable = withContext(Dispatchers.IO) {
-                        Glide.with(context)
-                            .load(fileUrl)
-                            .submit()
-                            .get()
-                    }
-
-                    // 在主线程设置 UI
-                    withContext(Dispatchers.Main) { binding.fullSheetCover.setImageDrawable(drawable) }
-
-                    if (DynamicColors.isDynamicColorAvailable() &&
-                        prefs.getBoolean("content_based_color", true)
-                    ) {
-                        addColorScheme(drawable)
-                    } else {
-                        removeColorScheme()
-                    }
-                }
+        // 触控手势
+        val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                val deltaX = e1?.let { it.x - e2.x } ?: return false
+                if (deltaX > 100 && abs(velocityX) > 200) { switchToNextFragment(); return true }
+                return false
             }
-        }
+        })
+        binding.root.setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event); true }
 
-        val format = player.getAudioFormat()
-        this.currentFormat = format
+        // 控件点击事件
+        binding.slideDown.setOnClickListener { requireActivity().onBackPressedDispatcher.onBackPressed() }
+        binding.lyrics.setOnClickListener { switchToNextFragment() }
+        binding.sheetMidButton.setOnClickListener { ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK); player.playOrPause() }
+        binding.sheetNextSong.setOnClickListener { player.seekToNext() }
+        binding.sheetPreviousSong.setOnClickListener { player.seekToPrevious() }
+        binding.playlist.setOnClickListener { GlobalPlaylistBottomSheetController.show() }
+        binding.mediaControl.setOnClickListener { SystemMediaControlResolver(context).intentSystemMediaDialog() }
 
-        if(_binding != null){
-            updateQualityIndicators(
-                if (enableQualityInfo)
-                    AudioFormatDetector.detectAudioFormat(format) else null
-            )
-        }
-
-
-        player.addListener(
-            object : Player.Listener {
-                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    super.onMediaMetadataChanged(mediaMetadata)
-                    val format = player.getAudioFormat()
-                    val url = player.mediaMetadata.artworkUri
-                    if (_binding != null ){
-                        viewLifecycleOwner.lifecycleScope.launch {
-                            withContext(Dispatchers.IO) {
-                                val a = Glide.with(context)
-                                    .load(url)
-                                    .submit()
-                                    .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                if (DynamicColors.isDynamicColorAvailable() &&
-                                    prefs.getBoolean("content_based_color", true)
-                                ) {
-                                    addColorScheme(a)
-                                } else {
-                                    removeColorScheme()
-                                }
-                            }
-                        }
-                        this@PlayerFragment.currentFormat = format
-                        updateQualityIndicators(if (enableQualityInfo)
-                            AudioFormatDetector.detectAudioFormat(currentFormat) else null)
-                        Glide.with(binding.root)
-                            .load(url)
-                            .into(binding.fullSheetCover)
-                    }
-                }
-
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    if (_binding != null){
-                        val url = player.mediaMetadata.artworkUri
-                        viewLifecycleOwner.lifecycleScope.launch {
-                            withContext(Dispatchers.IO) {
-                                val a = Glide.with(context)
-                                    .load(url)
-                                    .submit()
-                                    .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                if (DynamicColors.isDynamicColorAvailable() &&
-                                    prefs.getBoolean("content_based_color", true)
-                                ) {
-                                    addColorScheme(a)
-                                } else {
-                                    removeColorScheme()
-                                }
-                            }
-                        }
-
-                        val format = player.getAudioFormat()
-                        this@PlayerFragment.currentFormat = format
-                        updateQualityIndicators(if (enableQualityInfo)
-                            AudioFormatDetector.detectAudioFormat(currentFormat) else null)
-                        if (player.isPlaying) {
-                            progressDrawable.animate = true
-                            Glide.with(binding.root)
-                                .load(player.mediaMetadata.artworkUri)
-                                .into(binding.fullSheetCover)
-                            if (binding.sheetMidButton.tag != 1) {
-                                binding.sheetMidButton.icon =
-                                    AppCompatResources.getDrawable(
-                                        context, R.drawable.play_anim
-                                    )
-                                binding.sheetMidButton.background =
-                                    AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
-                                binding.sheetMidButton.icon.startAnimation()
-                                binding.sheetMidButton.background.startAnimation()
-                                binding.sheetMidButton.tag = 1
-                            }
-                        } else {
-                            val url = player.mediaMetadata.artworkUri
-                            Glide.with(binding.root)
-                                .load(player.mediaMetadata.artworkUri)
-                                .into(binding.fullSheetCover)
-                            viewLifecycleOwner.lifecycleScope.launch {
-                                withContext(Dispatchers.IO) {
-                                    val a = Glide.with(context)
-                                        .load(url)
-                                        .submit()
-                                        .get() // 注意：这是同步操作，需放在协程或后台线程中
-                                    if (DynamicColors.isDynamicColorAvailable() &&
-                                        prefs.getBoolean("content_based_color", true)
-                                    ) {
-                                        addColorScheme(a)
-                                    } else {
-                                        removeColorScheme()
-                                    }
-                                }
-                            }
-                            if (player.playbackState != Player.STATE_BUFFERING) {
-                                if (binding.sheetMidButton.tag != 2) {
-                                    binding.sheetMidButton.icon =
-                                        AppCompatResources.getDrawable(
-                                            context,
-                                            R.drawable.pause_anim
-                                        )
-                                    binding.sheetMidButton.background =
-                                        AppCompatResources.getDrawable(
-                                            context,
-                                            R.drawable.bg_pause_anim
-                                        )
-                                    binding.sheetMidButton.icon.startAnimation()
-                                    binding.sheetMidButton.background.startAnimation()
-                                    binding.sheetMidButton.tag = 2
-                                }
-                            }
-                            progressDrawable.animate = false
-                        }
-                    }
-                }
-            }
-        )
-
-        binding.sheetMidButton.setOnClickListener {
-            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
-            player.playOrPause()
-        }
-
+        // 进度条初始化
+        val seekBarProgressWavelength = context.resources.getDimensionPixelSize(R.dimen.media_seekbar_progress_wavelength).toFloat()
+        val seekBarProgressAmplitude = context.resources.getDimensionPixelSize(R.dimen.media_seekbar_progress_amplitude).toFloat()
+        val seekBarProgressPhase = context.resources.getDimensionPixelSize(R.dimen.media_seekbar_progress_phase).toFloat()
+        val seekBarProgressStrokeWidth = context.resources.getDimensionPixelSize(R.dimen.media_seekbar_progress_stroke_width).toFloat()
         binding.sliderSquiggly.progressDrawable = SquigglyProgress().also {
             progressDrawable = it
             it.waveLength = seekBarProgressWavelength
@@ -399,84 +223,65 @@ class PlayerFragment() : Fragment() {
             it.phaseSpeed = seekBarProgressPhase
             it.strokeWidth = seekBarProgressStrokeWidth
             it.transitionEnabled = true
-            it.animate = false
-            it.setTint(
-                MaterialColors.getColor(
-                    binding.sliderSquiggly,
-                    colorPrimary,
-                )
-            )
+            it.animate = player.isPlaying
+            it.setTint(MaterialColors.getColor(binding.sliderSquiggly, androidx.appcompat.R.attr.colorPrimary))
         }
 
         binding.sliderSquiggly.setOnSeekBarChangeListener(touchListener)
         binding.sliderVert.addOnSliderTouchListener(touchListener)
+        if (defaultProgressBar) { binding.sliderVert.visibility = View.VISIBLE; binding.sliderSquiggly.visibility = View.GONE }
+        else { binding.sliderVert.visibility = View.GONE; binding.sliderSquiggly.visibility = View.VISIBLE }
 
-        seekBar.max = 0
-        slider.valueTo = 0f
-        slider.value = 0f
-        seekBar.progress = 0
-        if (defaultprogressbar) {
-            slider.visibility = View.VISIBLE
-            seekBar.visibility = View.GONE
-        } else {
-            slider.visibility = View.GONE
-            seekBar.visibility = View.VISIBLE
-        }
-
-
-        if (player.duration.toInt() != 0){
-            seekBar.max = player.duration.toInt()
-            slider.valueTo = player.duration.toFloat() // 设置最大值
-            slider.value = player.currentPosition.toFloat()
-            seekBar.progress = player.currentPosition.toInt()
-            binding.position.text = formatMillis(player.currentPosition)
-            binding.duration.text = formatMillis(player.duration)
-        }
-
-        if (player.isPlaying) {
-            progressDrawable.animate = true
-            if (binding.sheetMidButton.tag != 1) {
-                binding.sheetMidButton.icon =
-                    AppCompatResources.getDrawable(
-                        context, R.drawable.play_anim
-                    )
-                binding.sheetMidButton.background =
-                    AppCompatResources.getDrawable(context, R.drawable.bg_play_anim)
-                binding.sheetMidButton.icon.startAnimation()
-                binding.sheetMidButton.background.startAnimation()
-                binding.sheetMidButton.tag = 1
+        // 加载封面并应用动态色彩
+        player.mediaMetadata.artworkUri?.let { uri ->
+            val hash = player.currentMediaItem?.songHash
+            viewLifecycleOwner.lifecycleScope.launch {
+                val drawable = withContext(Dispatchers.IO) {
+                    val fileUrl = SmartImageCache.getOrDownload(uri.toString(), hash)
+                    Glide.with(context).load(fileUrl).submit().get()
+                }
+                binding.fullSheetCover.setImageDrawable(drawable)
+                if (DynamicColors.isDynamicColorAvailable() && prefs.getBoolean("content_based_color", true)) addColorScheme(drawable) else removeColorScheme()
             }
-        } else {
-            progressDrawable.animate = false
-            if (player.playbackState != Player.STATE_BUFFERING) {
-                if (binding.sheetMidButton.tag != 2) {
-                    binding.sheetMidButton.icon =
-                        AppCompatResources.getDrawable(
-                            context,
-                            R.drawable.pause_anim
-                        )
-                    binding.sheetMidButton.background =
-                        AppCompatResources.getDrawable(
-                            context,
-                            R.drawable.bg_pause_anim
-                        )
-                    binding.sheetMidButton.icon.startAnimation()
-                    binding.sheetMidButton.background.startAnimation()
-                    binding.sheetMidButton.tag = 2
+        }
+
+        currentFormat = player.getAudioFormat()
+        updateQualityIndicators(if (enableQualityInfo) AudioFormatDetector.detectAudioFormat(currentFormat) else null)
+
+        // Player 监听
+        player.addListener(object : Player.Listener {
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                val format = player.getAudioFormat()
+                val url = mediaMetadata.artworkUri
+                _binding?.let {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        url?.let { artwork ->
+                            val drawable = withContext(Dispatchers.IO) { Glide.with(context).load(artwork).submit().get() }
+                            binding.fullSheetCover.setImageDrawable(drawable)
+                            if (DynamicColors.isDynamicColorAvailable() && prefs.getBoolean("content_based_color", true)) addColorScheme(drawable) else removeColorScheme()
+                        }
+                        currentFormat = format
+                        updateQualityIndicators(if (enableQualityInfo) AudioFormatDetector.detectAudioFormat(currentFormat) else null)
+                    }
                 }
             }
-        }
 
-        binding.sheetNextSong.setOnClickListener {
-            player.seekToNext()
-        }
-        binding.sheetPreviousSong.setOnClickListener {
-            player.seekToPrevious()
-        }
-
-        binding.playlist.setOnClickListener {
-            GlobalPlaylistBottomSheetController.show()
-        }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _binding?.let { b ->
+                    progressDrawable.animate = isPlaying
+                    val url = player.mediaMetadata.artworkUri
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        url?.let {
+                            val drawable = Glide.with(context).load(it).submit().get()
+                            withContext(Dispatchers.Main) {
+                                b.fullSheetCover.setImageDrawable(drawable)
+                                if (DynamicColors.isDynamicColorAvailable() && prefs.getBoolean("content_based_color", true)) addColorScheme(drawable) else removeColorScheme()
+                            }
+                        }
+                    }
+                }
+            }
+        })
 
         binding.qualityDetails.setOnClickListener {
             val dialog = MaterialAlertDialogBuilder(context)
@@ -512,99 +317,28 @@ class PlayerFragment() : Fragment() {
             )
 
         }
-
-        val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onFling(
-                e1: MotionEvent?,
-                e2: MotionEvent,
-                velocityX: Float,
-                velocityY: Float
-            ): Boolean {
-                val deltaX = e1?.let { it.x - e2.x }
-                if (deltaX != null) {
-                    if (deltaX > 100 && abs(velocityX) > 200) {
-                        // 从右向左滑
-                        switchToNextFragment()
-                        return true
-                    }
-                }
-                return false
-            }
-        })
-
-        binding.root.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
-            true
-        }
-
-        binding.mediaControl.setOnClickListener {
-            SystemMediaControlResolver(context).intentSystemMediaDialog()
-        }
-
-
-
     }
 
-    override fun onStart() {
-        super.onStart()
-        showControl.value = true
-        handler.post(updateRunnable)
-    }
+    override fun onStart() { super.onStart(); showControl.value = true; handler.post(updateRunnable) }
+    override fun onResume() { super.onResume(); showControl.value = true; handler.post(updateRunnable) }
+    override fun onPause() { super.onPause(); currentJob?.cancel(); handler.removeCallbacks(updateRunnable) }
+    override fun onStop() { super.onStop(); handler.removeCallbacks(updateRunnable); currentJob?.cancel() }
+    override fun onDestroyView() { super.onDestroyView(); currentJob?.cancel(); _binding = null; handler.removeCallbacksAndMessages(null) }
 
-    override fun onStop() {
-        super.onStop()
-        handler.removeCallbacks(updateRunnable)
+    private fun addColorScheme(drawable: Drawable) {
         currentJob?.cancel()
-    }
-
-
-    override fun onResume() {
-        super.onResume()
-        showControl.value = true
-        handler.post(updateRunnable)
-
-    }
-
-    override fun onPause() {
-        super.onPause()
-        currentJob?.cancel()
-        handler.removeCallbacks(updateRunnable)
-
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        currentJob?.cancel()
-        _binding = null
-        handler.removeCallbacksAndMessages(null)
-    }
-
-    private fun addColorScheme(a: Drawable) {
-        currentJob?.cancel()
-        currentJob = CoroutineScope(Dispatchers.Default).launch {
-            var drawable = a
-            if (drawable is TransitionDrawable) drawable = drawable.getDrawable(1)
-            val bitmap = if (drawable is BitmapDrawable) drawable.bitmap else {
-                removeColorScheme()
-                return@launch
-            }
+        currentJob = viewLifecycleOwner.lifecycleScope.launch {
+            var bmpDrawable = drawable
+            if (bmpDrawable is TransitionDrawable) bmpDrawable = bmpDrawable.getDrawable(1)
+            val bitmap = (bmpDrawable as? BitmapDrawable)?.bitmap ?: return@launch removeColorScheme()
             val colorAccuracy = prefs.getBoolean("content_based_color", false)
-            val targetWidth = if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16
-            val targetHeight = if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16
-            val scaledBitmap = bitmap.scale(targetWidth, targetHeight, false)
-
-            val options = DynamicColorsOptions.Builder()
-                .setContentBasedSource(scaledBitmap)
-                .build() // <-- this is computationally expensive!
-
-            wrappedContext = DynamicColors.wrapContextIfAvailable(
-                context,
-                options
-            ).apply {
-                // TODO does https://stackoverflow.com/a/58004553 describe this or another bug? will google ever fix anything?
-                resources.configuration.uiMode = context.resources.configuration.uiMode
-            }
-
+            val scaledBitmap = bitmap.scale(
+                if (colorAccuracy) (bitmap.width / 4).coerceAtMost(256) else 16,
+                if (colorAccuracy) (bitmap.height / 4).coerceAtMost(256) else 16,
+                false
+            )
+            val options = DynamicColorsOptions.Builder().setContentBasedSource(scaledBitmap).build()
+            wrappedContext = DynamicColors.wrapContextIfAvailable(context, options)
             applyColorScheme()
         }
     }
@@ -633,7 +367,14 @@ class PlayerFragment() : Fragment() {
         val colorPrimary =
             MaterialColors.getColor(
                 ctx,
-                colorPrimary,
+                androidx.appcompat.R.attr.colorPrimary,
+                -1
+            )
+
+        val colorSecondary =
+            MaterialColors.getColor(
+                ctx,
+                com.google.android.material.R.attr.colorSecondary,
                 -1
             )
 
@@ -839,7 +580,6 @@ class PlayerFragment() : Fragment() {
                 )
             }
         }
-
     }
 
     private fun removeColorScheme() {
@@ -851,20 +591,16 @@ class PlayerFragment() : Fragment() {
     }
 
     private fun updateQualityIndicators(info: AudioFormatInfo?) {
-        if (_binding != null) {
-            val oldInfo = (binding.qualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?)
+        _binding?.let { b ->
+            val oldInfo = b.qualityDetails.getTag(R.id.quality_details) as AudioFormatInfo?
             if (oldInfo == info) return
-            (binding.qualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
-            (binding.qualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
-            if (info == null && binding.qualityDetails.isInvisible) return
-            if (oldInfo != null)
-                applyQualityInfo(oldInfo)
-            binding.qualityDetails.setTag(R.id.quality_details, info)
-            binding.qualityDetails.fadOutAnimation(300) {
-                if (info == null)
-                    return@fadOutAnimation
-                applyQualityInfo(info)
-                binding.qualityDetails.fadInAnimation(300)
+            (b.qualityDetails.getTag(R.id.fade_in_animation) as ViewPropertyAnimator?)?.cancel()
+            (b.qualityDetails.getTag(R.id.fade_out_animation) as ViewPropertyAnimator?)?.cancel()
+            if (info == null && b.qualityDetails.isInvisible) return
+            if (oldInfo != null) applyQualityInfo(oldInfo)
+            b.qualityDetails.setTag(R.id.quality_details, info)
+            b.qualityDetails.fadOutAnimation(300) {
+                info?.let { applyQualityInfo(it); b.qualityDetails.fadInAnimation(300) }
             }
         }
     }
@@ -887,6 +623,7 @@ class PlayerFragment() : Fragment() {
                 AudioQuality.HIRES -> R.drawable.ic_high_res
                 AudioQuality.HD -> R.drawable.ic_hd
                 AudioQuality.CD -> R.drawable.ic_cd
+                AudioQuality.HQ -> R.drawable.ic_hq
                 AudioQuality.LOSSY -> R.drawable.ic_lossy
                 else -> null
             }
@@ -922,17 +659,9 @@ class PlayerFragment() : Fragment() {
             info.bitrate?.let {
                 if (hadFirst)
                     append(" / ")
-                else
-                    hadFirst = true
                 append("${it / 1000}kbps")
             }
         }
     }
-
-
-
-
-
-
 
 }
