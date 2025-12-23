@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.bluetooth.BluetoothCodecStatus
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -11,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.media.AudioDeviceInfo
+import android.media.audiofx.AudioEffect
 import android.os.Binder
 import android.os.Build
 import android.os.Bundle
@@ -23,6 +25,7 @@ import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -144,6 +147,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     private lateinit var mediaSession: MediaLibrarySession
     private var lyric: String = ""
+    private var lastSessionId = 0
 
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
@@ -228,6 +232,21 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     private lateinit var rgAp: ReplayGainAudioProcessor
     private var rgMode = 0 // 0 = disabled, 1 = track, 2 = album, 3 = smart
+
+    private val btReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action.equals("android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED") &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O /* before 8, only sbc was supported */
+            ) {
+                btInfo = BtCodecInfo.fromCodecConfig(
+                    @SuppressLint("NewApi") IntentCompat.getParcelableExtra(
+                        intent, "android.bluetooth.extra.CODEC_STATUS", BluetoothCodecStatus::class.java
+                    )?.codecConfig
+                )
+                Log.d(TAG, "new bluetooth codec config $btInfo")
+            }
+        }
+    }
 
 
 
@@ -668,12 +687,25 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     }
 
+    // When destroying, we should release server side player
+    // alongside with the mediaSession.
     override fun onDestroy() {
-        super.onDestroy()
-        isNodeRunning = false
+        Log.i(TAG, "+onDestroy()")
+        unregisterReceiver(btReceiver)
+        prefs.unregisterOnSharedPreferenceChangeListener(this)
+        // Important: this must happen before sending stop() as that changes state ENDED -> IDLE
+        lastPlayedManager.save()
+        mediaSession!!.player.stop()
+        handler.removeCallbacks(timer)
         proxy?.let {
             it.adapter.closeProfileProxy(BluetoothProfile.A2DP, it.a2dp)
         }
+        mediaSession!!.release()
+        mediaSession!!.player.release()
+        broadcastAudioSessionClose()
+        internalPlaybackThread.quitSafely()
+        super.onDestroy()
+        Log.i(TAG, "-onDestroy()")
     }
 
     // Configure commands available to the controller in onConnect()
@@ -866,6 +898,26 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
         }
 
+    }
+
+    override fun onAudioSessionIdChanged(audioSessionId: Int) {
+        if (audioSessionId != lastSessionId) {
+            broadcastAudioSessionClose()
+            lastSessionId = audioSessionId
+            broadcastAudioSession()
+        }
+    }
+
+
+    private fun broadcastAudioSessionClose() {
+        if (lastSessionId != 0) {
+            Log.i(TAG, "broadcast audio session close: $lastSessionId")
+            sendBroadcast(Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, lastSessionId)
+            })
+            lastSessionId = 0
+        }
     }
 
     private suspend fun fetchLyrics(id: String, accessKey: String): String? {
@@ -1120,6 +1172,19 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             }
             else -> throw IllegalArgumentException("invalid rg mode $rgMode")
         })
+    }
+
+    private fun broadcastAudioSession() {
+        if (lastSessionId != 0) {
+            Log.i(TAG, "broadcast audio session open: $lastSessionId")
+            sendBroadcast(Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION).apply {
+                putExtra(AudioEffect.EXTRA_PACKAGE_NAME, packageName)
+                putExtra(AudioEffect.EXTRA_AUDIO_SESSION, lastSessionId)
+                putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            })
+        } else {
+            Log.e(TAG, "session id is 0? why????? THIS MIGHT BREAK EQUALIZER")
+        }
     }
 
 }
