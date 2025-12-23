@@ -248,6 +248,7 @@ tasks.withType<PackageAndroidArtifact> {
 
 dependencies {
     implementation(project(":hificore"))
+    implementation(project(":misc:alacdecoder"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

@@ -4,20 +4,20 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
 import android.os.Binder
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
+import android.os.Process
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
@@ -48,6 +48,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.util.EventLogger
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
@@ -89,8 +90,10 @@ import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
 import com.ghhccghk.musicplay.util.Tools.toFramework
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.exoplayer.CircularShuffleOrder
 import com.ghhccghk.musicplay.util.exoplayer.EndedWorkaroundPlayer
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
+import com.ghhccghk.musicplay.util.exoplayer.LastPlayedManager
 import com.ghhccghk.musicplay.util.getBooleanStrict
 import com.ghhccghk.musicplay.util.getIntStrict
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
@@ -113,6 +116,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.random.Random
 
 
 private val PlayService.TAG: String
@@ -138,7 +142,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         const val SERVICE_TIMER_CHANGED = "changed_timer"
     }
 
-    private lateinit var mediaSession: MediaSession
+    private lateinit var mediaSession: MediaLibrarySession
     private var lyric: String = ""
 
     // 当前歌词行数
@@ -177,9 +181,11 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     private lateinit var prefs: SharedPreferences
     private val nfBundle : Bundle = Bundle()
     val subDir = "cache/lyrics"
+    private val internalPlaybackThread = HandlerThread("ExoPlayer:Playback", Process.THREAD_PRIORITY_AUDIO)
     private var proxy: BtCodecInfo.Companion.Proxy? = null
     private var afTrackFormat: Pair<Any, AfFormatInfo>? = null
     private val pendingAfTrackFormats = hashMapOf<Any, AfFormatInfo>()
+    private lateinit var lastPlayedManager: LastPlayedManager
     val endedWorkaroundPlayer
         get() = mediaSession?.player as EndedWorkaroundPlayer?
 
@@ -413,6 +419,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         setListener(this)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
+        rgAp = ReplayGainAudioProcessor()
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
         LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
         serviceScope.launch {
@@ -528,9 +535,10 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         }
 
         // 初始化 ExoPlayer
-        val player: ExoPlayer = ExoPlayer.Builder(
+        val player = EndedWorkaroundPlayer(
+            ExoPlayer.Builder(
             this, GramophoneRenderFactory(
-                this, this::onAudioSinkInputFormatChanged,
+                this, rgAp,this::onAudioSinkInputFormatChanged,
                 afFormatTracker::setAudioSink
             ).setPcmEncodingRestrictionLifted(
                 prefs.getBoolean("floatoutput", false)
@@ -562,25 +570,39 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                             .build()))
             })
             .setMediaSourceFactory(DefaultMediaSourceFactory(cacheDataSourceFactory))
+            .setPlaybackLooper(internalPlaybackThread.looper)
             .build()
+        )
 
-        player.addAnalyticsListener(this)
+        player.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                // https://github.com/androidx/media/issues/2739
+                // TODO(ASAP) wasn't that bug supposed to be fixed?!
+                this@PlayService.onAudioSessionIdChanged(audioSessionId)
+            }
+        })
+        player.exoPlayer.addAnalyticsListener(EventLogger())
+        player.exoPlayer.addAnalyticsListener(afFormatTracker)
+        player.exoPlayer.addAnalyticsListener(this)
+        player.exoPlayer.setShuffleOrder(CircularShuffleOrder(player, 0, 0, Random.nextLong()))
+        lastPlayedManager = LastPlayedManager(this, player)
+        lastPlayedManager.allowSavingState = false
 
-        //通知点击返回应用
-        val packageManager: PackageManager = getPackageManager()
-        val it: Intent? = packageManager.getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
-
-        mediaSession = MediaSession.Builder(
-            this,
-            player
-        ).setSessionActivity(
-            PendingIntent.getActivity(
-                this,
-                PENDING_INTENT_SESSION_ID,
-                it,
-                FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
-        ).setCallback(this).build()
+        mediaSession =
+            MediaLibrarySession
+                .Builder(this, player, this)
+                // CacheBitmapLoader is required for MeiZuLyricsMediaNotificationProvider
+                .setSessionActivity(
+                    PendingIntent.getActivity(
+                        this,
+                        PENDING_INTENT_SESSION_ID,
+                        Intent(this, MainActivity::class.java),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    )
+                )
+                .setSystemUiPlaybackResumptionOptIn(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                .build()
+        addSession(mediaSession!!)
 
         run()
 
@@ -613,7 +635,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             }
         }
 
-        player.addAnalyticsListener(afFormatTracker)
+        player.exoPlayer.addAnalyticsListener(afFormatTracker)
 
         val name = "Media Control"
         val descriptionText = "Media Control Notification Channel"
@@ -949,7 +971,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
-        return mediaSession as MediaLibrarySession?
+        return mediaSession
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: @Player.TimelineChangeReason Int) {
