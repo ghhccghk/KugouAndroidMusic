@@ -259,5 +259,7 @@
     <string name="user_vip_info">VIP Info</string>
     <string name="exit_logout">退出登录</string>
     <string name="contributors_ghhccghk">主要维护者</string>
+    <string name="shuffle">随机</string>
+    <string name="repeat_mode">循环模式</string>
 
 </resources>

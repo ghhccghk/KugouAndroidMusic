@@ -3,6 +3,7 @@ package com.ghhccghk.musicplay.data.libraries
 import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 
 const val defaultArtistsName = "Unknown Artist"
 val defaultArtists = listOf(defaultArtistsName)
@@ -104,6 +105,48 @@ val MediaItem.albumAudioId: String?
 
 val MediaItem.audioId: String?
     get() = this.mediaMetadata.extras?.getString("audioId")
+
+val MediaMetadata.artistId: Long?
+    get() = this.extras?.getLong("ArtistId")
+
+val MediaMetadata.albumId: Long?
+    get() = this.extras?.getLong("AlbumId")
+
+val MediaMetadata.genreId: Long?
+    get() = this.extras?.getLong("GenreId")
+
+val MediaMetadata.author: String?
+    get() = this.extras?.getString("Author")
+
+val MediaMetadata.addDate: Long?
+    get() = this.extras?.getLong("AddDate")
+
+val MediaMetadata.duration: Long
+    get() = this.extras?.getLong("Duration") ?: 0
+
+val MediaMetadata.modifiedDate: Long?
+    get() = this.extras?.getLong("ModifiedDate")
+
+val MediaMetadata.cdTrackNumber: Int?
+    get() = this.extras?.getInt("CdTrackNumber")
+
+val MediaMetadata.songHash: String?
+    get() = this.extras?.getString("songHash")
+
+val MediaMetadata.lrcId: String?
+    get() = this.extras?.getString("lrcId")
+
+val MediaMetadata.lrcAccesskey: String?
+    get() = this.extras?.getString("lrcAccesskey")
+
+val MediaMetadata.songtitle: String?
+    get() = this.extras?.getString("songtitle")
+
+val MediaMetadata.albumAudioId: String?
+    get() = this.extras?.getString("albumAudioId")
+
+val MediaMetadata.audioId: String?
+    get() = this.extras?.getString("audioId")
 
 
 

@@ -18,6 +18,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.View
 import android.widget.TextView
@@ -30,6 +31,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -46,6 +48,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
 import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
@@ -79,14 +82,20 @@ import com.ghhccghk.musicplay.util.BtCodecInfo
 import com.ghhccghk.musicplay.util.Flags
 import com.ghhccghk.musicplay.util.LyricSyncManager
 import com.ghhccghk.musicplay.util.NodeBridge
+import com.ghhccghk.musicplay.util.ReplayGainAudioProcessor
+import com.ghhccghk.musicplay.util.ReplayGainUtil
 import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
 import com.ghhccghk.musicplay.util.Tools.toFramework
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
+import com.ghhccghk.musicplay.util.exoplayer.EndedWorkaroundPlayer
 import com.ghhccghk.musicplay.util.exoplayer.GramophoneRenderFactory
+import com.ghhccghk.musicplay.util.getBooleanStrict
+import com.ghhccghk.musicplay.util.getIntStrict
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toMediaItem
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
@@ -110,14 +119,23 @@ private val PlayService.TAG: String
     get() = "PlayService"
 
 @UnstableApi
-class PlayService : MediaSessionService(),
-    MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, AnalyticsListener {
+class PlayService : MediaLibraryService(), MediaSessionService.Listener,
+    MediaLibraryService.MediaLibrarySession.Callback, Player.Listener, AnalyticsListener,
+    SharedPreferences.OnSharedPreferenceChangeListener {
 
     companion object {
         const val CHANNEL_ID = "audio_player_channel"
         const val NOTIF_ID = 101
         private const val PENDING_INTENT_SESSION_ID = 0
+        private const val PLAYBACK_SHUFFLE_ACTION_ON = "shuffle_on"
+        private const val PLAYBACK_SHUFFLE_ACTION_OFF = "shuffle_off"
+        private const val PLAYBACK_REPEAT_OFF = "repeat_off"
+        private const val PLAYBACK_REPEAT_ALL = "repeat_all"
+        private const val PLAYBACK_REPEAT_ONE = "repeat_one"
+        const val SERVICE_SET_TIMER = "set_timer"
+        const val SERVICE_QUERY_TIMER = "query_timer"
         const val SERVICE_GET_AUDIO_FORMAT = "get_audio_format"
+        const val SERVICE_TIMER_CHANGED = "changed_timer"
     }
 
     private lateinit var mediaSession: MediaSession
@@ -142,6 +160,7 @@ class PlayService : MediaSessionService(),
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    private lateinit var customCommands: List<CommandButton>
     private lateinit var afFormatTracker: AfFormatTracker
     private var downstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
     private val pendingDownstreamFormat = hashSetOf<Pair<Any, Pair<Int, Format>>>()
@@ -160,6 +179,50 @@ class PlayService : MediaSessionService(),
     val subDir = "cache/lyrics"
     private var proxy: BtCodecInfo.Companion.Proxy? = null
     private var afTrackFormat: Pair<Any, AfFormatInfo>? = null
+    private val pendingAfTrackFormats = hashMapOf<Any, AfFormatInfo>()
+    val endedWorkaroundPlayer
+        get() = mediaSession?.player as EndedWorkaroundPlayer?
+
+    private fun getRepeatCommand() =
+        when (mediaSession.player!!.repeatMode) {
+            Player.REPEAT_MODE_OFF -> customCommands[2]
+            Player.REPEAT_MODE_ALL -> customCommands[3]
+            Player.REPEAT_MODE_ONE -> customCommands[4]
+            else -> throw IllegalArgumentException()
+        }
+
+    private fun getShufflingCommand() =
+        if (mediaSession.player.shuffleModeEnabled)
+            customCommands[1]
+        else
+            customCommands[0]
+
+    private val timer: Runnable = Runnable {
+        if (timerPauseOnEnd) {
+            endedWorkaroundPlayer!!.exoPlayer.pauseAtEndOfMediaItems = true
+        } else {
+            mediaSession.player!!.pause()
+        }
+        timerDuration = null
+    }
+    private var timerPauseOnEnd = false
+    private var timerDuration: Long? = null
+        set(value) {
+            field = value
+            if (value != null && value > 0) {
+                handler.postDelayed(timer, value - SystemClock.elapsedRealtime())
+            } else {
+                handler.removeCallbacks(timer)
+            }
+            mediaSession!!.broadcastCustomCommand(
+                SessionCommand(SERVICE_TIMER_CHANGED, Bundle.EMPTY),
+                Bundle.EMPTY
+            )
+        }
+
+    private lateinit var rgAp: ReplayGainAudioProcessor
+    private var rgMode = 0 // 0 = disabled, 1 = track, 2 = album, 3 = smart
+
 
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -347,6 +410,7 @@ class PlayService : MediaSessionService(),
     override fun onCreate() {
         super.onCreate()
         prefs = this.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+        setListener(this)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
         val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
@@ -399,18 +463,67 @@ class PlayService : MediaSessionService(),
 
         playbackHandler = Handler(Looper.getMainLooper())
 
+        customCommands =
+            listOf(
+                CommandButton.Builder(CommandButton.ICON_SHUFFLE_OFF) // shuffle currently disabled, click will enable
+                    .setDisplayName(getString(R.string.shuffle))
+                    .setSessionCommand(
+                        SessionCommand(PLAYBACK_SHUFFLE_ACTION_ON, Bundle.EMPTY)
+                    )
+                    .build(),
+                CommandButton.Builder(CommandButton.ICON_SHUFFLE_ON) // shuffle currently enabled, click will disable
+                    .setDisplayName(getString(R.string.shuffle))
+                    .setSessionCommand(
+                        SessionCommand(PLAYBACK_SHUFFLE_ACTION_OFF, Bundle.EMPTY)
+                    )
+                    .build(),
+                CommandButton.Builder(CommandButton.ICON_REPEAT_OFF) // repeat currently disabled, click will repeat all
+                    .setDisplayName(getString(R.string.repeat_mode))
+                    .setSessionCommand(
+                        SessionCommand(PLAYBACK_REPEAT_ALL, Bundle.EMPTY)
+                    )
+                    .build(),
+                CommandButton.Builder(CommandButton.ICON_REPEAT_ALL) // repeat all currently enabled, click will repeat one
+                    .setDisplayName(getString(R.string.repeat_mode))
+                    .setSessionCommand(
+                        SessionCommand(PLAYBACK_REPEAT_ONE, Bundle.EMPTY)
+                    )
+                    .build(),
+                CommandButton.Builder(CommandButton.ICON_REPEAT_ONE) // repeat one currently enabled, click will disable
+                    .setDisplayName(getString(R.string.repeat_mode))
+                    .setSessionCommand(
+                        SessionCommand(PLAYBACK_REPEAT_OFF, Bundle.EMPTY)
+                    )
+                    .build(),
+            )
+
+
         afFormatTracker = AfFormatTracker(this, playbackHandler,handler)
         afFormatTracker.formatChangedCallback = { format, period ->
             if (period != null) {
                 handler.post {
+                    val controller = mediaSession.player
+                    val currentPeriod = controller?.currentPeriodIndex?.takeIf {
+                        it != C.INDEX_UNSET &&
+                                (controller?.currentTimeline?.periodCount ?: 0) > it
+                    }
+                        ?.let { controller!!.currentTimeline.getUidOfPeriod(it) }
+                    if (currentPeriod != period) {
+                        if (format != null) {
+                            pendingAfTrackFormats[period] = format
+                        } else {
+                            pendingAfTrackFormats.remove(period)
+                        }
+                    } else {
                         afTrackFormat = format?.let { period to it }
                         mediaSession?.broadcastCustomCommand(
                             SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
                             Bundle.EMPTY
                         )
                     }
+                }
             } else {
-                Log.e("afFormatTracker", "mediaPeriodId is NULL in formatChangedCallback!!")
+                Log.e(TAG, "mediaPeriodId is NULL in formatChangedCallback!!")
             }
         }
 
@@ -567,6 +680,44 @@ class PlayService : MediaSessionService(),
             shareContent = "https://activity.kugou.com/share/v-98650b10/index.html?hash=$hash&album_audio_id=$albumId"
         )
         nfBundle.putAll(bundle)
+    }
+
+    override fun onPositionDiscontinuity(
+        oldPosition: Player.PositionInfo,
+        newPosition: Player.PositionInfo,
+        reason: Int
+    ) {
+        if (oldPosition.periodUid != newPosition.periodUid) {
+            var changed = false
+            downstreamFormat.toSet().forEach {
+                if (newPosition.periodUid != it.first) {
+                    downstreamFormat.remove(it)
+                    changed = true
+                }
+            }
+            pendingDownstreamFormat.toSet().forEach {
+                if (newPosition.periodUid == it.first) {
+                    downstreamFormat.add(it)
+                    pendingDownstreamFormat.remove(it)
+                    changed = true
+                }
+            }
+            if (afTrackFormat?.first != newPosition.periodUid) {
+                afTrackFormat = null
+                changed = true
+            }
+            pendingAfTrackFormats[newPosition.periodUid]?.let { format ->
+                afTrackFormat = newPosition.periodUid!! to format
+                pendingAfTrackFormats.remove(newPosition.periodUid)
+                changed = true
+            }
+            if (changed) {
+                mediaSession?.broadcastCustomCommand(
+                    SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
+                    Bundle.EMPTY
+                )
+            }
+        }
     }
 
 
@@ -758,6 +909,10 @@ class PlayService : MediaSessionService(),
                     downstreamFormat.clear()
                     changed = true
                 }
+                if (pendingAfTrackFormats.isNotEmpty()) {
+                    Log.e(TAG, "leaked pending track formats: $pendingAfTrackFormats")
+                    pendingAfTrackFormats.clear()
+                }
                 if (pendingDownstreamFormat.isNotEmpty()) {
                     Log.e(TAG, "leaked pending downstream formats: $pendingDownstreamFormat")
                     pendingDownstreamFormat.clear()
@@ -793,8 +948,27 @@ class PlayService : MediaSessionService(),
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        return mediaSession
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
+        return mediaSession as MediaLibrarySession?
+    }
+
+    override fun onTimelineChanged(timeline: Timeline, reason: @Player.TimelineChangeReason Int) {
+        if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) {
+            refreshMediaButtonCustomLayout()
+            computeRgMode()
+        }
+        pendingDownstreamFormat.toSet().forEach {
+            if (timeline.getIndexOfPeriod(it.first) == C.INDEX_UNSET) {
+                // This period is going away.
+                pendingDownstreamFormat.remove(it)
+            }
+        }
+        pendingAfTrackFormats.toMap().forEach { (key, _) ->
+            if (timeline.getIndexOfPeriod(key) == C.INDEX_UNSET) {
+                // This period is going away.
+                pendingAfTrackFormats.remove(key)
+            }
+        }
     }
 
     override fun onAudioTrackInitialized(
@@ -864,6 +1038,66 @@ class PlayService : MediaSessionService(),
             SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
             Bundle.EMPTY
         )
+    }
+
+    override fun onDisconnected(session: MediaSession, controller: MediaSession.ControllerInfo) {
+       Log.i(TAG, "onDisconnected(): $controller")
+    }
+
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+        if (key == null || key == "rg_mode") {
+            rgMode = prefs.getStringStrict("rg_mode", "0")!!.toInt()
+            computeRgMode()
+        }
+        if (key == null || key == "rg_drc") {
+            val drc = prefs.getBooleanStrict("rg_drc", true)
+            rgAp.setReduceGain(!drc)
+        }
+        if (key == null || key == "rg_rg_gain") {
+            val rgGain = prefs.getIntStrict("rg_rg_gain", 15)
+            rgAp.setRgGain(rgGain - 15)
+        }
+        if (key == null || key == "rg_no_rg_gain" || key == "rg_boost_gain") {
+            val nonRgGain = prefs.getIntStrict("rg_no_rg_gain", 0)
+            val boostGain = prefs.getIntStrict("rg_boost_gain", 0)
+            rgAp.setNonRgGain(-nonRgGain - boostGain)
+            rgAp.setBoostGain(boostGain)
+        }
+    }
+
+    private fun refreshMediaButtonCustomLayout() {
+        val isEmpty = mediaSession.player?.currentTimeline?.isEmpty != false
+        mediaSession!!.connectedControllers.forEach {
+            if (mediaSession!!.isMediaNotificationController(it)
+                || mediaSession!!.isAutoCompanionController(it)
+                || mediaSession!!.isAutomotiveController(it)) {
+                mediaSession!!.setCustomLayout(it, if (isEmpty) emptyList() else
+                    ImmutableList.of(getRepeatCommand(), getShufflingCommand()))
+            }
+        }
+    }
+
+    private fun computeRgMode() {
+        val controller = mediaSession.player
+        rgAp.setMode(when (rgMode) {
+            0 -> ReplayGainUtil.Mode.None
+            1 -> ReplayGainUtil.Mode.Track
+            2 -> ReplayGainUtil.Mode.Album
+            3 -> {
+                val item = controller?.currentMediaItem
+                val idx = controller?.currentMediaItemIndex ?: 0
+                val count = controller?.mediaItemCount
+                val next = if (idx + 1 >= (count ?: 0)) null else
+                    controller?.getMediaItemAt(idx + 1)
+                val prev = if (idx - 1 < 0 || (count ?: 0) == 0) null else
+                    controller?.getMediaItemAt(idx - 1)
+                if (item != null && (item.mediaMetadata.songHash == next?.mediaMetadata?.songHash ||
+                            item.mediaMetadata.songHash == prev?.mediaMetadata?.songHash))
+                    ReplayGainUtil.Mode.Album
+                else ReplayGainUtil.Mode.Track
+            }
+            else -> throw IllegalArgumentException("invalid rg mode $rgMode")
+        })
     }
 
 }

@@ -167,12 +167,12 @@ class LyricsFragment : Fragment() {
                     textMotion = TextMotion.Animated,
                 ),
                 verticalFadeMask = Modifier,
-//                textColor = if (colorbg) { androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor) } else { androidx.compose.ui.graphics.Color(Color.WHITE) },
-//                breathingDotsColor = if (colorbg) {
-//                    androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor)
-//                } else {
-//                    androidx.compose.ui.graphics.Color(Color.WHITE)
-//                }
+                textColor = if (colorbg) { androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor) } else { androidx.compose.ui.graphics.Color(Color.WHITE) },
+                breathingDotsColor = if (colorbg) {
+                    androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor)
+                } else {
+                    androidx.compose.ui.graphics.Color(Color.WHITE)
+                }
             )
 
             if (isShareVisible) {

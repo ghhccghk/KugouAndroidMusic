@@ -663,8 +663,6 @@ object Tools {
         return builder.build()
     }
 
-
-
 }
 
 // the whole point of this function is to do literally nothing at all (but without impacting
@@ -684,4 +682,27 @@ inline fun <reified T> allowDiskAccessInStrictMode(relax: Boolean = false, doIt:
             }
         }
     } else doIt()
+}
+
+inline fun <reified T> SharedPreferences.use(
+    doIt: SharedPreferences.() -> T
+): T {
+    return allowDiskAccessInStrictMode { doIt() }
+}
+
+// use below functions if accessing from UI thread only
+@Suppress("NOTHING_TO_INLINE")
+@Contract(value = "_,!null->!null")
+inline fun SharedPreferences.getStringStrict(key: String, defValue: String?): String? {
+    return use { getString(key, defValue) }
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun SharedPreferences.getIntStrict(key: String, defValue: Int): Int {
+    return use { getInt(key, defValue) }
+}
+
+@Suppress("NOTHING_TO_INLINE")
+inline fun SharedPreferences.getBooleanStrict(key: String, defValue: Boolean): Boolean {
+    return use { getBoolean(key, defValue) }
 }
