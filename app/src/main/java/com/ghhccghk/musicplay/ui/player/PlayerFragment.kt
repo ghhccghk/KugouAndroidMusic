@@ -13,6 +13,7 @@ import android.graphics.drawable.TransitionDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -21,6 +22,7 @@ import android.view.ViewPropertyAnimator
 import android.widget.SeekBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.graphics.scale
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -74,7 +76,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
-class PlayerFragment : Fragment() {
+class PlayerFragment : Fragment(), Player.Listener{
 
     private var _binding: FragmentPlayerBinding? = null
     private val binding get() = _binding!!
@@ -189,6 +191,9 @@ class PlayerFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         context = requireContext()
         player = MainActivity.controllerFuture.get()
+        player.addListener(this)
+
+
 
         val root = binding.root
         fullPlayerFinalColor = MaterialColors.getColor(root, com.google.android.material.R.attr.colorSurface)
@@ -288,6 +293,7 @@ class PlayerFragment : Fragment() {
         })
 
             binding.timer.setOnClickListener {
+                updateTimer()
                 // TODO(ASAP): expose wait until song end in ui
                 ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
                 val picker =
@@ -339,13 +345,80 @@ class PlayerFragment : Fragment() {
             )
 
         }
+
+        binding.sheetLoop.setOnClickListener {
+            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
+            player?.repeatMode = when (player?.repeatMode) {
+                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
+                else -> throw IllegalStateException()
+            }
+        }
+
+        binding.sheetRandom.addOnCheckedChangeListener { _, isChecked ->
+            player?.shuffleModeEnabled = isChecked
+        }
+
+        binding.sheetRandom.setOnClickListener {
+            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
+        }
+
+        when (player.repeatMode) {
+            Player.REPEAT_MODE_ALL -> {
+                binding.sheetLoop.isChecked = true
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat)
+            }
+
+            Player.REPEAT_MODE_ONE -> {
+                binding.sheetLoop.isChecked = true
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat_one)
+            }
+
+            Player.REPEAT_MODE_OFF -> {
+                binding.sheetLoop.isChecked = false
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat)
+            }
+        }
+
+        binding.sheetRandom.isChecked = player.shuffleModeEnabled
     }
 
-    override fun onStart() { super.onStart(); showControl.value = true; handler.post(updateRunnable) }
-    override fun onResume() { super.onResume(); showControl.value = true; handler.post(updateRunnable) }
-    override fun onPause() { super.onPause(); currentJob?.cancel(); handler.removeCallbacks(updateRunnable) }
-    override fun onStop() { super.onStop(); handler.removeCallbacks(updateRunnable); currentJob?.cancel() }
-    override fun onDestroyView() { super.onDestroyView(); currentJob?.cancel(); _binding = null; handler.removeCallbacksAndMessages(null) }
+    override fun onStart() { super.onStart(); showControl.value = true; handler.post(updateRunnable) ;player.addListener(this)}
+    override fun onResume() { super.onResume(); showControl.value = true; handler.post(updateRunnable);player.addListener(this) }
+    override fun onPause() { super.onPause(); currentJob?.cancel(); handler.removeCallbacks(updateRunnable) ; player.removeListener(this)}
+    override fun onStop() { super.onStop(); handler.removeCallbacks(updateRunnable); currentJob?.cancel() ; player.removeListener(this)}
+    override fun onDestroyView() { super.onDestroyView(); currentJob?.cancel(); _binding = null; handler.removeCallbacksAndMessages(null) ; player.removeListener(this)}
+
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        binding.sheetRandom.isChecked = shuffleModeEnabled
+    }
+
+    override fun onRepeatModeChanged(repeatMode: Int) {
+        when (repeatMode) {
+            Player.REPEAT_MODE_ALL -> {
+                binding.sheetLoop.isChecked = true
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat)
+            }
+
+            Player.REPEAT_MODE_ONE -> {
+                binding.sheetLoop.isChecked = true
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat_one)
+            }
+
+            Player.REPEAT_MODE_OFF -> {
+                binding.sheetLoop.isChecked = false
+                binding.sheetLoop.icon =
+                    AppCompatResources.getDrawable(context, R.drawable.ic_repeat)
+            }
+        }
+    }
+
 
     private fun addColorScheme(drawable: Drawable) {
         currentJob?.cancel()
@@ -684,6 +757,19 @@ class PlayerFragment : Fragment() {
                 append("${it / 1000}kbps")
             }
         }
+    }
+
+    private fun updateTimer() {
+        val t = player?.getTimer()
+        binding.timer.isChecked = t?.first != null || t?.second == true
+        TooltipCompat.setTooltipText(
+            binding.timer,
+            if (t?.first != null) context.getString(
+                if (t.second) R.string.timer_expiry_eos else R.string.timer_expiry,
+                DateFormat.getTimeFormat(context).format(System.currentTimeMillis() + t.first!!)
+            ) else if (t?.second == true) context.getString(R.string.timer_expiry_end_of_this_song)
+            else context.getString(R.string.timer)
+        )
     }
 
 }

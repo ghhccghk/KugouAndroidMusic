@@ -435,7 +435,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     override fun onCreate() {
         super.onCreate()
         prefs = this.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
-        setListener(this)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
         rgAp = ReplayGainAudioProcessor()
@@ -606,6 +605,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         player.exoPlayer.setShuffleOrder(CircularShuffleOrder(player, 0, 0, Random.nextLong()))
         lastPlayedManager = LastPlayedManager(this, player)
         lastPlayedManager.allowSavingState = false
+        setListener(this)
 
         mediaSession =
             MediaLibrarySession
@@ -710,14 +710,37 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     // Configure commands available to the controller in onConnect()
     override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo)
             : MediaSession.ConnectionResult {
+        Log.i(TAG, "onConnect(): $controller")
+        val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
         val availableSessionCommands =
             MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+        if (session.isMediaNotificationController(controller)
+            || session.isAutoCompanionController(controller)
+            || session.isAutomotiveController(controller)
+        ) {
+            // currently, all custom actions are only useful when used by notification
+            // other clients hopefully have repeat/shuffle buttons like MCT does
+            for (commandButton in customCommands) {
+                // Add custom command to available session commands.
+                commandButton.sessionCommand?.let { availableSessionCommands.add(it) }
+            }
+            if (this.mediaSession.player?.currentTimeline?.isEmpty == false) {
+                builder.setCustomLayout(
+                    ImmutableList.of(
+                        getRepeatCommand(),
+                        getShufflingCommand()
+                    )
+                )
+            }
+        }
+        if (controller.connectionHints.getBoolean("PrepareWhenReady", false) &&
+            this.mediaSession.player?.currentTimeline?.isEmpty == false) {
+            handler.post { this.mediaSession.player?.prepare() }
+        }
+        availableSessionCommands.add(SessionCommand(SERVICE_SET_TIMER, Bundle.EMPTY))
+        availableSessionCommands.add(SessionCommand(SERVICE_QUERY_TIMER, Bundle.EMPTY))
         availableSessionCommands.add(SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY))
-
-
-        return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-            .setAvailableSessionCommands(availableSessionCommands.build())
-            .build()
+        return builder.setAvailableSessionCommands(availableSessionCommands.build()).build()
     }
 
     override fun onMediaMetadataChanged(metadata: MediaMetadata) {
@@ -782,6 +805,40 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     ): ListenableFuture<SessionResult> {
         return Futures.immediateFuture(
             when (customCommand.customAction) {
+                PLAYBACK_SHUFFLE_ACTION_ON -> {
+                    this.mediaSession.player!!.shuffleModeEnabled = true
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                PLAYBACK_SHUFFLE_ACTION_OFF -> {
+                    this.mediaSession.player!!.shuffleModeEnabled = false
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                SERVICE_SET_TIMER -> {
+                    // 0 = clear timer; 0 with pauseOnEnd true will pause on end of current song
+                    val duration = customCommand.customExtras.getInt("duration")
+                    val pauseOnEnd = customCommand.customExtras.getBoolean("pauseOnEnd")
+                    if (duration > 0) {
+                        timerPauseOnEnd = pauseOnEnd
+                        timerDuration = SystemClock.elapsedRealtime() + duration
+                    } else {
+                        timerDuration = null
+                        this.endedWorkaroundPlayer!!.exoPlayer.pauseAtEndOfMediaItems = pauseOnEnd
+                    }
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                SERVICE_QUERY_TIMER -> {
+                    SessionResult(SessionResult.RESULT_SUCCESS).also {
+                        timerDuration?.let { td ->
+                            it.extras.putInt("duration", (td - SystemClock.elapsedRealtime()).toInt())
+                            it.extras.putBoolean("pauseOnEnd", timerPauseOnEnd)
+                        } ?: it.extras.putBoolean("pauseOnEnd",
+                            this.endedWorkaroundPlayer!!.exoPlayer.pauseAtEndOfMediaItems)
+                    }
+                }
+
                 SERVICE_GET_AUDIO_FORMAT -> {
                     SessionResult(SessionResult.RESULT_SUCCESS).also { res ->
                         if (downstreamFormat.isNotEmpty()) {
@@ -808,6 +865,22 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                             res.extras.putParcelable("bt", btInfo)
                         }
                     }
+                }
+
+
+                PLAYBACK_REPEAT_OFF -> {
+                    this.mediaSession.player!!.repeatMode = Player.REPEAT_MODE_OFF
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                PLAYBACK_REPEAT_ONE -> {
+                    this.mediaSession.player!!.repeatMode = Player.REPEAT_MODE_ONE
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
+
+                PLAYBACK_REPEAT_ALL -> {
+                    this.mediaSession.player!!.repeatMode = Player.REPEAT_MODE_ALL
+                    SessionResult(SessionResult.RESULT_SUCCESS)
                 }
 
                 else -> {

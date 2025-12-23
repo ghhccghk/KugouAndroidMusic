@@ -342,6 +342,11 @@
     <string name="contributors_ghhccghk">主要维护者</string>
     <string name="shuffle">Shuffle</string>
     <string name="repeat_mode">Repeat mode</string>
+    <string name="timer">Sleep timer</string>
+    <string name="playback_speed">Playback speed</string>
+    <string name="timer_expiry">Sleep timer will pause music at %s</string>
+    <string name="timer_expiry_eos">Sleep timer will pause music when song playing at %s ends</string>
+    <string name="timer_expiry_end_of_this_song">Sleep timer will pause music at the end of this song</string>
 
 
 </resources>
