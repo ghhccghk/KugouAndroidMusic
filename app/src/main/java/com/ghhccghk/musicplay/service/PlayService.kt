@@ -122,7 +122,7 @@ import java.io.File
 import kotlin.random.Random
 
 
-private val PlayService.TAG: String
+private val TAG: String
     get() = "PlayService"
 
 @UnstableApi
@@ -211,7 +211,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         if (timerPauseOnEnd) {
             endedWorkaroundPlayer!!.exoPlayer.pauseAtEndOfMediaItems = true
         } else {
-            mediaSession.player!!.pause()
+            endedWorkaroundPlayer!!.exoPlayer.pause()
         }
         timerDuration = null
     }
@@ -269,7 +269,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
                         runCatching {
 
-                            if (isPlaying == true) {
+                            if (isPlaying) {
                                 val car_lyrics = prefs.getBoolean("car_lyrics", false)
                                 val status_bar_lyrics = prefs.getBoolean("status_bar_lyrics", false)
                                 val newlyric = MediaViewModelObject.newLrcEntries.value
@@ -898,11 +898,10 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             if (prevIndex != C.INDEX_UNSET) {
                 val previousItem = mediaSession.player.getMediaItemAt(prevIndex)
                 val sessionMetadata = previousItem.mediaMetadata
-                val sessionMediaItem = previousItem
-                val te = sessionMediaItem?.songtitle?.toString()
+                val te = previousItem?.songtitle?.toString()
                 if (sessionMetadata.title != te) {
                     val newdata = sessionMetadata.buildUpon().setTitle(te).build()
-                    val newmedia = sessionMediaItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
+                    val newmedia = previousItem?.buildUpon()?.setMediaMetadata(newdata)?.build()
                     mediaSession.player.replaceMediaItem(
                         prevIndex,
                         newmedia!!
@@ -1094,7 +1093,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
         return mediaSession
     }
 
