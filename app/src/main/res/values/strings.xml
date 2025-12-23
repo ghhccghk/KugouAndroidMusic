@@ -76,41 +76,41 @@
     <string name="spk_encoding_pcm_32bit">32-bit (int) PCM</string>
     <string name="spk_encoding_pcm_32bit_big_endian">32-bit (int) PCM (big endian)</string>
     <string name="spk_encoding_pcm_float">32-bit (float) PCM</string>
-    <string name="spk_encoding_mp3" translatable="false">MP3</string>
-    <string name="spk_encoding_aac_lc" translatable="false">AAC-LC</string>
-    <string name="spk_encoding_aac_he_v1" translatable="false">HE-AAC v1</string>
-    <string name="spk_encoding_aac_he_v2" translatable="false">HE-AAC v2</string>
-    <string name="spk_encoding_aac_xhe" translatable="false">xHE-AAC</string>
-    <string name="spk_encoding_aac_eld" translatable="false">AAC-ELD</string>
-    <string name="spk_encoding_aac_er_bsac" translatable="false">AAC ER BSAC</string>
-    <string name="spk_encoding_ac3" translatable="false">AC-3</string>
-    <string name="spk_encoding_e_ac3" translatable="false">E-AC-3</string>
-    <string name="spk_encoding_e_ac3_joc" translatable="false">E-AC-3-JOC</string>
-    <string name="spk_encoding_ac4" translatable="false">AC-4</string>
-    <string name="spk_encoding_dts" translatable="false">DTS</string>
-    <string name="spk_encoding_dts_hd" translatable="false">DTS-HD</string>
-    <string name="spk_encoding_dolby_truehd" translatable="false">Dolby TrueHD</string>
-    <string name="spk_encoding_opus" translatable="false">Opus</string>
-    <string name="spk_encoding_dts_uhd_p2" translatable="false">DTS-X</string>
-    <string name="spk_encoding_pcm_8_24bit" translatable="false">24-bit (8.24) PCM</string>
-    <string name="spk_encoding_amr_wb" translatable="false">AMR-WB</string>
-    <string name="spk_encoding_aac" translatable="false">AAC</string>
-    <string name="spk_encoding_vorbis" translatable="false">Vorbis</string>
-    <string name="spk_encoding_iec61937" translatable="false">IEC 61937</string>
-    <string name="spk_encoding_amr_wb_plus" translatable="false">AMR-WB+</string>
-    <string name="spk_encoding_amr_nb" translatable="false">AMR-NB</string>
-    <string name="spk_encoding_evrc" translatable="false">EVRC</string>
-    <string name="spk_encoding_evrcb" translatable="false">EVRC-B</string>
-    <string name="spk_encoding_evrcwb" translatable="false">EVRC WB</string>
-    <string name="spk_encoding_evrcnw" translatable="false">EVRC NW</string>
-    <string name="spk_encoding_aac_adif" translatable="false">AAC ADIF</string>
-    <string name="spk_encoding_wma" translatable="false">WMA</string>
-    <string name="spk_encoding_wma_pro" translatable="false">WMA Pro</string>
-    <string name="spk_encoding_mp2" translatable="false">MPEG-2</string>
-    <string name="spk_encoding_qcelp" translatable="false">QCELP</string>
-    <string name="spk_encoding_dsd" translatable="false">Direct Stream Digital</string>
-    <string name="spk_encoding_flac" translatable="false">FLAC</string>
-    <string name="spk_encoding_alac" translatable="false">ALAC</string>
+    <string name="spk_encoding_mp3">MP3</string>
+    <string name="spk_encoding_aac_lc">AAC-LC</string>
+    <string name="spk_encoding_aac_he_v1">HE-AAC v1</string>
+    <string name="spk_encoding_aac_he_v2">HE-AAC v2</string>
+    <string name="spk_encoding_aac_xhe">xHE-AAC</string>
+    <string name="spk_encoding_aac_eld">AAC-ELD</string>
+    <string name="spk_encoding_aac_er_bsac">AAC ER BSAC</string>
+    <string name="spk_encoding_ac3">AC-3</string>
+    <string name="spk_encoding_e_ac3">E-AC-3</string>
+    <string name="spk_encoding_e_ac3_joc">E-AC-3-JOC</string>
+    <string name="spk_encoding_ac4">AC-4</string>
+    <string name="spk_encoding_dts">DTS</string>
+    <string name="spk_encoding_dts_hd">DTS-HD</string>
+    <string name="spk_encoding_dolby_truehd">Dolby TrueHD</string>
+    <string name="spk_encoding_opus">Opus</string>
+    <string name="spk_encoding_dts_uhd_p2">DTS-X</string>
+    <string name="spk_encoding_pcm_8_24bit">24-bit (8.24) PCM</string>
+    <string name="spk_encoding_amr_wb">AMR-WB</string>
+    <string name="spk_encoding_aac">AAC</string>
+    <string name="spk_encoding_vorbis">Vorbis</string>
+    <string name="spk_encoding_iec61937">IEC 61937</string>
+    <string name="spk_encoding_amr_wb_plus">AMR-WB+</string>
+    <string name="spk_encoding_amr_nb">AMR-NB</string>
+    <string name="spk_encoding_evrc">EVRC</string>
+    <string name="spk_encoding_evrcb">EVRC-B</string>
+    <string name="spk_encoding_evrcwb">EVRC WB</string>
+    <string name="spk_encoding_evrcnw">EVRC NW</string>
+    <string name="spk_encoding_aac_adif">AAC ADIF</string>
+    <string name="spk_encoding_wma">WMA</string>
+    <string name="spk_encoding_wma_pro">WMA Pro</string>
+    <string name="spk_encoding_mp2">MPEG-2</string>
+    <string name="spk_encoding_qcelp">QCELP</string>
+    <string name="spk_encoding_dsd">Direct Stream Digital</string>
+    <string name="spk_encoding_flac">FLAC</string>
+    <string name="spk_encoding_alac">ALAC</string>
     <string name="spk_encoding_ape" translatable="false">Monkey\'s Audio</string>
     <string name="spk_encoding_aac_adts" translatable="false">AAC in ADTS</string>
     <string name="spk_encoding_sbc" translatable="false">SBC</string>
@@ -159,57 +159,57 @@
     <string name="spk_encoding_mpegh_sub_bl_l4" translatable="false">MPEG-H Baseline Profile L4</string>
     <string name="spk_encoding_mpegh_sub_lc_l3" translatable="false">MPEG-H Low Complexity L3</string>
     <string name="spk_encoding_mpegh_sub_lc_l4" translatable="false">MPEG-H Low Complexity L4</string>
-    <string name="spk_encoding_unknown" translatable="false">Unknown format %s</string>
-    <string name="spk_encoding_unknown_d" translatable="false">Unknown format %d</string>
+    <string name="spk_encoding_unknown">Unknown format %s</string>
+    <string name="spk_encoding_unknown_d">Unknown format %d</string>
     <string name="spk_encoding_pcm_16bit_offload" translatable="false">16-bit PCM Offload</string>
-    <string name="spk_encoding_pcm_24bit_offload" translatable="false">24-bit (8.24) PCM offload</string>
+    <string name="spk_encoding_pcm_24bit_offload">24-bit (8.24) PCM offload</string>
     <string name="spk_encoding_dts_lbr" translatable="false">DTS Express</string>
-    <string name="spk_encoding_pcm_20bit">20-bit PCM</string>
-    <string name="spk_encoding_pcm_20bit_big_endian">20-bit PCM (big endian)</string>
+    <string name="spk_encoding_pcm_20bit" translatable="false">20-bit PCM</string>
+    <string name="spk_encoding_pcm_20bit_big_endian" translatable="false">20-bit PCM (big endian)</string>
 
     <string name="mix_port_flag_none" translatable="false">None</string>
-    <string name="mix_port_flag_bit_perfect" translatable="false">Bit perfect</string>
-    <string name="mix_port_flag_ultrasound" translatable="false">Ultrasound</string>
-    <string name="mix_port_flag_spatializer" translatable="false">Spatializer</string>
-    <string name="mix_port_flag_gapless_offload" translatable="false">Gapless offload</string>
-    <string name="mix_port_flag_incall_music" translatable="false">In-call music</string>
-    <string name="mix_port_flag_voip_rx" translatable="false">VoIP RX</string>
-    <string name="mix_port_flag_mmap_noirq" translatable="false">MMAP (no irq)</string>
-    <string name="mix_port_flag_direct_pcm" translatable="false">Direct PCM</string>
-    <string name="mix_port_flag_iec958_nonaudio" translatable="false">IEC 958 (non-audio)</string>
-    <string name="mix_port_flag_sync" translatable="false">Sync</string>
-    <string name="mix_port_flag_raw" translatable="false">Raw</string>
-    <string name="mix_port_flag_tts" translatable="false">TTS</string>
-    <string name="mix_port_flag_hw_av_sync" translatable="false">Hardware A/V Sync</string>
-    <string name="mix_port_flag_non_blocking" translatable="false">Non-blocking</string>
-    <string name="mix_port_flag_compress_offload" translatable="false">Compressed offload</string>
-    <string name="mix_port_flag_deep_buffer" translatable="false">Deep buffer</string>
-    <string name="mix_port_flag_fast" translatable="false">Fast</string>
-    <string name="mix_port_flag_primary" translatable="false">Primary output</string>
-    <string name="mix_port_flag_direct" translatable="false">Direct</string>
-    <string name="mix_port_flag_unknown" translatable="false">Unknown</string>
+    <string name="mix_port_flag_bit_perfect">Bit perfect</string>
+    <string name="mix_port_flag_ultrasound">Ultrasound</string>
+    <string name="mix_port_flag_spatializer">Spatializer</string>
+    <string name="mix_port_flag_gapless_offload">Gapless offload</string>
+    <string name="mix_port_flag_incall_music">In-call music</string>
+    <string name="mix_port_flag_voip_rx">VoIP RX</string>
+    <string name="mix_port_flag_mmap_noirq">MMAP (no irq)</string>
+    <string name="mix_port_flag_direct_pcm">Direct PCM</string>
+    <string name="mix_port_flag_iec958_nonaudio">IEC 958 (non-audio)</string>
+    <string name="mix_port_flag_sync">Sync</string>
+    <string name="mix_port_flag_raw">Raw</string>
+    <string name="mix_port_flag_tts">TTS</string>
+    <string name="mix_port_flag_hw_av_sync">Hardware A/V Sync</string>
+    <string name="mix_port_flag_non_blocking">Non-blocking</string>
+    <string name="mix_port_flag_compress_offload">Compressed offload</string>
+    <string name="mix_port_flag_deep_buffer">Deep buffer</string>
+    <string name="mix_port_flag_fast">Fast</string>
+    <string name="mix_port_flag_primary">Primary output</string>
+    <string name="mix_port_flag_direct">Direct</string>
+    <string name="mix_port_flag_unknown">Unknown</string>
 
     <string name="device_type_bluetooth_a2dp" translatable="false">Bluetooth A2DP</string>
     <string name="device_type_builtin_speaker" translatable="false">Built-in speaker</string>
     <string name="device_type_wired_headset" translatable="false">Wired headset</string>
     <string name="device_type_wired_headphones" translatable="false">Wired headphones</string>
-    <string name="device_type_hdmi" translatable="false">HDMI</string>
-    <string name="device_type_usb_device" translatable="false">USB device</string>
-    <string name="device_type_usb_accessory" translatable="false">USB accessory</string>
-    <string name="device_type_dock" translatable="false">Dock</string>
+    <string name="device_type_hdmi">HDMI</string>
+    <string name="device_type_usb_device">USB device</string>
+    <string name="device_type_usb_accessory">USB accessory</string>
+    <string name="device_type_dock">Dock</string>
     <string name="device_type_usb_headset" translatable="false">USB headset</string>
     <string name="device_type_hearing_aid" translatable="false">Hearing aid</string>
     <string name="device_type_ble_headset" translatable="false">Bluetooth LE Headset</string>
-    <string name="device_type_hdmi_arc" translatable="false">HDMI Audio Return Channel</string>
-    <string name="device_type_hdmi_earc" translatable="false">HDMI Enhanced Audio Return Channel</string>
+    <string name="device_type_hdmi_arc">HDMI Audio Return Channel</string>
+    <string name="device_type_hdmi_earc">HDMI Enhanced Audio Return Channel</string>
     <string name="device_type_unknown" translatable="false">Unknown</string>
-    <string name="device_type_dock_digital" translatable="false">Digital Dock</string>
-    <string name="device_type_dock_analog" translatable="false">Analog Dock</string>
+    <string name="device_type_dock_digital">Digital Dock</string>
+    <string name="device_type_dock_analog">Analog Dock</string>
     <string name="device_type_aux_line" translatable="false">AUX line</string>
-    <string name="device_type_line_analog" translatable="false">Analog line</string>
-    <string name="device_type_line_digital" translatable="false">Digital line</string>
+    <string name="device_type_line_analog">Analog line</string>
+    <string name="device_type_line_digital">Digital line</string>
     <string name="device_type_ble_speaker" translatable="false">Bluetooth LE Speaker</string>
-    <string name="device_type_ble_broadcast" translatable="false">Bluetooth LE Broadcast</string>
+    <string name="device_type_ble_broadcast">Bluetooth LE Broadcast</string>
 
     <string name="playlist">Playlist</string>
     <string name="music_icon">Music Icon</string>
@@ -347,6 +347,11 @@
     <string name="timer_expiry">Sleep timer will pause music at %s</string>
     <string name="timer_expiry_eos">Sleep timer will pause music when song playing at %s ends</string>
     <string name="timer_expiry_end_of_this_song">Sleep timer will pause music at the end of this song</string>
+    <string name="tempo">Tempo</string>
+    <string name="pitch">Pitch</string>
+    <string name="tempo_pitch_value" translatable="false">%s: %.2fx</string>
+    <string name="lock_tempo_pitch">Lock tempo and pitch</string>
+    <string name="reset">Reset</string>
 
 
 </resources>

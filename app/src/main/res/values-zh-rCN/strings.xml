@@ -242,6 +242,7 @@
     <string name="settings_song_quality_summary">选择缓存的音质，部分音质仅部分音乐支持</string>
     <string name="settings_car_lyrics_title">车载歌词</string>
     <string name="settings_car_lyrics_summary">启用车载歌词</string>
+    <string name="settings_image_cache_size_summary">设置最大缓存</string>
     <string name="settings_song_cache_size_title">设置歌曲缓存大小 (MB)</string>
     <string name="settings_song_cache_size_summary">设置最大缓存</string>
     <string name="setting_app_name_summary">应用名称</string>
@@ -261,5 +262,13 @@
     <string name="contributors_ghhccghk">主要维护者</string>
     <string name="shuffle">随机</string>
     <string name="repeat_mode">循环模式</string>
+    <string name="timer_expiry_eos">睡眠计时器将在 %s 后暂停歌曲</string>
+    <string name="timer_expiry_end_of_this_song">睡眠计时器将在歌曲结束后暂停</string>
+    <string name="playback_speed">播放速度</string>
+    <string name="tempo">速度</string>
+    <string name="lock_tempo_pitch">锁定节奏和音调</string>
+    <string name="reset">重置</string>
+    <string name="settings_image_cache_size_title">图片缓存大小 (MB)</string>
+    <string name="pitch">音调</string>
 
 </resources>

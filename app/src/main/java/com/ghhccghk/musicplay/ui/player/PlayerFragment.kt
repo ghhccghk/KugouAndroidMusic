@@ -16,13 +16,17 @@ import android.os.Looper
 import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewPropertyAnimator
+import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.TooltipCompat
+import androidx.core.content.edit
 import androidx.core.graphics.scale
 import androidx.core.view.HapticFeedbackConstantsCompat
 import androidx.core.view.ViewCompat
@@ -31,6 +35,7 @@ import androidx.core.widget.TextViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.navigation.fragment.findNavController
@@ -61,6 +66,7 @@ import com.ghhccghk.musicplay.util.oem.SystemMediaControlResolver
 import com.ghhccghk.musicplay.util.oem.UnstableMediaKitApi
 import com.ghhccghk.musicplay.util.setTimer
 import com.ghhccghk.musicplay.util.ui.ColorUtils
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
@@ -362,6 +368,11 @@ class PlayerFragment : Fragment(), Player.Listener{
 
         binding.sheetRandom.setOnClickListener {
             ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
+        }
+
+        binding.playbackSpeed.setOnClickListener {
+            ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
+            showPlaybackSpeedDialog()
         }
 
         when (player.repeatMode) {
@@ -770,6 +781,132 @@ class PlayerFragment : Fragment(), Player.Listener{
             ) else if (t?.second == true) context.getString(R.string.timer_expiry_end_of_this_song)
             else context.getString(R.string.timer)
         )
+    }
+
+    private fun showPlaybackSpeedDialog() {
+        val instance = player
+        val context = wrappedContext ?: context
+        val initialPlaybackParameters = instance!!.playbackParameters
+        val wantsToBeLocked = prefs.getBoolean("playback_tempo_pitch_locked", true)
+        val isLocked = initialPlaybackParameters.pitch == initialPlaybackParameters.speed && wantsToBeLocked
+
+        val tempoSlider = Slider(context).apply {
+            valueFrom = 0.25f
+            valueTo = 4.0f
+            stepSize = 0.01f
+            value = initialPlaybackParameters.speed.coerceIn(0.25f, 4.0f)
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { layoutParams = it }
+        }
+
+        val tempoText = TextView(context).apply {
+            text = context.getString(R.string.tempo_pitch_value, context.getString(R.string.tempo), tempoSlider.value)
+            gravity = Gravity.CENTER
+            textSize = 16f
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { layoutParams = it }
+        }
+
+        val pitchSlider = Slider(context).apply {
+            valueFrom = 0.25f
+            valueTo = 4.0f
+            stepSize = 0.01f
+            value = initialPlaybackParameters.pitch.coerceIn(0.25f, 4.0f)
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { layoutParams = it }
+        }
+
+        val pitchText = TextView(context).apply {
+            text = context.getString(R.string.tempo_pitch_value, context.getString(R.string.pitch), pitchSlider.value)
+            gravity = Gravity.CENTER
+            textSize = 16f
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { layoutParams = it }
+        }
+
+        val lockCheckbox = MaterialCheckBox(context).apply {
+            text = context.getString(R.string.lock_tempo_pitch)
+            isChecked = isLocked
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { layoutParams = it }
+        }
+
+        pitchSlider.isEnabled = !isLocked
+        pitchText.isEnabled = !isLocked
+
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48.dpToPx(context), 16.dpToPx(context),
+                48.dpToPx(context), 0)
+            addView(tempoText)
+            addView(tempoSlider)
+            addView(pitchText)
+            addView(pitchSlider)
+            addView(lockCheckbox)
+        }
+
+        tempoSlider.addOnChangeListener { _, value, fromUser ->
+            tempoText.text = context.getString(R.string.tempo_pitch_value, context.getString(R.string.tempo), value)
+            if (fromUser) {
+                if (lockCheckbox.isChecked) {
+                    pitchSlider.value = value
+                }
+                instance?.playbackParameters =
+                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
+            }
+        }
+
+        pitchSlider.addOnChangeListener { _, value, fromUser ->
+            pitchText.text = context.getString(R.string.tempo_pitch_value, context.getString(R.string.pitch), value)
+            if (fromUser) {
+                instance?.playbackParameters =
+                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
+            }
+        }
+
+        lockCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            pitchSlider.isEnabled = !isChecked
+            pitchText.isEnabled = !isChecked
+            if (isChecked) {
+                pitchSlider.value = tempoSlider.value
+                instance?.playbackParameters =
+                    PlaybackParameters(tempoSlider.value, pitchSlider.value)
+            }
+        }
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.playback_speed)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                prefs.edit {
+                    putBoolean("playback_tempo_pitch_locked", lockCheckbox.isChecked)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                instance?.playbackParameters = initialPlaybackParameters
+                if (wantsToBeLocked != isLocked) { // if external app changed speed/pitch.
+                    prefs.edit {
+                        putBoolean("playback_tempo_pitch_locked", false)
+                    }
+                }
+            }
+            .setNeutralButton(R.string.reset) { _, _ ->
+                prefs.edit {
+                    putBoolean("playback_tempo_pitch_locked", true)
+                }
+                instance?.playbackParameters = PlaybackParameters(1f, 1f)
+            }
+            .show()
     }
 
 }
