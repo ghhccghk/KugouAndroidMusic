@@ -54,14 +54,18 @@ import com.ghhccghk.musicplay.util.Tools.formatMillis
 import com.ghhccghk.musicplay.util.Tools.getAudioFormat
 import com.ghhccghk.musicplay.util.Tools.playOrPause
 import com.ghhccghk.musicplay.util.Tools.startAnimation
+import com.ghhccghk.musicplay.util.getTimer
 import com.ghhccghk.musicplay.util.oem.SystemMediaControlResolver
 import com.ghhccghk.musicplay.util.oem.UnstableMediaKitApi
+import com.ghhccghk.musicplay.util.setTimer
 import com.ghhccghk.musicplay.util.ui.ColorUtils
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.DynamicColorsOptions
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -282,6 +286,24 @@ class PlayerFragment : Fragment() {
                 }
             }
         })
+
+            binding.timer.setOnClickListener {
+                // TODO(ASAP): expose wait until song end in ui
+                ViewCompat.performHapticFeedback(it, HapticFeedbackConstantsCompat.CONTEXT_CLICK)
+                val picker =
+                    MaterialTimePicker
+                        .Builder()
+                        .setHour((player?.getTimer()?.first ?: 0) / 3600 / 1000)
+                        .setMinute(((player?.getTimer()?.first ?: 0) % (3600 * 1000)) / (60 * 1000))
+                        .setTimeFormat(TimeFormat.CLOCK_24H)
+                        .setInputMode(MaterialTimePicker.INPUT_MODE_KEYBOARD)
+                        .build()
+                picker.addOnPositiveButtonClickListener {
+                    val destinationTime: Int = picker.hour * 1000 * 3600 + picker.minute * 1000 * 60
+                    player?.setTimer(destinationTime, false)
+                }
+                picker.show(this.parentFragmentManager, "timer")
+            }
 
         binding.qualityDetails.setOnClickListener {
             val dialog = MaterialAlertDialogBuilder(context)

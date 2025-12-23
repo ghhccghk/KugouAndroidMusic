@@ -610,7 +610,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         mediaSession =
             MediaLibrarySession
                 .Builder(this, player, this)
-                // CacheBitmapLoader is required for MeiZuLyricsMediaNotificationProvider
                 .setSessionActivity(
                     PendingIntent.getActivity(
                         this,

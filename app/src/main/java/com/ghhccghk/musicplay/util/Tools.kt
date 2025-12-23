@@ -73,6 +73,8 @@ import com.ghhccghk.musicplay.data.libraries.MediaItemEntity
 import com.ghhccghk.musicplay.data.libraries.uri
 import com.ghhccghk.musicplay.data.searchLyric.lyric.fanyiLyricbase
 import com.ghhccghk.musicplay.service.PlayService.Companion.SERVICE_GET_AUDIO_FORMAT
+import com.ghhccghk.musicplay.service.PlayService.Companion.SERVICE_QUERY_TIMER
+import com.ghhccghk.musicplay.service.PlayService.Companion.SERVICE_SET_TIMER
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toEntity
 import com.google.android.material.appbar.AppBarLayout
@@ -705,4 +707,25 @@ inline fun SharedPreferences.getIntStrict(key: String, defValue: Int): Int {
 @Suppress("NOTHING_TO_INLINE")
 inline fun SharedPreferences.getBooleanStrict(key: String, defValue: Boolean): Boolean {
     return use { getBoolean(key, defValue) }
+}
+
+fun MediaController.getTimer(): Pair<Int?, Boolean> =
+    sendCustomCommand(
+        SessionCommand(SERVICE_QUERY_TIMER, Bundle.EMPTY),
+        Bundle.EMPTY
+    ).get().extras.run {
+        (if (containsKey("duration"))
+            getInt("duration")
+        else null) to (if (containsKey("pauseOnEnd"))
+            getBoolean("pauseOnEnd")
+        else throw IllegalArgumentException("expected pauseOnEnd to be set"))
+    }
+
+fun MediaController.setTimer(value: Int, waitUntilSongEnd: Boolean) {
+    sendCustomCommand(
+        SessionCommand(SERVICE_SET_TIMER, Bundle.EMPTY).apply {
+            customExtras.putInt("duration", value)
+            customExtras.putBoolean("pauseOnEnd", waitUntilSongEnd)
+        }, Bundle.EMPTY
+    )
 }
