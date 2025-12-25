@@ -37,8 +37,8 @@ android {
         // 由于nodejs 编译版本为 29 遂最低为 29
         minSdk = 29
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.6"
         //noinspection ChromeOsAbiSupport
         ndk.abiFilters += arrayOf("arm64-v8a", "armeabi-v7a","x86_64")
         buildConfigField("long", "BUILD_TIME", "$buildTime")
@@ -264,6 +264,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.material3.window.size.class1)
+    implementation(libs.material3)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
