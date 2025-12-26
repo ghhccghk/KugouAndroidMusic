@@ -141,7 +141,7 @@ fun PlaylistBottomSheet(
             onDismissRequest = onDismissRequest,
             sheetState = sheetState
         ) {
-            val currentSong = mediaItems.getOrNull(currentIndex)
+            val currentSong = player.currentMediaItem
             val currentTitle = currentSong?.songtitle.orEmpty()
             val currentArtwork = currentSong?.mediaMetadata?.artworkUri
 
