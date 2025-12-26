@@ -6,12 +6,14 @@ import android.os.Build
 import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,22 +34,27 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
@@ -76,155 +83,215 @@ open class PlaylistBottomSheetController {
         _visible.value = false
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistBottomSheet(
     controller: PlaylistBottomSheetController = remember { PlaylistBottomSheetController() },
-    songs: () -> List<MediaItem>,
+    player: Player,
     onDismissRequest: () -> Unit,
     onSongClick: (index: Int, song: MediaItem) -> Unit,
-    onDeleteClick: (index: Int, song: MediaItem) -> Unit,
-    currentIndex: () -> Int
+    onDeleteClick: (index: Int, song: MediaItem) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
     val listState = rememberLazyListState()
-    val a = currentIndex()
 
-    LaunchedEffect(currentIndex, controller.visible.value) {
-        if (controller.visible.value && a != null) {
-            listState.animateScrollToItem(a)
+    // SnapshotStateList 来维护 UI 列表
+    val mediaItems = remember {
+        mutableStateListOf<MediaItem>().apply {
+            addAll(List(player.mediaItemCount) { index -> player.getMediaItemAt(index) })
         }
     }
 
-    if (controller.visible.value) {
-        MaterialTheme(
-            colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (isSystemInDarkTheme()) dynamicDarkColorScheme(MainActivity.lontext) else dynamicLightColorScheme(MainActivity.lontext)
-            } else {
-                if (isSystemInDarkTheme()){
-                    darkColorScheme()    // 静态深色方案
-                } else{
-                    lightColorScheme()   // 静态亮色方案
-                }
+    // currentIndex 自动刷新
+    val currentIndex by player.currentMediaItemIndexAsState()
+
+    // 拖拽状态
+    val dragDropState = remember { DragDropState(listState, player, mediaItems) }
+
+    // 每次 ExoPlayer playlist 改变时，同步 UI
+    DisposableEffect(player) {
+        val listener = object : Player.Listener {
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                super.onMediaMetadataChanged(mediaMetadata)
+                mediaItems.clear()
+                mediaItems.addAll(List(player.mediaItemCount) { index -> player.getMediaItemAt(index) })
             }
-        ){
-            ModalBottomSheet(
-                onDismissRequest = onDismissRequest,
-                sheetState = sheetState,
-            ) {
-                val currentSong by remember {
-                    derivedStateOf {
-                        val index = currentIndex()
-                        songs().getOrNull(index)
-                    }
-                }
-                val songs = songs()
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
 
-                val currentTitle = currentSong?.songtitle?.toString().orEmpty()
-                val currentArtwork = currentSong?.mediaMetadata?.artworkUri?.toString()
+    LaunchedEffect(controller.visible.value, currentIndex) {
+        if (controller.visible.value) {
+            listState.animateScrollToItem(currentIndex)
+        }
+    }
 
-                ListItem(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                    ,
-                    leadingContent = {
-                        if (currentArtwork != null) {
-                            RotatingArtwork(
-                                uri = currentSong?.mediaMetadata?.artworkUri,
-                                hash = currentSong?.songHash
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = stringResource(id = R.string.music_icon),
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
-                    },
-                    headlineContent = {
-                        Text(
-                            text = if (currentTitle.isNotBlank()) {
-                                stringResource(id = R.string.playlist_now_playing, currentTitle)
-                            } else {
-                                stringResource(id = R.string.playlist)
-                            },
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    supportingContent = {
-                        Text(
-                            currentTitle,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    colors = ListItemDefaults.colors(
-                        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.0f)
+    if (!controller.visible.value) return
+
+    MaterialTheme(
+        colorScheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (isSystemInDarkTheme()) dynamicDarkColorScheme(MainActivity.lontext)
+            else dynamicLightColorScheme(MainActivity.lontext)
+        } else {
+            if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme()
+        }
+    ) {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            sheetState = sheetState
+        ) {
+            val currentSong = mediaItems.getOrNull(currentIndex)
+            val currentTitle = currentSong?.songtitle.orEmpty()
+            val currentArtwork = currentSong?.mediaMetadata?.artworkUri
+
+            ListItem(
+                modifier = Modifier.fillMaxWidth(),
+                leadingContent = {
+                    if (currentArtwork != null) RotatingArtwork(currentArtwork, currentSong?.songHash)
+                    else Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(40.dp))
+                },
+                headlineContent = {
+                    Text(
+                        text = if (currentTitle.isNotBlank()) stringResource(R.string.playlist_now_playing, currentTitle)
+                        else stringResource(R.string.playlist),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                },
+                supportingContent = {
+                    Text(currentTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                },
+                colors = ListItemDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0f)
                 )
+            )
 
-                Divider()
+            Divider()
 
-                LazyColumn(state = listState) {
-                    items(songs.size) { index ->
-                        val song = songs[index]
-                        val isSelected = index == a
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { offset ->
+                            val item = listState.layoutInfo.visibleItemsInfo.firstOrNull {
+                                offset.y.toInt() in it.offset..(it.offset + it.size)
+                            }
+                            item?.let { dragDropState.onDragStart(it.index) }
+                        },
+                        onDrag = { _, dragAmount -> dragDropState.onDrag(dragAmount.y) },
+                        onDragEnd = { dragDropState.onDragEnd() },
+                        onDragCancel = { dragDropState.onDragEnd() }
+                    )
+                }
+            ) {
+                items(mediaItems.size, key = { mediaItems[it].mediaId }) { index ->
+                    val song = mediaItems[index]
+                    val isSelected = index == currentIndex
+                    val isDragging = dragDropState.draggingItemIndex == index
 
-                        ListItem(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    if (isSelected)
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    else
-                                        Color.Transparent
-                                )
-                                .clickable { onSongClick(index, song) },
-                            leadingContent = {
-                                if (song.mediaMetadata.artworkUri != null) {
-                                    RotatingArtwork(
-                                        uri = song.mediaMetadata.artworkUri,
-                                        hash = song.songHash
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.MusicNote,
-                                        contentDescription = stringResource(id = R.string.music_icon),
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                }
-                            },
-                            headlineContent = {
-                                Text(
-                                    song.songtitle.toString(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            supportingContent = {
-                                Text(
-                                    song.mediaMetadata.artist.toString(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            trailingContent = {
-                                IconButton(onClick = { onDeleteClick(index, song) }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = stringResource(id = R.string.delete)
-                                    )
+                    ListItem(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                if (isDragging) {
+                                    scaleX = 1.02f
+                                    scaleY = 1.02f
+                                    shadowElevation = 12f
                                 }
                             }
-                        )
-                    }
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
+                            .clickable { onSongClick(index, song) },
+                        leadingContent = {
+                            if (song.mediaMetadata.artworkUri != null) {
+                                RotatingArtwork(song.mediaMetadata.artworkUri, song.songHash)
+                            } else {
+                                Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(40.dp))
+                            }
+                        },
+                        headlineContent = { Text(song.songtitle.toString(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        supportingContent = { Text(song.mediaMetadata.artist.toString(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        trailingContent = {
+                            IconButton(onClick = { onDeleteClick(index, song) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = stringResource(id = R.string.delete)
+                                )
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 }
+
+// 拖拽状态
+class DragDropState(
+    private val listState: LazyListState,
+    private val player: Player,
+    private val mediaItems: SnapshotStateList<MediaItem>
+) {
+    var draggingItemIndex by mutableStateOf<Int?>(null)
+        private set
+
+    private var dragOffset by mutableStateOf(0f)
+
+    fun onDragStart(index: Int) {
+        draggingItemIndex = index
+        dragOffset = 0f
+    }
+
+    fun onDrag(delta: Float) {
+        dragOffset += delta
+        val draggingIndex = draggingItemIndex ?: return
+        val visibleItems = listState.layoutInfo.visibleItemsInfo
+
+        val draggingItem = visibleItems.firstOrNull { it.index == draggingIndex } ?: return
+        val draggingItemCenter = draggingItem.offset + dragOffset + draggingItem.size / 2f
+
+        val targetItem = visibleItems.firstOrNull {
+            val start = it.offset.toFloat()
+            val end = start + it.size
+            draggingItemCenter in start..end && it.index != draggingIndex
+        }
+
+        if (targetItem != null) {
+            // 拖拽同步 ExoPlayer
+            player.moveMediaItems(draggingIndex, draggingIndex + 1, if (targetItem.index > draggingIndex) targetItem.index + 1 else targetItem.index)
+            // 同步 UI
+            val item = mediaItems.removeAt(draggingIndex)
+            mediaItems.add(targetItem.index, item)
+
+            draggingItemIndex = targetItem.index
+            dragOffset = 0f
+        }
+    }
+
+    fun onDragEnd() {
+        draggingItemIndex = null
+        dragOffset = 0f
+    }
+}
+
+// currentIndex 监听扩展
+@Composable
+fun Player.currentMediaItemIndexAsState(): State<Int> {
+    val state = remember { mutableStateOf(currentMediaItemIndex) }
+
+    DisposableEffect(this) {
+        val listener = object : Player.Listener {
+            override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                state.value = currentMediaItemIndex
+            }
+        }
+        addListener(listener)
+        onDispose { removeListener(listener) }
+    }
+
+    return state
+}
+
 
 @Composable
 fun RotatingArtwork(uri: Uri?,hash: String?) {

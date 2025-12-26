@@ -40,7 +40,6 @@ import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
 import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
-import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import com.ghhccghk.musicplay.service.PlayService
@@ -452,42 +451,9 @@ class MainActivity : AppCompatActivity() {
         controllerFuture.addListener({
             val player = controllerFuture.get()  // 此时 get() 安全：在后台线程
 
-            val itemCount = player.mediaItemCount
-            mediaItems.value =
-                List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-            currentMediaItemIndex.value = player.currentMediaItemIndex
-
             binding.comui.setContent {
                 Setplaylistui(player)
             }
-
-            player.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    super.onIsPlayingChanged(isPlaying)
-                    val itemCount = player.mediaItemCount
-                    mediaItems.value =
-                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-                    currentMediaItemIndex.value = player.currentMediaItemIndex
-                }
-
-                override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) {
-                    super.onPlaylistMetadataChanged(mediaMetadata)
-                    val itemCount = player.mediaItemCount
-                    mediaItems.value =
-                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-                    currentMediaItemIndex.value = player.currentMediaItemIndex
-
-                }
-
-                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    super.onMediaMetadataChanged(mediaMetadata)
-                    val itemCount = player.mediaItemCount
-                    mediaItems.value =
-                        List(itemCount) { index -> player.getMediaItemAt(index) }.toMutableList()
-                    currentMediaItemIndex.value = player.currentMediaItemIndex
-
-                }
-            })
 
             player.addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -510,7 +476,6 @@ class MainActivity : AppCompatActivity() {
     fun Setplaylistui(player: Player) {
         PlaylistBottomSheet(
             controller = GlobalPlaylistBottomSheetController,
-            songs = { mediaItems.value },
             onDismissRequest = {
                 GlobalPlaylistBottomSheetController._visible.value = false
             },
@@ -526,9 +491,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             },
-            currentIndex = {
-                currentMediaItemIndex.value
-            }
+            player = player
         )
     }
 

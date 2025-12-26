@@ -73,9 +73,7 @@ import com.ghhccghk.musicplay.data.libraries.songHash
 import com.ghhccghk.musicplay.data.libraries.songtitle
 import com.ghhccghk.musicplay.data.libraries.uri
 import com.ghhccghk.musicplay.data.objects.MainViewModelObject
-import com.ghhccghk.musicplay.data.objects.MainViewModelObject.currentMediaItemIndex
 import com.ghhccghk.musicplay.data.objects.MediaViewModelObject
-import com.ghhccghk.musicplay.data.objects.MediaViewModelObject.mediaItems
 import com.ghhccghk.musicplay.data.searchLyric.searchLyricBase
 import com.ghhccghk.musicplay.ui.lyric.MeiZuLyricsMediaNotificationProvider
 import com.ghhccghk.musicplay.ui.lyric.isManualNotificationUpdate
@@ -1018,11 +1016,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
-        val itemCount = mediaSession.player.mediaItemCount
-        mediaItems.value =
-            List(itemCount) { index -> mediaSession.player.getMediaItemAt(index) }.toMutableList()
-        currentMediaItemIndex.value = mediaSession.player.currentMediaItemIndex
-
         if (isPlaying) {
             serviceScope.launch {
                 if (mediaSession.player.playbackState != Player.STATE_IDLE && mediaSession.player.currentTimeline.isEmpty.not()) {
