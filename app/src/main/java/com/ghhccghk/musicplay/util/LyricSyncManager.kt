@@ -18,7 +18,7 @@ import com.ghhccghk.musicplay.ui.widgets.PREF_LINE_NEXT_TF
 import com.ghhccghk.musicplay.ui.widgets.PREF_TYPEWRITER_INDEX
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
-import com.mocharealm.accompanist.lyrics.core.model.synced.toSyncedLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.mapper.toSyncedLine
 import kotlin.math.max
 
 class LyricSyncManager private constructor(

@@ -70,7 +70,6 @@ import coil3.BitmapImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import com.ghhccghk.musicplay.BuildConfig
 import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.MainActivity.Companion.playbar
 import com.ghhccghk.musicplay.R
@@ -118,12 +117,13 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
-import com.hchen.superlyricapi.SuperLyricPush
+import com.hchen.superlyricapi.SuperLyricHelper
+import com.hchen.superlyricapi.SuperLyricLine
 import com.hchen.superlyricapi.SuperLyricWord
 import com.hyperfocus.api.IslandApi
 import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
-import com.mocharealm.accompanist.lyrics.core.model.synced.toSyncedLine
+import com.mocharealm.accompanist.lyrics.core.model.synced.mapper.toSyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -322,7 +322,11 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                         val metadata = mediaSession.player.mediaMetadata.toFramework()
 
                                         when (newLine){
-                                            is KaraokeLine -> {
+                                            is KaraokeLine.MainKaraokeLine -> {
+                                                if (lastLyric == newLine.toSyncedLine().content) return
+                                            }
+
+                                            is KaraokeLine.AccompanimentKaraokeLine -> {
                                                 if (lastLyric == newLine.toSyncedLine().content) return
                                             }
                                             is SyncedLine -> {
@@ -333,22 +337,41 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                         val lyricb = StringBuffer("")
                                         //翻译
                                         val translation = StringBuffer("")
+                                        val startTime = StringBuffer("")
+                                        val endTime = StringBuffer("")
+
 
                                         when (newLine){
-                                            is KaraokeLine -> {
+                                            is KaraokeLine.MainKaraokeLine -> {
                                                 lyricb.append(newLine.toSyncedLine().content)
                                                 translation.append(newLine.toSyncedLine().translation)
+                                                startTime.append(newLine.start)
+                                                endTime.append(newLine.end)
 
+
+                                            }
+
+                                            is KaraokeLine.AccompanimentKaraokeLine -> {
+                                                startTime.append(newLine.start)
+                                                endTime.append(newLine.end)
+                                                lyricb.append(newLine.toSyncedLine().content)
+                                                translation.append(newLine.toSyncedLine().translation)
                                             }
                                             is SyncedLine -> {
                                                 lyricb.append(newLine.content)
                                                 translation.append(newLine.translation)
+                                                startTime.append(newLine.start)
+                                                endTime.append(newLine.end)
                                             }
                                         }
 
 
                                         val lyricResult = lyricb.toString()
                                         val translationResult = translation.toString()
+                                        val startTimeResult = startTime.toString()
+                                        val endTimeResult = endTime.toString()
+
+
 
                                         if (playbar.visibility != View.GONE && play_bar_lyrics) {
                                             playbar.findViewById<TextView>(R.id.playbar_artist).text = lyricResult
@@ -377,54 +400,77 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                                 when (newLine) {// 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                                     is SyncedLine -> {
                                                         if (translationResult != "null") {
-                                                            SuperLyricPush.onSuperLyric(
+                                                            SuperLyricHelper.sendLyric(
                                                                 SuperLyricData()
-                                                                    .setLyric(lyricResult) // 设置歌词
-                                                                    .setBase64Icon(base64)
-                                                                    .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                                    .setMediaMetadata(metadata)
-                                                                    .setTranslation(
-                                                                        translationResult
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            null,
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
                                                                     )
-                                                            ) // 发送歌词
+                                                                    .setTranslation(
+                                                                        SuperLyricLine(
+                                                                            translationResult, // 翻译
+                                                                        )
+                                                                    )
+                                                            )
                                                         } else {
-                                                            SuperLyricPush.onSuperLyric(
+                                                            SuperLyricHelper.sendLyric(
                                                                 SuperLyricData()
-                                                                    .setLyric(lyricResult) // 设置歌词
-                                                                    .setBase64Icon(base64)
-                                                                    .setMediaMetadata(metadata)
-                                                                    .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                            ) // 发送歌词
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            null,
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
+                                                                    )
+                                                            )
                                                         }
                                                     }
                                                     is KaraokeLine -> {
                                                         if (translationResult != "null") {
-                                                            SuperLyricPush.onSuperLyric(
+                                                            SuperLyricHelper.sendLyric(
                                                                 SuperLyricData()
-                                                                    .setLyric(lyricResult) // 设置歌词
-                                                                    .setBase64Icon(base64)
-                                                                    .setLyricWordData(
-                                                                        newLine.toEnhancedLRCList()
-                                                                            .toTypedArray()
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            newLine.toEnhancedLRCList()
+                                                                                .toTypedArray(),
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
                                                                     )
-                                                                    .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                                    .setMediaMetadata(metadata)
                                                                     .setTranslation(
-                                                                        translationResult
+                                                                        SuperLyricLine(
+                                                                            translationResult, // 翻译
+                                                                        )
                                                                     )
-                                                            ) // 发送歌词
+                                                            )
                                                         } else {
-                                                            SuperLyricPush.onSuperLyric(
+                                                            SuperLyricHelper.sendLyric(
                                                                 SuperLyricData()
-                                                                    .setLyric(lyricResult) // 设置歌词
-                                                                    .setBase64Icon(base64)
-                                                                    .setMediaMetadata(metadata)
-                                                                    .setLyricWordData(
-                                                                        newLine.toEnhancedLRCList()
-                                                                            .toTypedArray()
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            newLine.toEnhancedLRCList()
+                                                                                .toTypedArray(),
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
                                                                     )
-                                                                    .setPackageName(BuildConfig.APPLICATION_ID) // 设置本软件包名
-                                                            ) // 发送歌词
+
+                                                            )
                                                         }
 
                                                     }
@@ -1118,8 +1164,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         val cachedData = Tools.readFromSubdirCache(this.applicationContext, subDir, fileName)
 
         if (cachedData != null) {
-            val autoParserLyric = AutoParser.Builder()
-                .build()
+            val autoParserLyric = AutoParser()
             val lyricss = autoParserLyric.parse(cachedData)
             MediaViewModelObject.newLrcEntries.value = lyricss
             // 立即触发 LyricSyncManager 刷新，确保 widget/UI 能马上拿到新歌词
@@ -1208,7 +1253,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         val fileName = Tools.sanitizeFileName("${mediaSession.player.currentMediaItem?.mediaId}.lrc")
         Tools.writeToSubdirCache(this.applicationContext, subDir, fileName, content)
         Tools.readFromSubdirCache(this.applicationContext, subDir, fileName)?.let { cached ->
-            val autoParserLyric = AutoParser.Builder().build()
+            val autoParserLyric = AutoParser()
             val lyricss = autoParserLyric.parse(cached)
             MediaViewModelObject.newLrcEntries.value = lyricss
             try {
@@ -1462,8 +1507,8 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         return syllables.map { syllable ->
             SuperLyricWord(
                 syllable.content,
-                syllable.start,
-                syllable.end
+                syllable.start.toLong(),
+                syllable.end.toLong()
             )
         }
     }
