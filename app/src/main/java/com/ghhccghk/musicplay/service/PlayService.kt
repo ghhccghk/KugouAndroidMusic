@@ -98,7 +98,6 @@ import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
 import com.ghhccghk.musicplay.util.Tools.isFirstRun
-import com.ghhccghk.musicplay.util.Tools.toFramework
 import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.exoplayer.CircularShuffleOrder
@@ -304,10 +303,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                     withContext(Dispatchers.IO) {
                                         // 直接从播放器读取当前位置（毫秒），避免使用外层捕获的变量导致偏差
                                         val nowMs = liveTime.toInt()
-                                        Log.v(
-                                            TAG,
-                                            "Triggering LyricSyncManager.sync with nowMs=$nowMs"
-                                        )
                                         LyricSyncManager.getInstance(
                                             this@PlayService
                                         ).sync(nowMs)
@@ -316,10 +311,8 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
                                 val sendLyric = fun() {
                                     try {
-                                        val newLine = newlyric.lines.getOrNull(currentLyricIndex)
-                                        if (newLine == null) return
-
-                                        val metadata = mediaSession.player.mediaMetadata.toFramework()
+                                        val newLine =
+                                            newlyric.lines.getOrNull(currentLyricIndex) ?: return
 
                                         when (newLine){
                                             is KaraokeLine.MainKaraokeLine -> {
@@ -434,7 +427,47 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                                             )
                                                         }
                                                     }
-                                                    is KaraokeLine -> {
+                                                    is KaraokeLine.AccompanimentKaraokeLine -> {
+                                                        if (translationResult != "null") {
+                                                            SuperLyricHelper.sendLyric(
+                                                                SuperLyricData()
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            newLine.toEnhancedLRCList()
+                                                                                .toTypedArray(),
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
+                                                                    )
+                                                                    .setTranslation(
+                                                                        SuperLyricLine(
+                                                                            translationResult, // 翻译
+                                                                        )
+                                                                    )
+                                                            )
+                                                        } else {
+                                                            SuperLyricHelper.sendLyric(
+                                                                SuperLyricData()
+                                                                    .setTitle(mediaSession.player.mediaMetadata.title.toString())
+                                                                    .setArtist(mediaSession.player.mediaMetadata.artist.toString())
+                                                                    .setLyric(
+                                                                        SuperLyricLine(
+                                                                            lyric, // 歌词文本
+                                                                            newLine.toEnhancedLRCList()
+                                                                                .toTypedArray(),
+                                                                            startTimeResult.toLong(),   // 行开始时间（毫秒）
+                                                                            endTimeResult.toLong()  // 行结束时间（毫秒）
+                                                                        )
+                                                                    )
+
+                                                            )
+                                                        }
+                                                    }
+
+                                                    is KaraokeLine.MainKaraokeLine -> {
                                                         if (translationResult != "null") {
                                                             SuperLyricHelper.sendLyric(
                                                                 SuperLyricData()
@@ -540,6 +573,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
+        SuperLyricHelper.registerPublisher()
         prefs = this.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
@@ -1504,12 +1538,26 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     }
 
     fun KaraokeLine.toEnhancedLRCList(): List<SuperLyricWord> {
-        return syllables.map { syllable ->
-            SuperLyricWord(
-                syllable.content,
-                syllable.start.toLong(),
-                syllable.end.toLong()
-            )
+        when (this) {
+            is KaraokeLine.MainKaraokeLine -> {
+                return syllables.map { syllable ->
+                    SuperLyricWord(
+                        syllable.content,
+                        syllable.start.toLong(),
+                        syllable.end.toLong()
+                    )
+                }
+            }
+
+            is KaraokeLine.AccompanimentKaraokeLine -> {
+                return syllables.map { syllable ->
+                    SuperLyricWord(
+                        syllable.content,
+                        syllable.start.toLong(),
+                        syllable.end.toLong()
+                    )
+                }
+            }
         }
     }
 

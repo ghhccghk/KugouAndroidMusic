@@ -76,8 +76,7 @@ class LyricSyncManager private constructor(
 
 
         // 评估日志等级，避免不必要的字符串构造
-        val verbose = Log.isLoggable("LyricSyncManager", Log.VERBOSE)
-
+        val verbose = false
         // 尝试处理 Map 类型（最常见的时间->行映射）
         val linesObj = MediaViewModelObject.newLrcEntries.value.lines
         // 调试日志：显示调用与 lines 对象类型（避免不必要的安全调用）

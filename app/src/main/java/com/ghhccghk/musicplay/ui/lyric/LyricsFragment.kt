@@ -137,7 +137,7 @@ class LyricsFragment : Fragment() {
             KaraokeLyricsView(
                 listState = listState,
                 lyrics = lyrics,
-                currentPosition = currentPosition,
+                currentPosition = { currentPosition.toInt() },
                 onLineClicked = { play.seekTo(it.start.toLong()) },
                 onLinePressed = { line ->
                     val context = ShareContext(
@@ -168,7 +168,6 @@ class LyricsFragment : Fragment() {
                     },
                     textMotion = TextMotion.Animated,
                 ),
-                verticalFadeMask = Modifier,
                 textColor = if (colorbg) { androidx.compose.ui.graphics.Color(colorOnSecondaryContainerFinalColor) } else { androidx.compose.ui.graphics.Color(Color.WHITE) },
                 breathingDotsDefaults = KaraokeBreathingDotsDefaults(
                     number = 4,
