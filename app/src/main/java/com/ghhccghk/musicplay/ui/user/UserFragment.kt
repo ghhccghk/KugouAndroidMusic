@@ -27,10 +27,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.Log
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -86,41 +86,41 @@ class UserFragment : Fragment() {
         val calendar = Calendar.getInstance()
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = format.format(calendar.time)
-        if (vipupdate != today){
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val a = KugouAPi.getlitevip()
-                        if (a == null || a == "502" || a == "404") {
-                            Toast.makeText(
-                                requireContext(),
-                                R.string.token_update_error,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-                withContext(Dispatchers.IO) {
-                    try {
-                        KugouAPi.updateToken(
-                            TokenManager.getToken().toString(),
-                            TokenManager.getUserId().toString()
-                        ).toString()
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(
-                            MainActivity.lontext,
-                            R.string.token_update_error,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        null
-                    }
-                }
-                prefs.edit { putString("vipupdate", today) }
-            }
-        }
+//        if (vipupdate != today){
+//            lifecycleScope.launch {
+//                withContext(Dispatchers.IO) {
+//                    try {
+//                        val a = KugouAPi.getlitevip()
+//                        if (a == null || a == "502" || a == "404") {
+//                            Toast.makeText(
+//                                requireContext(),
+//                                R.string.token_update_error,
+//                                Toast.LENGTH_SHORT
+//                            ).show()
+//                        }
+//                    } catch (e: Exception) {
+//                        null
+//                    }
+//                }
+//                withContext(Dispatchers.IO) {
+//                    try {
+//                        KugouAPi.updateToken(
+//                            TokenManager.getToken().toString(),
+//                            TokenManager.getUserId().toString()
+//                        ).toString()
+//                    } catch (e: Exception) {
+//                        e.printStackTrace()
+//                        Toast.makeText(
+//                            MainActivity.lontext,
+//                            R.string.token_update_error,
+//                            Toast.LENGTH_SHORT
+//                        ).show()
+//                        null
+//                    }
+//                }
+//                prefs.edit { putString("vipupdate", today) }
+//            }
+//        }
 
         val root: View = binding.root
         binding.toolbar.inflateMenu(R.menu.toolbar_menu_user)
@@ -128,26 +128,26 @@ class UserFragment : Fragment() {
             when (item.itemId) {
                 R.id.action_update_token -> {
                     lifecycleScope.launch {
-                            withContext(Dispatchers.IO) {
-                                try {
-                                    val a = KugouAPi.getlitevip()
-                                    if (a == null || a == "502" || a == "404") {
-                                        Toast.makeText(
-                                            MainActivity.lontext,
-                                            R.string.token_update_error,
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    Toast.makeText(
-                                        MainActivity.lontext,
-                                        R.string.token_update_error,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    null
-                                }
-                            }
+//                            withContext(Dispatchers.IO) {
+//                                try {
+//                                    val a = KugouAPi.getlitevip()
+//                                    if (a == null || a == "502" || a == "404") {
+//                                        Toast.makeText(
+//                                            MainActivity.lontext,
+//                                            R.string.token_update_error,
+//                                            Toast.LENGTH_SHORT
+//                                        ).show()
+//                                    }
+//                                } catch (e: Exception) {
+//                                    e.printStackTrace()
+//                                    Toast.makeText(
+//                                        MainActivity.lontext,
+//                                        R.string.token_update_error,
+//                                        Toast.LENGTH_SHORT
+//                                    ).show()
+//                                    null
+//                                }
+//                            }
                         withContext(Dispatchers.IO) {
                             try {
                                 KugouAPi.updateToken(
@@ -211,10 +211,10 @@ class UserFragment : Fragment() {
                 }
             }
         }
-        if (MainActivity.isNodeRunning && isLoggedIn()) {
+        if (isLoggedIn()) {
             setUserInfoUi()
             setUserPlayList()
-            setVipInfoUi()
+            //setVipInfoUi()
         } else {
             binding.notLoggedIn.visibility = View.VISIBLE
             binding.layoutUserInfo.visibility = View.GONE
@@ -232,10 +232,10 @@ class UserFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        if (MainActivity.isNodeRunning  && isLoggedIn() ) {
+        if (isLoggedIn()) {
             setUserInfoUi()
             setUserPlayList()
-            setVipInfoUi()
+            //setVipInfoUi()
         }
     }
 
@@ -272,6 +272,8 @@ class UserFragment : Fragment() {
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getUserDetail()
             }
+
+            Log.d("KugouAPi", "User Detail JSON: $json")
 
             // 提前返回，减少 if 嵌套
             if (json.isNullOrEmpty() || json == "502" || json == "404") {
@@ -351,6 +353,7 @@ class UserFragment : Fragment() {
             } else {
 //                val userplaylist = gson.fromJson(json, LikePlayListBase::class.java)
                 val adapters = moshi.adapter(LikePlayListBase::class.java)
+                Log.d("KugouApi", "内容，$json")
                 val userplaylist = adapters.fromJson(json)
                 val data = userplaylist!!.data.info
                 binding.recyclerViewUserLikePlaylist.layoutManager =

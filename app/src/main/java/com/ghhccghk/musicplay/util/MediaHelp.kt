@@ -157,6 +157,7 @@ object MediaHelp {
             if (json == null || json == "502" || json == "404") {
                 null
             } else {
+                Log.d("MediaHelp", "getSongsUrl response: $json")
                 val re = Gson().fromJson(json, GetSongUrlBase::class.java)
                 val url = re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
 

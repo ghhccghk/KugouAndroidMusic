@@ -23,18 +23,16 @@ plugins {
 
 android {
     namespace = "com.ghhccghk.musicplay"
-    compileSdk = 36
+    compileSdk = 37
     val releaseType = if (project.hasProperty("releaseType")) project.properties["releaseType"].toString()
     else readProperties(file("../package.properties")).getProperty("releaseType")
     val myVersionName = "." + "git rev-parse --short=7 HEAD".runCommand(workingDir = rootDir)
-    val nodeVersion = "python app/extract_node_version.py".runCommand(workingDir = rootDir)
     val gitHash = "git rev-parse HEAD".runCommand(workingDir = rootDir)
 
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
         // 由于nodejs 编译版本为 29 遂最低为 29
         minSdk = 29
-        targetSdk = 36
         versionCode = 6
         versionName = "0.6"
         //noinspection ChromeOsAbiSupport
@@ -56,7 +54,6 @@ android {
             "false"
         )
 
-        buildConfigField("String", "NODE_VERSION", "\"$nodeVersion\"")
         buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -129,11 +126,6 @@ android {
     }
 
     buildTypes {
-        externalNativeBuild {
-            cmake {
-                path = file("src/main/cpp/CMakeLists.txt")
-            }
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -365,6 +357,7 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.androidx.compose)
     //implementation(libs.androidx.glance.wear.tiles)
+    implementation(libs.kugouapi.kmp)
 
 
 }

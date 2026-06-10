@@ -21,10 +21,8 @@
 #-renamesourcefileattribute SourceFile
 
 -keep class com.ghhccghk.musicplay.data.** { *; }
--keep class com.ghhccghk.musicplay.util.NodeBridge {
-    *;
-}
 -keep class com.hchen.superlyricapi.** { *;}
+-dontwarn android.os.ServiceManager
 
 # 避免 kotlin.reflect 内部反射崩溃
 -keepattributes *Annotation*

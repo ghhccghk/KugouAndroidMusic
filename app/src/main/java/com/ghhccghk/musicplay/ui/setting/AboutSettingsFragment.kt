@@ -45,7 +45,6 @@ class AboutSettingsFragment : BasePreferenceFragment() {
         val versionPrefs = findPreference<Preference>("app_version")
         val releaseType = findPreference<Preference>("package_type")
         val contributorsPref = findPreference<Preference>("contributors")
-        val nodeJsVersion = findPreference<Preference>("nodejs_version")
         val gitHash = findPreference<Preference>("git_hash")
         val buildTime = findPreference<Preference>("build_time")
         val dateFormat = DateFormat.getDateTimeInstance(
@@ -55,7 +54,6 @@ class AboutSettingsFragment : BasePreferenceFragment() {
         val localTime = dateFormat.format(Date(BuildConfig.BUILD_TIME))
         buildTime!!.summary = localTime
         gitHash!!.summary = BuildConfig.GIT_HASH
-        nodeJsVersion!!.summary = BuildConfig.NODE_VERSION
         versionPrefs!!.summary = BuildConfig.MY_VERSION_NAME
         releaseType!!.summary = BuildConfig.RELEASE_TYPE
         contributorsPref!!.summary =

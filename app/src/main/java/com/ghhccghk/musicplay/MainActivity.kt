@@ -4,16 +4,11 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.ServiceConnection
 import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
-import android.os.IBinder
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -28,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.lifecycle.lifecycleScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -45,7 +39,6 @@ import com.ghhccghk.musicplay.databinding.ActivityMainBinding
 import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
-import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.Tools.isFirstRun
@@ -63,36 +56,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
 
-    @SuppressLint("UnsafeOptInUsageError")
-    private var nodeService: PlayService? = null
-    var bound = false
     private val viewModel by viewModels<MainViewModel>()
-    var isNodeRunning = false
 
-    private val nodeReadyReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == NodeBridge.ACTION_NODE_READY) {
-                isNodeRunning = true
-                viewModel.noderun = isNodeRunning
-            }
-        }
-    }
-
-    private val connection = object : ServiceConnection {
-        @UnstableApi
-        override fun onServiceConnected(name: ComponentName, service: IBinder) {
-            val binder = service as PlayService.LocalBinder
-            nodeService = binder.getService()
-            bound = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName) {
-            bound = false
-            isNodeRunning = false
-            viewModel.noderun = isNodeRunning
-            nodeService = null
-        }
-    }
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -159,16 +124,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (bound) {
-            unbindService(connection)
-            bound = false
-        }
     }
 
     override fun onResume() {
         super.onResume()
         val navView: NavigationBarView = binding.navView
-        isNodeRunning = viewModel.noderun
 
 //        val a = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
@@ -383,11 +343,6 @@ class MainActivity : AppCompatActivity() {
         private lateinit var instance: MainActivity
         val lontext: Context
             get() = instance.applicationContext
-        var isNodeRunning: Boolean
-            get() = instance.isNodeRunning
-            set(value) {
-                instance.isNodeRunning = value
-            }
         val controllerFuture: ListenableFuture<MediaController>
             get() = instance.viewModel.controllerFuture
         val playbar: LinearLayout
@@ -402,13 +357,6 @@ class MainActivity : AppCompatActivity() {
         // 初始化媒体控制器
         val sessionToken = SessionToken(this, ComponentName(this, PlayService::class.java))
         viewModel.controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-
-        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
-        LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
-
-        Intent(this, PlayService::class.java).also {
-            bindService(it, connection, BIND_AUTO_CREATE)
-        }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

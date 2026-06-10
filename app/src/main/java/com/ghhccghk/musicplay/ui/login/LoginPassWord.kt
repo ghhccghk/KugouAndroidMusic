@@ -9,12 +9,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.ghhccghk.musicplay.MainActivity
-import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
 import com.ghhccghk.musicplay.databinding.FragmentLoginPasswordBinding
-import com.ghhccghk.musicplay.ui.home.HomeViewModel
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,8 +32,8 @@ class LoginPassWord : Fragment() {
         val login_Username: EditText = binding.loginUsername
         val login_Password: EditText = binding.loginPassword
         login_Pwd.setOnClickListener {
-            if (MainActivity.isNodeRunning) {
-                lifecycleScope.launch {
+
+        lifecycleScope.launch {
                     val json = withContext(Dispatchers.IO) {
                         KugouAPi.loginUserNameAndPassword(
                             login_Username.text.toString(),
@@ -51,7 +47,6 @@ class LoginPassWord : Fragment() {
                         Toast.makeText(context, "成功", Toast.LENGTH_LONG).show()
                     }
                 }
-            }
         }
 
 

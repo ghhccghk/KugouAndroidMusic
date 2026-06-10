@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.login.QrImg
 import com.ghhccghk.musicplay.data.login.QrLoginkey
 import com.ghhccghk.musicplay.data.login.getLoginQr
@@ -27,7 +26,7 @@ class LoginQrcode: Fragment() {
 
     private var _binding: FragmentLoginQrBinding? = null
     private val binding get() = _binding!!
-    private var key : String? = ""
+    private var key: String? = null
     private var s : Int = 11
     val handler = Handler(Looper.getMainLooper())
     val updateRunnable = object : Runnable {
@@ -50,9 +49,8 @@ class LoginQrcode: Fragment() {
     ): View {
         _binding = FragmentLoginQrBinding.inflate(inflater, container, false)
         val root: View = binding.root
-        if (MainActivity.isNodeRunning) {
-            setui()
-        }
+
+        setui()
 
         return root
     }
@@ -64,35 +62,35 @@ class LoginQrcode: Fragment() {
 
     override fun onStart() {
         super.onStart()
-        if (MainActivity.isNodeRunning) {
-            handler.post(updateRunnable)
-        }
+
+        handler.post(updateRunnable)
+
     }
 
     override fun onStop() {
         super.onStop()
-        if (MainActivity.isNodeRunning) {
-            handler.removeCallbacks(updateRunnable)
-        }
+
+        handler.removeCallbacks(updateRunnable)
+
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (MainActivity.isNodeRunning) {
-            handler.removeCallbacks(updateRunnable)
-        }
+
+        handler.removeCallbacks(updateRunnable)
+
     }
     override fun onResume() {
-        super.onResume()
-        if (MainActivity.isNodeRunning) {
-            handler.post(updateRunnable)
-        }
+        super.onResume();
+        handler.post(updateRunnable)
+
     }
 
     fun setui() {
         lifecycleScope.launch {
             val json = withContext(Dispatchers.IO) {
                 val a = KugouAPi.getQrCodekey()
+                Log.d("KugouAPi", "QR Code Key: $a")
                 val gson = Gson()
                 val result = gson.fromJson(a, getLoginQr::class.java)
                 val img = result.data.qrcode
@@ -126,38 +124,44 @@ class LoginQrcode: Fragment() {
     fun update(){
         TokenManager.init(requireContext())
         lifecycleScope.launch {
-            val json = withContext(Dispatchers.IO) {
-                key?.let { KugouAPi.getQrCodeCheck(it, System.currentTimeMillis().toString()) }
-            }
-            if (json == null || json == "502" || json == "404") {
-                Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
-            } else {
-                val gson = Gson()
-                val result = gson.fromJson(json, QrLoginkey::class.java)
-                when {
-                    result.data.status == 4 -> {
-                        TokenManager.saveToken(result.data.token)
-                        TokenManager.saveUserId(result.data.userid.toString())
-                        Toast.makeText(context, "登录成功", Toast.LENGTH_LONG).show()
-                        s = 4
-                    }
-                    result.data.status == 0 -> {
-                        if (s != 0) {
-                            Toast.makeText(context, "二维码已过期", Toast.LENGTH_LONG).show()
-                            s = 0
+            if (key != null) {
+                val json = withContext(Dispatchers.IO) {
+                    key?.let { KugouAPi.getQrCodeCheck(it) }
+                }
+                if (json == null || json == "502" || json == "404") {
+                    Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
+                } else {
+                    val gson = Gson()
+                    Log.d("KugouAPi", "data" + json)
+                    val result = gson.fromJson(json, QrLoginkey::class.java)
+                    when {
+                        result.data.status == 4 -> {
+                            TokenManager.saveToken(result.data.token)
+                            TokenManager.saveUserId(result.data.userid.toString())
+                            Toast.makeText(context, "登录成功", Toast.LENGTH_LONG).show()
+                            s = 4
                         }
 
-                    }
-                    result.data.status == 1 -> {
-                        if (s != 1) {
-                            Toast.makeText(context, "等待扫码", Toast.LENGTH_LONG).show()
-                            s = 1
+                        result.data.status == 0 -> {
+                            if (s != 0) {
+                                Toast.makeText(context, "二维码已过期", Toast.LENGTH_LONG).show()
+                                s = 0
+                            }
+
                         }
-                    }
-                    result.data.status == 2 -> {
-                        if (s != 2) {
-                            Toast.makeText(context, "等待确认", Toast.LENGTH_LONG).show()
-                            s = 2
+
+                        result.data.status == 1 -> {
+                            if (s != 1) {
+                                Toast.makeText(context, "等待扫码", Toast.LENGTH_LONG).show()
+                                s = 1
+                            }
+                        }
+
+                        result.data.status == 2 -> {
+                            if (s != 2) {
+                                Toast.makeText(context, "等待确认", Toast.LENGTH_LONG).show()
+                                s = 2
+                            }
                         }
                     }
                 }

@@ -17,7 +17,6 @@ import androidx.navigation.ui.setupWithNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.HotSearchResponse
 import com.ghhccghk.musicplay.data.KeywordGroup
@@ -27,7 +26,6 @@ import com.ghhccghk.musicplay.data.SearchBase
 import com.ghhccghk.musicplay.data.SongDataBase
 import com.ghhccghk.musicplay.data.ThemeMusicList
 import com.ghhccghk.musicplay.databinding.FragmentDashboardBinding
-import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.adapte.playlist.PLayListCategoryPagerAdapter
 import com.ghhccghk.musicplay.util.adapte.playlist.PlayMusicSceneAdapter
 import com.ghhccghk.musicplay.util.adapte.search.RecommendationAdapter
@@ -54,32 +52,18 @@ class DashboardFragment : Fragment() {
     ): View {
         _binding = FragmentDashboardBinding.inflate(inflater, container, false)
         val root: View = binding.root
-        Log.d("nodejs",MainActivity.isNodeRunning.toString())
-        a {
-            MainActivity.isNodeRunning  = it
-        }
 
         return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        if (MainActivity.isNodeRunning) {
-            addgetSearchhotView()
+
+        addgetSearchhotView()
             addgetPlayListTheme()
             addsearch()
             addgetPlayListTag()
-        }
-    }
 
-
-    fun a(callback: (Boolean) -> Unit){
-        lifecycleScope.launch {
-            val b = withContext(Dispatchers.IO) {
-                Tools.isPortOpen()
-            }
-            callback(b)
-        }
     }
     override fun onDestroyView() {
         super.onDestroyView()
@@ -88,11 +72,11 @@ class DashboardFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (MainActivity.isNodeRunning) {
-            addgetSearchhotView()
+
+        addgetSearchhotView()
             addgetPlayListTheme()
             addgetPlayListTag()
-        }
+
     }
 
     fun addgetSearchhotView() {

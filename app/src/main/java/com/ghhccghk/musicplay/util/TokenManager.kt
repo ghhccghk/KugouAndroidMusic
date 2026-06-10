@@ -9,6 +9,10 @@ object TokenManager {
     private const val KEY_ID = "user_id"
     private const val KEY_TOKEN = "user_token"
     private const val KEY_DFID = "user_dfid"
+    private const val KEY_MID = "mid"
+    private const val KEY_GUID = "guid"
+    private const val KEY_serverDev = "server_dev"
+
 
     private var prefs: SharedPreferences? = null
 
@@ -45,8 +49,18 @@ object TokenManager {
             Log.w("TokenManager", "Refusing to save empty or 'null' dfid: $dfid; caller: $stack")
             return
         }
-        Log.i("TokenManager", "Saving dfid: $dfid; caller: $stack")
         prefs?.edit()?.putString(KEY_DFID, dfid)?.apply()
+    }
+    fun saveMid(mid: String) {
+        prefs?.edit()?.putString(KEY_MID, mid)?.apply()
+    }
+
+    fun saveGuid(guid: String) {
+        prefs?.edit()?.putString(KEY_GUID, guid)?.apply()
+    }
+
+    fun saveServerDev(s: String) {
+        prefs?.edit()?.putString(KEY_serverDev, s)?.apply()
     }
 
     fun getToken(): String? {
@@ -67,6 +81,18 @@ object TokenManager {
 
     }
 
+    fun getMid(): String? {
+        return prefs?.getString(KEY_MID, null)
+    }
+
+    fun getGuid(): String? {
+        return prefs?.getString(KEY_GUID, null)
+    }
+
+    fun getServerDev(): String? {
+        return prefs?.getString(KEY_serverDev, null)
+    }
+
     fun clearToken() {
         prefs?.edit()?.remove(KEY_TOKEN)?.apply()
     }
@@ -78,6 +104,18 @@ object TokenManager {
     fun clearDfid(){
         prefs?.edit()?.remove(KEY_DFID)?.apply()
 
+    }
+
+    fun cleanMid() {
+        prefs?.edit()?.remove(KEY_MID)?.apply()
+    }
+
+    fun cleanGuid() {
+        prefs?.edit()?.remove(KEY_GUID)?.apply()
+    }
+
+    fun cleanServerDev() {
+        prefs?.edit()?.remove(KEY_serverDev)?.apply()
     }
 
     fun clearAll() {

@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.media.AudioDeviceInfo
@@ -29,7 +28,6 @@ import android.widget.TextView
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -90,15 +88,12 @@ import com.ghhccghk.musicplay.util.AudioTrackInfo
 import com.ghhccghk.musicplay.util.BtCodecInfo
 import com.ghhccghk.musicplay.util.Flags
 import com.ghhccghk.musicplay.util.LyricSyncManager
-import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.ReplayGainAudioProcessor
 import com.ghhccghk.musicplay.util.ReplayGainUtil
 import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.Tools
 import com.ghhccghk.musicplay.util.Tools.getBitrate
 import com.ghhccghk.musicplay.util.Tools.getStringStrict
-import com.ghhccghk.musicplay.util.Tools.isFirstRun
-import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.exoplayer.CircularShuffleOrder
 import com.ghhccghk.musicplay.util.exoplayer.EndedWorkaroundPlayer
@@ -108,7 +103,6 @@ import com.ghhccghk.musicplay.util.exoplayer.MeiZuLyricsMediaNotificationProvide
 import com.ghhccghk.musicplay.util.exoplayer.isManualNotificationUpdate
 import com.ghhccghk.musicplay.util.getBooleanStrict
 import com.ghhccghk.musicplay.util.getIntStrict
-import com.ghhccghk.musicplay.util.others.DeviceHelper
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.common.collect.ImmutableList
@@ -167,18 +161,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
     val gson = Gson()
-
-
-    //Node js 服务相关
-    var isNodeRunning = false
-    var isNodeRunError: String = ""
-    private val nodeReadyReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == NodeBridge.ACTION_NODE_READY) {
-                isNodeRunning = true
-            }
-        }
-    }
 
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -601,31 +583,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         val cacheSizeBytesa = cacheSizeMBa * 1024 * 1024
         SmartImageCache.init(applicationContext, maxSize = cacheSizeBytesa)
 
-        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
-        LocalBroadcastManager.getInstance(this).registerReceiver(nodeReadyReceiver, filter)
-        serviceScope.launch {
-            withContext(Dispatchers.IO) {
-                if (isFirstRun(applicationContext)) {
-                    try {
-                        NodeBridge.startNode(DeviceHelper.Hardware.getModelName()) // 这里调用 native 方法
-                        isNodeRunning = true
-                    } catch (e: Exception) {
-                        isNodeRunning = false
-                        isNodeRunError = e.toString()
-                    }
-                } else {
-                    ZipExtractor.extractZipOnFirstRun(applicationContext, "api_js.zip", "nodejs_files"){
-                        try {
-                            NodeBridge.startNode(DeviceHelper.Hardware.getModelName()) // 这里调用 native 方法
-                            isNodeRunning = true
-                        } catch (e: Exception) {
-                            isNodeRunning = false
-                            isNodeRunError = e.toString()
-                        }
-                    }
-                }
-            }
-        }
         val cacheSizeMB = prefs.getString("song_cache_size", "50")?.toLongOrNull() ?: 950L
 
         val cacheSizeBytes = cacheSizeMB * 1024 * 1024
@@ -1209,7 +1166,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             }
         } else {
             serviceScope.launch {
-                if (!MainActivity.isNodeRunning?: false) return@launch
+//                if (!MainActivity.isNodeRunning?: false) return@launch
 
                 val item = mediaSession.player.currentMediaItem
                 val hashA = item?.uri?.getQueryParameter("hash") ?: ""

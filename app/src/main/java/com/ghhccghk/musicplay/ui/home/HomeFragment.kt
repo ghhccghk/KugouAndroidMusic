@@ -1,23 +1,16 @@
 package com.ghhccghk.musicplay.ui.home
 
 import android.R.attr.colorPrimary
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.databinding.FragmentHomeBinding
 import com.ghhccghk.musicplay.ui.login.LoginPassWord
 import com.ghhccghk.musicplay.ui.login.LoginQrcode
-import com.ghhccghk.musicplay.util.NodeBridge
 import com.ghhccghk.musicplay.util.TokenManager.isLoggedIn
 import com.ghhccghk.musicplay.util.adapte.LogicFragmentPagerAdapter
 import com.google.android.material.color.MaterialColors
@@ -32,41 +25,6 @@ class HomeFragment : Fragment() {
     // onDestroyView.
     private val binding get() = _binding!!
 
-    private val nodeReadyReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == NodeBridge.ACTION_NODE_READY) {
-                if (_binding != null ){
-                    if (!isLoggedIn()) {
-                        binding.statusIcon.setImageResource(R.drawable.ic_round_error_outline)
-                        binding.statusTitle.text = getString(R.string.unactivated)
-                        binding.statusSummary.text = getString(R.string.unactivated_summary)
-                        binding.status.apply {
-                            setBackgroundColor(
-                                MaterialColors.getColor(
-                                    requireContext(),
-                                    android.R.attr.colorError,
-                                    Color.RED
-                                )
-                            )
-                        }
-                    } else {
-                        binding.statusIcon.setImageResource(R.drawable.ic_round_check_circle)
-                        binding.statusTitle.text = getString(R.string.activated)
-                        binding.status.apply {
-                            setBackgroundColor(
-                                MaterialColors.getColor(
-                                    requireContext(),
-                                    colorPrimary,
-                                    colorPrimary
-                                )
-                            )
-                        }
-
-                    }
-                }
-            }
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -77,8 +35,35 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
-        val filter = IntentFilter(NodeBridge.ACTION_NODE_READY)
-        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(nodeReadyReceiver, filter)
+        if (_binding != null) {
+            if (!isLoggedIn()) {
+                binding.statusIcon.setImageResource(R.drawable.ic_round_error_outline)
+                binding.statusTitle.text = getString(R.string.unactivated)
+                binding.statusSummary.text = getString(R.string.unactivated_summary)
+                binding.status.apply {
+                    setBackgroundColor(
+                        MaterialColors.getColor(
+                            requireContext(),
+                            android.R.attr.colorError,
+                            Color.RED
+                        )
+                    )
+                }
+            } else {
+                binding.statusIcon.setImageResource(R.drawable.ic_round_check_circle)
+                binding.statusTitle.text = getString(R.string.activated)
+                binding.status.apply {
+                    setBackgroundColor(
+                        MaterialColors.getColor(
+                            requireContext(),
+                            colorPrimary,
+                            colorPrimary
+                        )
+                    )
+                }
+
+            }
+        }
 
         val login_tabLayout = binding.loginTabLayout
         val login_viewPager = binding.loginViewPager
@@ -101,8 +86,8 @@ class HomeFragment : Fragment() {
         }
 
         binding.apply {
-            if (MainActivity.isNodeRunning) {
-                if (!isLoggedIn()) {
+
+        if (!isLoggedIn()) {
                     statusIcon.setImageResource(R.drawable.ic_round_error_outline)
                     statusTitle.text = getString(R.string.unactivated)
                     statusSummary.text = getString(R.string.unactivated_summary)
@@ -120,23 +105,10 @@ class HomeFragment : Fragment() {
                     statusTitle.text = getString(R.string.activated)
 
                 }
-            } else {
-                statusIcon.setImageResource(R.drawable.ic_round_error_outline)
-                statusTitle.text = getString(R.string.api_no_ok)
-                status.apply {
-                    setBackgroundColor(
-                        MaterialColors.getColor(
-                            requireContext(),
-                            android.R.attr.colorError,
-                            Color.RED
-                        )
-                    )
-                }
             }
 
 
 
-        }
 
         return root
     }

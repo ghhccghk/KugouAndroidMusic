@@ -1,10 +1,10 @@
 [versions]
-aboutlibrariesComposeM3 = "14.0.0-b02"
+aboutlibrariesComposeM3 = "14.2.1"
 concurrentFuturesKtx = "1.3.0"
 hiddenapibypass = "6.1"
 ksp = "2.3.4"
 activityCompose = "1.12.4"
-agp = "9.0.1"
+agp = "9.2.1"
 annotation = "1.9.1"
 converterGson = "3.0.0"
 core = "3.5.4"
@@ -18,9 +18,8 @@ junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 appcompat = "1.7.1"
-kotlinxCoroutinesAndroid = "1.10.2"
-kotlinxCoroutinesCore = "1.10.2"
-kotlinxSerializationJson = "1.10.0"
+kotlinxCoroutinesAndroid = "1.11.0"
+kugouapiKmp = "1.0.0"
 lifecycleViewmodel = "2.10.0"
 lyricsUi = "1.0.19"
 lyricsCore = "0.4.5"
@@ -47,7 +46,6 @@ uiGraphics = "1.10.3"
 hyperfocusapi = "2.0"
 material3WindowSizeClass = "1.4.0"
 material3 = "1.4.0"
-runtimeAnnotationJvm = "1.10.3"
 
 
 [libraries]
@@ -93,8 +91,9 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroid" }
-kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesAndroid" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxCoroutinesAndroid" }
+kugouapi-kmp = { module = "top.ghhccghk.multiplatform.kugouapi:kugouapi-kmp", version.ref = "kugouapiKmp" }
 lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version.ref = "lyricsCore" }
 lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version.ref = "lyricsUi" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
@@ -119,16 +118,16 @@ androidx-preference-ktx = { group = "androidx.preference", name = "preference-kt
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 hyperfocusapi = { module = "com.github.ghhccghk:HyperFocusApi", version.ref = "hyperfocusapi" }
-koin-bom = { group = "io.insert-koin", name = "koin-bom", version = "4.1.1" }
+koin-bom = { group = "io.insert-koin", name = "koin-bom", version = "4.2.1" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose" }
 androidx-material3-window-size-class1 = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3WindowSizeClass" }
 material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
-androidx-runtime-annotation-jvm = { group = "androidx.compose.runtime", name = "runtime-annotation-jvm", version.ref = "runtimeAnnotationJvm" }
+androidx-runtime-annotation-jvm = { group = "androidx.compose.runtime", name = "runtime-annotation-jvm", version.ref = "uiGraphics" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-jetbrainsCompose = { id = "org.jetbrains.compose", version = "1.9.0" }
+jetbrainsCompose = { id = "org.jetbrains.compose", version = "1.11.0" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 navigationUi = { id = "androidx.navigation.safeargs.kotlin", version.ref = "navigationUiKtx" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

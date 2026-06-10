@@ -6,5 +6,4 @@ import com.google.common.util.concurrent.ListenableFuture
 
 class MainViewModel : ViewModel() {
     lateinit var controllerFuture: ListenableFuture<MediaController>
-    var noderun : Boolean = false
 }
