@@ -577,6 +577,10 @@ inline fun SharedPreferences.getBooleanStrict(key: String, defValue: Boolean): B
     return use { getBoolean(key, defValue) }
 }
 
+@Suppress("NOTHING_TO_INLINE")
+inline fun needsMissingOnDestroyCallWorkarounds(): Boolean =
+    Build.VERSION.SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+
 fun MediaController.getTimer(): Pair<Int?, Boolean> =
     sendCustomCommand(
         SessionCommand(SERVICE_QUERY_TIMER, Bundle.EMPTY),

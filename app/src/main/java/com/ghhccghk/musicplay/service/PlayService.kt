@@ -104,6 +104,7 @@ import com.ghhccghk.musicplay.util.exoplayer.MeiZuLyricsMediaNotificationProvide
 import com.ghhccghk.musicplay.util.exoplayer.isManualNotificationUpdate
 import com.ghhccghk.musicplay.util.getBooleanStrict
 import com.ghhccghk.musicplay.util.getIntStrict
+import com.ghhccghk.musicplay.util.needsMissingOnDestroyCallWorkarounds
 import com.ghhccghk.musicplay.util.others.PlaylistRepository
 import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.common.collect.ImmutableList
@@ -1341,6 +1342,20 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession {
         return mediaSession
+    }
+
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        refreshMediaButtonCustomLayout()
+        if (needsMissingOnDestroyCallWorkarounds()) {
+            handler.post { lastPlayedManager.save() }
+        }
+    }
+
+    override fun onRepeatModeChanged(repeatMode: Int) {
+        refreshMediaButtonCustomLayout()
+        if (needsMissingOnDestroyCallWorkarounds()) {
+            handler.post { lastPlayedManager.save() }
+        }
     }
 
     override fun onTimelineChanged(timeline: Timeline, reason: @Player.TimelineChangeReason Int) {
