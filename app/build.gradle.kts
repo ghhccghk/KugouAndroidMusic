@@ -31,7 +31,7 @@ android {
 
     defaultConfig {
         applicationId = "com.ghhccghk.musicplay"
-        // 由于nodejs 编译版本为 29 遂最低为 29
+        // 由于com.mocharealm.accompanist.lyrics.ui 最低为 29
         minSdk = 29
         versionCode = 6
         versionName = "0.6"
@@ -133,6 +133,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -154,16 +155,12 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        prefab = true
+        compose = true
     }
 
     externalNativeBuild.cmake {
         CmakeProperty.ANDROID_STL
-    }
-
-    buildFeatures {
-        buildConfig = true
-        prefab = true
-        compose = true
     }
 
 }

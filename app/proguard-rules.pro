@@ -70,3 +70,9 @@
 -keep class androidx.media3.common.util.Util {
     public static void setForegroundServiceNotification(...);
 }
+-keep class androidx.work.** { *; }
+-dontwarn androidx.work.**
+
+# 修复 R8 full mode 错误地将 Character.isWhitespace 内联到 ViewRootImpl
+# 导致 Glance androidx.startup 初始化时崩溃
+-keep class android.view.ViewRootImpl { *; }

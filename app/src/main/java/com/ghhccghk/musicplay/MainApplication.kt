@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.media3.common.util.UnstableApi
+import com.ghhccghk.musicplay.util.SmartImageCache
+import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.UrlCacheManager
 import com.ghhccghk.musicplay.util.di.uiModule
 import org.koin.android.ext.koin.androidContext
@@ -28,6 +30,12 @@ class MainApplication: Application() {
         }
 
         val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
+
+        val cacheSizeMB = prefs.getString("image_cache_size", "950")?.toLongOrNull() ?: 950L
+
+        val cacheSizeBytes = cacheSizeMB * 1024 * 1024
+        SmartImageCache.init(applicationContext, maxSize = cacheSizeBytes)
+        TokenManager.init(applicationContext)
 
         when (prefs.getString("theme_mode", "0")) {
             "0" -> {

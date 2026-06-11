@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.media.AudioDeviceInfo
@@ -156,6 +157,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     private lateinit var mediaSession: MediaLibrarySession
     private var lyric: String = ""
+    private var lastLyric: String = ""
     private var lastSessionId = 0
 
     // 当前歌词行数
@@ -249,8 +251,6 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     @SuppressLint("UseCompatLoadingForDrawables")
     fun run() {
-        val base64 = Tools.drawableToBase64(getDrawable(R.drawable.ic_cd)!!)
-        val handler by lazy { Handler(Looper.getMainLooper()) }
 
 
         val updateLyricsRunnable = object : Runnable {
@@ -258,7 +258,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                 runCatching {
                     var isPlaying: Boolean?
                     var liveTime: Long
-                    var lastLyric = ""
+
                     val play_bar_lyrics = prefs.getBoolean("play_bar_lyrics",false)
 
                     handler.post {
@@ -371,7 +371,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                                                     newmedia!!
                                                 )
                                             }
-                                            if (status_bar_lyrics) {
+                                            if (status_bar_lyrics && SuperLyricHelper.isAvailable()) {
                                                 when (newLine) {// 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
                                                     is SyncedLine -> {
                                                         if (translationResult != "null") {
@@ -543,9 +543,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                 }
             }
         }
-        CoroutineScope(Dispatchers.IO).launch {
-            handler.post(updateLyricsRunnable)
-        }
+        handler.post(updateLyricsRunnable)
     }
 
     inner class LocalBinder : Binder() {
@@ -555,8 +553,11 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     @UnstableApi
     override fun onCreate() {
         super.onCreate()
-        SuperLyricHelper.registerPublisher()
+        if (SuperLyricHelper.isAvailable()) {
+            SuperLyricHelper.registerPublisher()
+        }
         prefs = this.getSharedPreferences("play_setting_prefs", MODE_PRIVATE)
+        prefs.registerOnSharedPreferenceChangeListener(this)
         repo = PlaylistRepository(applicationContext)
         handler = Handler(Looper.getMainLooper())
         rgAp = ReplayGainAudioProcessor()
@@ -868,6 +869,14 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             SessionCommand(SERVICE_GET_AUDIO_FORMAT, Bundle.EMPTY),
             Bundle.EMPTY
         )
+
+        // 注册蓝牙编解码器变更接收器
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(
+                btReceiver,
+                IntentFilter("android.bluetooth.a2dp.profile.action.CODEC_CONFIG_CHANGED")
+            )
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O /* before 8, only sbc was supported */) {
             proxy = BtCodecInfo.getCodec(this) {
@@ -1278,7 +1287,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         val car_lyrics = prefs.getBoolean("car_lyrics", false)
         when (state) {
             Player.STATE_IDLE -> {
-                println("空闲")
+                Log.d(TAG, "空闲")
                 var changed = false
                 if (afTrackFormat != null) {
                     Log.e(TAG, "leaked track format: $afTrackFormat")
@@ -1305,8 +1314,9 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                     )
                 }
             }
-            Player.STATE_BUFFERING -> println("缓冲中")
-            Player.STATE_READY -> println("准备好")
+
+            Player.STATE_BUFFERING -> Log.d(TAG, "缓冲中")
+            Player.STATE_READY -> Log.d(TAG, "准备好")
             Player.STATE_ENDED -> {
                 if (car_lyrics) {
                     val sessionMetadata = mediaSession.player.mediaMetadata
@@ -1324,7 +1334,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                         )
                     }
                 }
-                println("播放结束")
+                Log.d(TAG, "播放结束")
             }
         }
     }
@@ -1495,9 +1505,9 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     }
 
     fun KaraokeLine.toEnhancedLRCList(): List<SuperLyricWord> {
-        when (this) {
+        return when (this) {
             is KaraokeLine.MainKaraokeLine -> {
-                return syllables.map { syllable ->
+                syllables.map { syllable ->
                     SuperLyricWord(
                         syllable.content,
                         syllable.start.toLong(),
@@ -1507,7 +1517,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             }
 
             is KaraokeLine.AccompanimentKaraokeLine -> {
-                return syllables.map { syllable ->
+                syllables.map { syllable ->
                     SuperLyricWord(
                         syllable.content,
                         syllable.start.toLong(),
@@ -1515,6 +1525,8 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                     )
                 }
             }
+
+            else -> emptyList()
         }
     }
 

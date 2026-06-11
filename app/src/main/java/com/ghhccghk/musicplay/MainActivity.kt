@@ -40,9 +40,6 @@ import com.ghhccghk.musicplay.service.PlayService
 import com.ghhccghk.musicplay.ui.components.GlobalPlaylistBottomSheetController
 import com.ghhccghk.musicplay.ui.components.PlaylistBottomSheet
 import com.ghhccghk.musicplay.util.SmartImageCache
-import com.ghhccghk.musicplay.util.TokenManager
-import com.ghhccghk.musicplay.util.Tools.isFirstRun
-import com.ghhccghk.musicplay.util.ZipExtractor
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.navigation.NavigationBarView
@@ -72,22 +69,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         instance = this
         enableEdgeToEdge()
+        start()
 
-        val prefs = getSharedPreferences("play_setting_prefs", Context.MODE_PRIVATE)
-        val cacheSizeMB = prefs.getString("image_cache_size", "50")?.toLongOrNull() ?: 950L
-
-        val cacheSizeBytes = cacheSizeMB * 1024 * 1024
-        SmartImageCache.init(applicationContext, maxSize = cacheSizeBytes)
-
-        if (isFirstRun(applicationContext)) {
-            ZipExtractor.extractZipOnFirstRun(applicationContext, "api_js.zip", "nodejs_files"){
-                TokenManager.init(applicationContext)
-                start()
-            }
-        } else {
-            TokenManager.init(applicationContext)
-            start()
-        }
 
         val navController = findNavController(R.id.nav_host_fragment_activity_main)
         navController.addOnDestinationChangedListener { _, destination, _ ->

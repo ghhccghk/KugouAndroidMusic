@@ -28,17 +28,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.AnimatedVectorDrawable
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.LayerDrawable
-import android.graphics.drawable.VectorDrawable
 import android.media.MediaMetadata
 import android.media.MediaMetadataRetriever
-import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.os.StrictMode
@@ -46,12 +40,9 @@ import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.view.ViewPropertyAnimator
-import android.widget.ImageView
 import androidx.annotation.OptIn
-import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.Insets
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.graphics.set
 import androidx.core.net.toFile
 import androidx.core.os.BundleCompat
@@ -84,32 +75,12 @@ import com.google.zxing.MultiFormatWriter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.jetbrains.annotations.Contract
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Socket
 import java.util.Locale
 import kotlin.math.max
 import androidx.media3.common.MediaMetadata as Media3Metadata
 
 object Tools {
-    /** 显示二维码 */
-    fun showQrDialog(context: Context, text: String,title: String, size: Int = 512) {
-        val bitmap = generateQRCode(text, size)
-
-        val imageView = ImageView(context).apply {
-            setImageBitmap(bitmap)
-            setPadding(32, 32, 32, 32)
-        }
-
-        AlertDialog.Builder(context)
-            .setTitle(title)
-            .setView(imageView)
-            .setPositiveButton("关闭", null)
-            .show()
-    }
-
     fun generateQRCode(content: String, size: Int = 512): Bitmap {
         val hints = mapOf(EncodeHintType.CHARACTER_SET to "UTF-8")
         val bitMatrix = MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
@@ -336,97 +307,6 @@ object Tools {
 
 
 
-    /** 检测端口是否打开 */
-    fun isPortOpen(port: Int = 9600, timeout: Int = 200): Boolean {
-        return try {
-            Socket().use { socket ->
-                socket.connect(InetSocketAddress("127.0.0.1", port), timeout)
-                true
-            }
-        } catch (e: IOException) {
-            false
-        }
-    }
-
-    fun loadImageFileAsByteArray(file: File): ByteArray? {
-        return try {
-            file.inputStream().use { it.readBytes() }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-
-
-
-    fun drawableToBase64(drawable: Drawable): String {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (drawable is AdaptiveIconDrawable) {
-                return adaptiveIconDrawableBase64(drawable)
-            }
-        }
-        when (drawable) {
-            is BitmapDrawable -> {
-                return drawableToBase64(drawable.bitmap)
-            }
-
-            is VectorDrawable -> {
-                return drawableToBase64(
-                    makeDrawableToBitmap(
-                        drawable
-                    )
-                )
-            }
-
-            else -> {
-                return try {
-                    drawableToBase64(drawable.toBitmap())
-                } catch (_: Exception) {
-                    ""
-                }
-            }
-        }
-    }
-
-    @SuppressLint("ObsoleteSdkInt")
-    fun adaptiveIconDrawableBase64(drawable: AdaptiveIconDrawable): String {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val background = drawable.background
-            val foreground = drawable.foreground
-            if (background != null && foreground != null) {
-                val layerDrawable = LayerDrawable(arrayOf(background, foreground))
-                val createBitmap =
-                    createBitmap(layerDrawable.intrinsicWidth, layerDrawable.intrinsicHeight)
-                val canvas = Canvas(createBitmap)
-                layerDrawable.setBounds(0, 0, canvas.width, canvas.height)
-                layerDrawable.draw(canvas)
-                drawableToBase64(createBitmap)
-            } else {
-                ""
-            }
-        } else {
-            ""
-        }
-    }
-
-
-    fun makeDrawableToBitmap(drawable: Drawable): Bitmap {
-        val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-        val canvas = Canvas(bitmap)
-        drawable.apply {
-            setBounds(0, 0, canvas.width, canvas.height)
-            draw(canvas)
-        }
-        return bitmap
-    }
-
-    fun drawableToBase64(bitmap: Bitmap): String {
-        val stream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        val bytes = stream.toByteArray()
-        return Base64.encodeToString(bytes, Base64.DEFAULT)
-    }
-
     fun getExternalSubdirFile(context: Context, subDir: String, fileName: String): File? {
         val baseDir = context.getExternalFilesDir(null)
         val targetDir = File(baseDir, "$subDir")
@@ -630,27 +510,20 @@ object Tools {
         return use { getString(key, defValue) }
     }
 
-
-    fun isFirstRun(context: Context): Boolean {
-        val directory = File(context.filesDir, "nodejs_files")
-        return directory.exists()
-    }
-
-
     fun Media3Metadata.toFramework(): MediaMetadata {
         val builder = MediaMetadata.Builder()
 
 
         title?.let {
-            Log.d("title",it.toString())
+            // Log.d("title",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_TITLE, it.toString())
         }
         artist?.let {
-            Log.d("artist",it.toString())
+            // Log.d("artist",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_ARTIST, it.toString())
         }
         albumTitle?.let {
-            Log.d("albumTitle",it.toString())
+            //Log.d("albumTitle",it.toString())
             builder.putString(MediaMetadata.METADATA_KEY_ALBUM, it.toString())
         }
         durationMs?.let {
