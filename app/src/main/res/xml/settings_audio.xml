@@ -20,6 +20,19 @@
 
     <PreferenceCategory
         android:layout="@layout/preference_category_md"
+        android:title="@string/settings_category_misc">
+
+        <Preference
+            android:key="replaygain"
+            android:layout="@layout/preference_basic"
+            android:title="@string/settings_replaygain"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+
+    <PreferenceCategory
+        android:layout="@layout/preference_category_md"
         android:title="@string/preference_category_quality">
 
         <SwitchPreferenceCompat

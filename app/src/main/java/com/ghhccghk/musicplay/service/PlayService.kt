@@ -75,6 +75,7 @@ import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.data.getLyricCode
 import com.ghhccghk.musicplay.data.libraries.RedirectingDataSourceFactory
 import com.ghhccghk.musicplay.data.libraries.albumAudioId
+import com.ghhccghk.musicplay.data.libraries.albumId
 import com.ghhccghk.musicplay.data.libraries.lrcAccesskey
 import com.ghhccghk.musicplay.data.libraries.lrcId
 import com.ghhccghk.musicplay.data.libraries.songHash
@@ -1361,7 +1362,8 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     override fun onTimelineChanged(timeline: Timeline, reason: @Player.TimelineChangeReason Int) {
         if (reason == Player.TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED) {
             refreshMediaButtonCustomLayout()
-            computeRgMode()
+            if (!computeRgMode(false))
+                throw IllegalStateException("unreachable, mode failed with force=false")
         }
         pendingDownstreamFormat.toSet().forEach {
             if (timeline.getIndexOfPeriod(it.first) == C.INDEX_UNSET) {
@@ -1451,23 +1453,30 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
+        var restart = false
         if (key == null || key == "rg_mode") {
             rgMode = prefs.getStringStrict("rg_mode", "0")!!.toInt()
-            computeRgMode()
+            restart = !computeRgMode(true)
         }
         if (key == null || key == "rg_drc") {
             val drc = prefs.getBooleanStrict("rg_drc", true)
-            rgAp.setReduceGain(!drc)
+            restart = !rgAp.setReduceGain(!drc) || restart
         }
         if (key == null || key == "rg_rg_gain") {
-            val rgGain = prefs.getIntStrict("rg_rg_gain", 15)
-            rgAp.setRgGain(rgGain - 15)
+            val rgGain = prefs.getIntStrict("rg_rg_gain", 19)
+            restart = !rgAp.setRgGain(rgGain - 15) || restart
         }
-        if (key == null || key == "rg_no_rg_gain" || key == "rg_boost_gain") {
+        if (key == null || key == "rg_no_rg_gain") {
             val nonRgGain = prefs.getIntStrict("rg_no_rg_gain", 0)
+            restart = !rgAp.setNonRgGain(-nonRgGain) || restart
+        }
+        if (key == null || key == "rg_boost_gain") {
             val boostGain = prefs.getIntStrict("rg_boost_gain", 0)
-            rgAp.setNonRgGain(-nonRgGain - boostGain)
-            rgAp.setBoostGain(boostGain)
+            restart = !rgAp.setBoostGain(boostGain) || restart
+        }
+        if (restart) {
+            mediaSession.player?.stop()
+            mediaSession.player?.prepare()
         }
     }
 
@@ -1483,29 +1492,32 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
         }
     }
 
-    private fun computeRgMode() {
+    private fun computeRgMode(force: Boolean): Boolean {
         val controller = mediaSession.player
-        rgAp.setMode(when (rgMode) {
-            0 -> ReplayGainUtil.Mode.None
-            1 -> ReplayGainUtil.Mode.Track
-            2 -> ReplayGainUtil.Mode.Album
-            3 -> {
-                val item = controller?.currentMediaItem
-                val idx = controller?.currentMediaItemIndex ?: 0
-                val count = controller?.mediaItemCount
-                val next = if (idx + 1 >= (count ?: 0)) null else
-                    controller?.getMediaItemAt(idx + 1)
-                val prev = if (idx - 1 < 0 || (count ?: 0) == 0) null else
-                    controller?.getMediaItemAt(idx - 1)
-                if (item != null && (item.mediaMetadata.songHash == next?.mediaMetadata?.songHash ||
-                            item.mediaMetadata.songHash == prev?.mediaMetadata?.songHash))
-                    ReplayGainUtil.Mode.Album
-                else ReplayGainUtil.Mode.Track
-            }
-            else -> throw IllegalArgumentException("invalid rg mode $rgMode")
-        })
-    }
+        return rgAp.setMode(
+            when (rgMode) {
+                0 -> ReplayGainUtil.Mode.None
+                1 -> ReplayGainUtil.Mode.Track
+                2 -> ReplayGainUtil.Mode.Album
+                3 -> {
+                    val item = controller?.currentMediaItem
+                    val idx = controller?.currentMediaItemIndex ?: 0
+                    val count = controller?.mediaItemCount ?: 0
+                    val next = if (idx + 1 >= count) null else
+                        controller?.getMediaItemAt(idx + 1)
+                    val prev = if (idx - 1 < 0 || count == 0) null else
+                        controller?.getMediaItemAt(idx - 1)
+                    if (item != null && (item.mediaMetadata.albumId == next?.mediaMetadata?.albumId ||
+                                item.mediaMetadata.albumId == prev?.mediaMetadata?.albumId)
+                    )
+                        ReplayGainUtil.Mode.Album
+                    else ReplayGainUtil.Mode.Track
+                }
 
+                else -> throw IllegalArgumentException("invalid rg mode $rgMode")
+            }, !force
+        )
+    }
     private fun broadcastAudioSession() {
         if (lastSessionId != 0) {
             Log.i(TAG, "broadcast audio session open: $lastSessionId")

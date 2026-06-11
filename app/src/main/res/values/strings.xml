@@ -353,6 +353,40 @@
     <string name="lock_tempo_pitch">Lock tempo and pitch</string>
     <string name="reset">Reset</string>
     <string name="preference_lyric_quality">Base</string>
-
+    <!-- Detailed explanation for Boost feature in Audio settings -->
+    <string name="settings_replaygain_boost_desc" formatted="false">"\"Boost\" will output both ReplayGain and other music at a higher volume than what is set in your device. (If your device volume is set close to 100%, Boost will not increase the volume). With Boost, you can enjoy music that has similar loudness to other apps, such as games. Please note that this feature is experimental and may interfere with external equalizer apps. Boost does not work with Bluetooth headphones. In case of any volume-related issues, please disable Boost by setting it to 0 dB. "</string>
+    <!-- Used in audio settings, this is a technical/"brand" name for an interoperable audio
+loudness normalization feature established since 2002 -->
+    <string name="settings_replaygain">ReplayGain</string>
+    <!-- Change the ReplayGain (this is a technical/"brand" name for an interoperable audio loudness
+    normalization feature established since 2002) mode between off, Preserve album dynamics, All
+    tracks equal loudness and Smart -->
+    <string name="settings_replaygain_mode">Mode</string>
+    <!-- Change the pre-amplification (to amplify: to increase the strength of a sound; make louder)
+    of music which has ReplayGain tags. Title. Also explained more below -->
+    <string name="settings_replaygain_preamp">Pre amp</string>
+    <!-- Change the pre-attenuation (to attenuate: to make something less or weaker) of music which
+    has no ReplayGain tags. Title. Also explained more below -->
+    <string name="settings_replaygain_no_rg_amp">Attenuation (no RG)</string>
+    <!-- Title for Boost feature in Audio menu which is explained more below -->
+    <string name="settings_replaygain_boost">Boost</string>
+    <!-- Title for DRC feature in ReplayGain menu which is explained more below -->
+    <string name="settings_replaygain_drc">Enable DRC</string>
+    <!-- Explanation for DRC feature in ReplayGain menu. DRC is a technical term -->
+    <string name="settings_replaygain_drc_desc">Use \"Dynamic Range Compression\" as clipping protection (recommended). If disabled, volume will be reduced instead (volume will not be at the same level, destroying normalization effect).</string>
+    <!-- Detailed explanation for "Pre amp" feature in ReplayGain settings -->
+    <string name="settings_replaygain_preamp_desc">Increase or decrease the volume of songs with ReplayGain tags. Higher values may cause loss of dynamics due to clipping prevention.</string>
+    <!-- Detailed explanation for "Smart" mode in ReplayGain settings -->
+    <string name="settings_replaygain_mode_desc">\"Smart\" automatically preserves album dynamics only when playing songs from an album consecutively.</string>
+    <!-- Detailed explanation for "Attenuation (no RG)" feature in ReplayGain settings -->
+    <string name="settings_replaygain_no_rg_amp_desc">Reduce volume for loud songs that do not have ReplayGain tags</string>
+    <!-- One of the possible ReplayGain modes -->
+    <string name="track_gain">All tracks equal loudness</string>
+    <!-- One of the possible ReplayGain modes -->
+    <string name="album_gain">Preserve album dynamics</string>
+    <!-- One of the possible ReplayGain modes -->
+    <string name="smart">Smart</string>
+    <!-- Unit decibels for loudness, used in audio and ReplayGain settings -->
+    <string name="d_db">%d dB</string>
 
 </resources>

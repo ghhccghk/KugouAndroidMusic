@@ -78,6 +78,9 @@
         <activity
             android:name=".ui.setting.OssLicensesSettingsActivity"
             android:exported="false" />
+        <activity
+            android:name=".ui.setting.ReplayGainSettingsActivity"
+            android:exported="false" />
 
 
         <service android:name=".service.PlayService"

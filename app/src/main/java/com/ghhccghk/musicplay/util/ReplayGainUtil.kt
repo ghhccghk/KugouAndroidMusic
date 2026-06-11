@@ -1,20 +1,19 @@
 package com.ghhccghk.musicplay.util
 
-import androidx.media3.common.C
+import android.os.Bundle
 import androidx.media3.common.Format
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.ParsableByteArray
-import androidx.media3.common.util.Util
 import androidx.media3.extractor.metadata.id3.BinaryFrame
 import androidx.media3.extractor.metadata.id3.CommentFrame
 import androidx.media3.extractor.metadata.id3.InternalFrame
 import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.extractor.metadata.vorbis.VorbisComment
-import androidx.media3.extractor.mp3.Mp3InfoReplayGain
+import androidx.media3.extractor.metadata.ReplayGainInfo
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.MathContext
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.exp
 import kotlin.math.ln
@@ -76,14 +75,14 @@ sealed class ReplayGainUtil {
     ) : ReplayGainUtil()
 
     data class Mp3Info(
-        val peak: Float, val field1Name: Byte, val field1Originator: Byte,
-        val field1Value: Float, val field2Name: Byte, val field2Originator: Byte,
+        val peak: Float, val field1Name: Int, val field1Originator: Int,
+        val field1Value: Float, val field2Name: Int, val field2Originator: Int,
         val field2Value: Float
     ) : ReplayGainUtil() {
-        constructor(i: Mp3InfoReplayGain) : this(
-            i.peak, i.field1Name,
-            i.field1Originator, i.field1Value, i.field2Name,
-            i.field2Originator, i.field2Value
+        constructor(i: androidx.media3.extractor.metadata.ReplayGainInfo) : this(
+            i.peak, i.field1?.name ?: 0,
+            i.field1?.originator ?: 0, i.field1?.gain ?: 0f, i.field2?.name ?: 0,
+            i.field2?.originator ?: 0, i.field2?.gain ?: 0f
         )
     }
 
@@ -103,7 +102,37 @@ sealed class ReplayGainUtil {
     data class ReplayGainInfo(
         val trackGain: Float?, val trackPeak: Float?, val albumGain: Float?,
         val albumPeak: Float?
-    )
+    ) {
+        fun toBundle(): Bundle {
+            val bundle = Bundle()
+            if (trackGain != null) {
+                bundle.putFloat("trackGain", trackGain)
+            }
+            if (trackPeak != null) {
+                bundle.putFloat("trackPeak", trackPeak)
+            }
+            if (albumGain != null) {
+                bundle.putFloat("albumGain", albumGain)
+            }
+            if (albumPeak != null) {
+                bundle.putFloat("albumPeak", albumPeak)
+            }
+            return bundle
+        }
+
+        companion object {
+            fun fromBundle(bundle: Bundle) = ReplayGainInfo(
+                if (bundle.containsKey("trackGain"))
+                    bundle.getFloat("trackGain") else null,
+                if (bundle.containsKey("trackPeak"))
+                    bundle.getFloat("trackPeak") else null,
+                if (bundle.containsKey("albumGain"))
+                    bundle.getFloat("albumGain") else null,
+                if (bundle.containsKey("albumPeak"))
+                    bundle.getFloat("albumPeak") else null
+            )
+        }
+    }
 
     companion object {
         private const val TAG = "ReplayGainUtil"
@@ -111,27 +140,25 @@ sealed class ReplayGainUtil {
         const val TAU_ATTACK = 0.0014f
         const val TAU_RELEASE = 0.093f
 
-        private fun adjustVolume(bytes: ByteArray, sign: Boolean): Float {
-            val peak = BigInteger(bytes)
+        private fun adjustVolumeRvad(bytes: ByteArray, sign: Boolean): Float {
+            val volume = BigInteger(bytes)
                 .let { if (sign) it.multiply(BigInteger.valueOf(-1)) else it }
+                .divide(BigInteger.valueOf(256)) // below applies after this division
                 .toLong()
             // iTunes uses a range of -255 to 255 to be -100% (silent) to 100% (+6dB)
-            return if (peak == -255L) -96f else 20f * ln((peak + 255) / 255f) / ln(10f)
+            return if (volume == -255L) -96f else 20f * ln((volume + 255) / 255f) / ln(10f)
         }
 
-        private fun adjustPeak(bytes: ByteArray, bitDepth: Int): Float? {
-            val peak = BigInteger(bytes)
+        // RVAD and RVA2
+        private fun adjustPeak(bytes: ByteArray): Float? {
+            val peak = BigInteger(1, bytes)
             if (peak.toInt() == 0) return null
-            val min = BigDecimal(BigInteger.ONE.shiftLeft(bitDepth - 1).negate())
-            val max = BigInteger.ONE.shiftLeft(bitDepth - 1).subtract(BigInteger.ONE)
-            val range = BigDecimal(max).subtract(min)
-            return BigDecimal(peak).subtract(min)
-                .divide(range, MathContext.DECIMAL128)
-                .multiply(BigDecimal(2))
-                .subtract(BigDecimal(1)).toFloat()
+            return BigDecimal(peak)
+                .divide(BigDecimal.valueOf(32768), MathContext.DECIMAL128)
+                .toFloat()
         }
 
-        private fun parseRva2(frame: BinaryFrame, bitDepth: Int): Rva2 {
+        private fun parseRva2(frame: BinaryFrame): Rva2 {
             if (frame.id != "RVA2" && frame.id != "XRV" && frame.id != "XRVA")
                 throw IllegalStateException("parseRva2() but frame isn't RVA2, it's $frame")
             val frame = ParsableByteArray(frame.data)
@@ -150,13 +177,13 @@ sealed class ReplayGainUtil {
                 frame.readBytes(peakBytes, 0, len)
                 channels += Rva2.Channel(
                     Rva2.ChannelEnum.entries[channel],
-                    volumeAdjustment, adjustPeak(peakBytes, bitDepth)
+                    volumeAdjustment, adjustPeak(peakBytes)
                 )
             }
             return Rva2(identification, channels)
         }
 
-        private fun parseRvad(frame: BinaryFrame, bitDepth: Int): Rvad {
+        private fun parseRvad(frame: BinaryFrame): Rvad {
             if (frame.id != "RVAD" && frame.id != "RVA")
                 throw IllegalStateException("parseRvad() but frame isn't RVAD, it's $frame")
             val frame = ParsableByteArray(frame.data)
@@ -167,20 +194,21 @@ sealed class ReplayGainUtil {
             val signBL = (signs shr 3) and 1 == 0
             val signC = (signs shr 4) and 1 == 0
             val signB = (signs shr 5) and 1 == 0
-            val len = ceil(frame.readUnsignedByte() / 8f).toInt()
+            val bitLen = frame.readUnsignedByte()
+            val len = ceil(bitLen / 8f).toInt()
             val buf = ByteArray(len)
             val channels = arrayListOf<Rvad.Channel>()
             frame.readBytes(buf, 0, len)
-            val volumeAdjFR = adjustVolume(buf, signFR)
+            val volumeAdjFR = adjustVolumeRvad(buf, signFR)
             frame.readBytes(buf, 0, len)
-            val volumeAdjFL = adjustVolume(buf, signFL)
+            val volumeAdjFL = adjustVolumeRvad(buf, signFL)
             val peakVolFR: Float?
             val peakVolFL: Float?
             if (frame.bytesLeft() > 0) {
                 frame.readBytes(buf, 0, len)
-                peakVolFR = adjustPeak(buf, bitDepth)
+                peakVolFR = adjustPeak(buf)
                 frame.readBytes(buf, 0, len)
-                peakVolFL = adjustPeak(buf, bitDepth)
+                peakVolFL = adjustPeak(buf)
             } else {
                 peakVolFR = null
                 peakVolFL = null
@@ -195,16 +223,16 @@ sealed class ReplayGainUtil {
             )
             if (frame.bytesLeft() > 0) {
                 frame.readBytes(buf, 0, len)
-                val volumeAdjBR = adjustVolume(buf, signBR)
+                val volumeAdjBR = adjustVolumeRvad(buf, signBR)
                 frame.readBytes(buf, 0, len)
-                val volumeAdjBL = adjustVolume(buf, signBL)
+                val volumeAdjBL = adjustVolumeRvad(buf, signBL)
                 val peakVolBR: Float?
                 val peakVolBL: Float?
                 if (frame.bytesLeft() > 0) {
                     frame.readBytes(buf, 0, len)
-                    peakVolBR = adjustPeak(buf, bitDepth)
+                    peakVolBR = adjustPeak(buf)
                     frame.readBytes(buf, 0, len)
-                    peakVolBL = adjustPeak(buf, bitDepth)
+                    peakVolBL = adjustPeak(buf)
                 } else {
                     peakVolBR = null
                     peakVolBL = null
@@ -219,11 +247,11 @@ sealed class ReplayGainUtil {
                 )
                 if (frame.bytesLeft() > 0) {
                     frame.readBytes(buf, 0, len)
-                    val volumeAdjC = adjustVolume(buf, signC)
+                    val volumeAdjC = adjustVolumeRvad(buf, signC)
                     val peakVolC: Float?
                     if (frame.bytesLeft() > 0) {
                         frame.readBytes(buf, 0, len)
-                        peakVolC = adjustPeak(buf, bitDepth)
+                        peakVolC = adjustPeak(buf)
                     } else {
                         peakVolC = null
                     }
@@ -233,11 +261,11 @@ sealed class ReplayGainUtil {
                     )
                     if (frame.bytesLeft() > 0) {
                         frame.readBytes(buf, 0, len)
-                        val volumeAdjB = adjustVolume(buf, signB)
+                        val volumeAdjB = adjustVolumeRvad(buf, signB)
                         val peakVolB: Float?
                         if (frame.bytesLeft() > 0) {
                             frame.readBytes(buf, 0, len)
-                            peakVolB = adjustPeak(buf, bitDepth)
+                            peakVolB = adjustPeak(buf)
                         } else {
                             peakVolB = null
                         }
@@ -341,16 +369,17 @@ sealed class ReplayGainUtil {
             } catch (_: IllegalArgumentException) {
                 return null
             }
-            if (soundcheck.size < 9)
+            if (soundcheck.size < 10)
                 return null
             val gainL = log10(soundcheck[0] / 1000.0f) * -10
-            val gainR = log10(soundcheck[1] / 1000.0f) * -10
+            val gainR = if (soundcheck[1] == 0) gainL else log10(soundcheck[1] / 1000.0f) * -10
             val gainAltL = log10(soundcheck[2] / 2500.0f) * -10
-            val gainAltR = log10(soundcheck[3] / 2500.0f) * -10
+            val gainAltR =
+                if (soundcheck[3] == 0) gainAltL else log10(soundcheck[3] / 2500.0f) * -10
             val unk1 = soundcheck[4]
             val unk2 = soundcheck[5]
             val peakL = soundcheck[6] / 32768.0f
-            val peakR = soundcheck[7] / 32768.0f
+            val peakR = if (soundcheck[7] == 0) peakL else soundcheck[7] / 32768.0f
             val unk3 = soundcheck[8]
             val unk4 = soundcheck[9]
             return SoundCheck(
@@ -372,15 +401,6 @@ sealed class ReplayGainUtil {
                 return ReplayGainInfo(null, null, null, null)
             }
             val metadata = arrayListOf<ReplayGainUtil>()
-            val pcmEncoding = inputFormat.pcmEncoding.takeIf { it != Format.NO_VALUE }
-                ?: when (inputFormat.sampleMimeType) { // for offload, fill in likely values
-                    MimeTypes.AUDIO_MPEG,
-                    MimeTypes.AUDIO_VORBIS,
-                    MimeTypes.AUDIO_AAC,
-                    MimeTypes.AUDIO_OPUS -> C.ENCODING_PCM_16BIT
-
-                    else -> Format.NO_VALUE
-                }
             inputFormat.metadata!!.getMatchingEntries(InternalFrame::class.java)
             {
                 // TODO: some advise domain shouldn't be checked
@@ -432,21 +452,8 @@ sealed class ReplayGainUtil {
                 }
             inputFormat.metadata!!.getMatchingEntries(TextInformationFrame::class.java)
             {
-                (it.id == "TXXX" || it.id == "TXX") && (
-                        it.description?.startsWith("REPLAYGAIN_", ignoreCase = true) == true ||
-                                // MEDIA JUKEBOX = JRiver
-                                it.description?.equals(
-                                    "MEDIA JUKEBOX: REPLAY GAIN",
-                                    ignoreCase = true
-                                ) == true ||
-                                it.description?.equals(
-                                    "MEDIA JUKEBOX: ALBUM GAIN",
-                                    ignoreCase = true
-                                ) == true ||
-                                it.description?.equals(
-                                    "MEDIA JUKEBOX: PEAK LEVEL",
-                                    ignoreCase = true
-                                ) == true)
+                (it.id == "TXXX" || it.id == "TXX") &&
+                        it.description?.startsWith("REPLAYGAIN_", ignoreCase = true) == true
             }
                 .let {
                     val diff = it.firstNotNullOfOrNull { frame ->
@@ -467,7 +474,13 @@ sealed class ReplayGainUtil {
                     })
                 } // Modern-day ReplayGain for ID3
             inputFormat.metadata!!.getMatchingEntries(CommentFrame::class.java)
-            { it.description.startsWith("RVA", ignoreCase = true) }
+            {
+                it.description.startsWith("RVA", ignoreCase = true)
+                        || // MEDIA JUKEBOX = JRiver Media Center
+                        it.description.equals("MEDIA JUKEBOX: REPLAY GAIN", ignoreCase = true)
+                        || it.description.equals("MEDIA JUKEBOX: ALBUM GAIN", ignoreCase = true)
+                        || it.description.equals("MEDIA JUKEBOX: PEAK LEVEL", ignoreCase = true)
+            }
                 .let {
                     metadata.addAll(it.mapNotNull { frame ->
                         try {
@@ -478,19 +491,18 @@ sealed class ReplayGainUtil {
                         }
                     })
                 } // proposed by author of and supported in mpg123
-            if (pcmEncoding != Format.NO_VALUE) {
-                inputFormat.metadata!!.getMatchingEntries(BinaryFrame::class.java)
-                { it.id == "RVA2" || it.id == "XRV" || it.id == "XRVA" }.let {
-                    metadata.addAll(it.mapNotNull { frame ->
-                        try {
-                            parseRva2(frame, Util.getBitDepth(pcmEncoding))
-                        } catch (e: Exception) {
-                            Log.e(TAG, "failed to parse $frame", e)
-                            null
-                        }
-                    })
-                }
-            } // ID3v2.4 RVA2 frame and backport to ID3v2.2/2.3 by normalize
+            inputFormat.metadata!!.getMatchingEntries(BinaryFrame::class.java)
+            { it.id == "RVA2" || it.id == "XRV" || it.id == "XRVA" }.let {
+                metadata.addAll(it.mapNotNull { frame ->
+                    try {
+                        parseRva2(frame)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "failed to parse $frame", e)
+                        null
+                    }
+                })
+            }
+            // ID3v2.4 RVA2 frame and backport to ID3v2.2/2.3 by normalize
             val iTunNorm = inputFormat.metadata!!.getMatchingEntries(CommentFrame::class.java)
             { it.description == "iTunNORM" }
                 .let {
@@ -503,38 +515,37 @@ sealed class ReplayGainUtil {
                         }
                     }
                 } // iTunes SoundCheck (MP3)
-            if (pcmEncoding != Format.NO_VALUE) {
-                inputFormat.metadata!!.getMatchingEntries(BinaryFrame::class.java)
-                { it.id == "RVAD" || it.id == "RVA" }.let {
-                    val out = it.mapNotNull { frame ->
-                        try {
-                            parseRvad(
-                                frame,
-                                Util.getBitDepth(pcmEncoding)
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "failed to parse $frame", e)
-                            null
-                        }
-                    }
-                    if (out.isNotEmpty()) {
-                        // see https://bugs-archive.lyrion.org/bug-6890.html#c13
-                        // RVAD/RVA + iTunNORM should be combined
-                        metadata.addAll(out.map { frame ->
-                            frame.copy(channels = frame.channels.map { ch ->
-                                ch.copy(
-                                    volumeAdjustment = ch.volumeAdjustment + (iTunNorm
-                                    .firstOrNull()?.let { f -> max(f.gainL, f.gainR) } ?: 0f))
-                            })
-                        })
-                    } else {
-                        metadata.addAll(iTunNorm)
+            inputFormat.metadata!!.getMatchingEntries(BinaryFrame::class.java)
+            { it.id == "RVAD" || it.id == "RVA" }.let {
+                val out = it.mapNotNull { frame ->
+                    try {
+                        parseRvad(frame)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "failed to parse $frame", e)
+                        null
                     }
                 }
+                if (out.isNotEmpty()) {
+                    // see https://bugs-archive.lyrion.org/bug-6890.html#c13
+                    // RVAD/RVA + iTunNORM should be combined
+                    metadata.addAll(out.map { frame ->
+                        frame.copy(channels = frame.channels.map { ch ->
+                            ch.copy(
+                                volumeAdjustment = ch.volumeAdjustment + (iTunNorm
+                                    .firstOrNull()?.let { f -> (f.gainL + f.gainR) / 2 } ?: 0f),
+                                peakVolume = (iTunNorm.firstOrNull()?.let { f ->
+                                    max(f.peakL, f.peakR)
+                                }).let { iTunesPeak ->
+                                    if (iTunesPeak != null && ch.peakVolume != null)
+                                        max(iTunesPeak, ch.peakVolume)
+                                    else iTunesPeak ?: ch.peakVolume
+                                })
+                        })
+                    })
+                } else {
+                    metadata.addAll(iTunNorm)
+                }
             } // ID3v2.2 RVA frame and ID3v2.3 RVAD frame
-            else {
-                metadata.addAll(iTunNorm)
-            }
             inputFormat.metadata!!.getMatchingEntries(BinaryFrame::class.java)
             { it.id == "RGAD" }.let {
                 metadata.addAll(it.mapNotNull { frame ->
@@ -546,7 +557,7 @@ sealed class ReplayGainUtil {
                     }
                 })
             } // Classic ReplayGain proposed ID3 tag
-            inputFormat.metadata!!.getEntriesOfType(Mp3InfoReplayGain::class.java)
+            inputFormat.metadata!!.getEntriesOfType(androidx.media3.extractor.metadata.ReplayGainInfo::class.java)
                 .let { metadata.addAll(it.map { info -> Mp3Info(info) }) } // LAME
             inputFormat.metadata!!.getMatchingEntries(InternalFrame::class.java)
             { it.domain == "com.apple.iTunes" && it.description == "iTunNORM" }
@@ -560,23 +571,35 @@ sealed class ReplayGainUtil {
                         }
                     })
                 } // iTunes SoundCheck (MP4)
+            inputFormat.metadata!!.getMatchingEntries(VorbisComment::class.java)
+            { it.key.equals("iTunNORM", ignoreCase = true) }
+                .let {
+                    metadata.addAll(it.mapNotNull { frame ->
+                        try {
+                            parseITunNORM(frame.value)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "failed to parse $frame", e)
+                            null
+                        }
+                    })
+                } // Why... (not official iTunes behaviour, but some people do this)
             val infos = metadata.flatMap {
                 when (it) {
                     is Mp3Info -> {
                         val out = mutableListOf<RgInfo>()
-                        if ((it.field1Name == 1.toByte() || it.field1Name == 2.toByte()
-                                    || it.field2Name == 1.toByte() || it.field2Name == 2.toByte())
+                        if ((it.field1Name == 1 || it.field1Name == 2
+                                    || it.field2Name == 1 || it.field2Name == 2)
                             && it.peak != 0f
                         )
                             out += RgInfo.TrackPeak(it.peak)
-                        if (it.field1Name == 1.toByte()) {
+                        if (it.field1Name == 1) {
                             out += RgInfo.TrackGain(it.field1Value)
-                        } else if (it.field1Name == 2.toByte()) {
+                        } else if (it.field1Name == 2) {
                             out.add(RgInfo.AlbumGain(it.field1Value))
                         }
-                        if (it.field2Name == 1.toByte()) {
+                        if (it.field2Name == 1) {
                             out += RgInfo.TrackGain(it.field2Value)
-                        } else if (it.field2Name == 2.toByte()) {
+                        } else if (it.field2Name == 2) {
                             out.add(RgInfo.AlbumGain(it.field2Value))
                         }
                         out
@@ -607,6 +630,7 @@ sealed class ReplayGainUtil {
                         if (it.identification.startsWith("track", ignoreCase = true)
                             || it.identification.startsWith("mix", ignoreCase = true)
                             || it.identification.startsWith("radio", ignoreCase = true)
+                            || it.identification.equals("normalize", ignoreCase = true)
                         ) {
                             val masterVolume = it.channels.find { ch ->
                                 ch.channel == Rva2.ChannelEnum.MasterVolume
@@ -621,7 +645,7 @@ sealed class ReplayGainUtil {
                                             out += RgInfo.TrackPeak(peak)
                                         }
                             } else {
-                                out += RgInfo.TrackGain(it.channels.maxOf { ch -> ch.volumeAdjustment })
+                                out += RgInfo.TrackGain(it.channels.maxBy { ch -> abs(ch.volumeAdjustment) }.volumeAdjustment)
                                 it.channels.maxOfOrNull { ch -> ch.peakVolume ?: 0f }
                                     ?.takeIf { peak -> peak != 0f }?.let { peak ->
                                         out += RgInfo.TrackPeak(peak)
@@ -644,7 +668,7 @@ sealed class ReplayGainUtil {
                                             out += RgInfo.AlbumPeak(peak)
                                         }
                             } else {
-                                out += RgInfo.AlbumGain(it.channels.maxOf { ch -> ch.volumeAdjustment })
+                                out += RgInfo.AlbumGain(it.channels.maxBy { ch -> abs(ch.volumeAdjustment) }.volumeAdjustment)
                                 it.channels.maxOfOrNull { ch -> ch.peakVolume ?: 0f }
                                     ?.takeIf { peak -> peak != 0f }?.let { peak ->
                                         out += RgInfo.AlbumPeak(peak)
@@ -656,16 +680,16 @@ sealed class ReplayGainUtil {
 
                     is Rvad -> {
                         val out = mutableListOf<RgInfo>()
-                        out += RgInfo.TrackGain(it.channels.maxOf { ch -> ch.volumeAdjustment })
+                        out += RgInfo.TrackGain(it.channels.maxBy { ch -> abs(ch.volumeAdjustment) }.volumeAdjustment)
                         it.channels.maxOf { ch -> ch.peakVolume ?: 0f }
                             .takeIf { peak -> peak != 0f }?.let { peak ->
-                                out += RgInfo.AlbumPeak(peak)
+                                out += RgInfo.TrackPeak(peak)
                             }
                         out
                     }
 
                     is SoundCheck -> listOf(
-                        RgInfo.TrackGain(max(it.gainL, it.gainR)),
+                        RgInfo.TrackGain((it.gainL + it.gainR) / 2),
                         RgInfo.TrackPeak(max(it.peakL, it.peakR))
                     )
 

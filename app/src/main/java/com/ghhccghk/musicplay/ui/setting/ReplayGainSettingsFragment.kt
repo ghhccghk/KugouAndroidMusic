@@ -18,24 +18,16 @@
 package com.ghhccghk.musicplay.ui.setting
 
 import android.os.Bundle
-import androidx.preference.Preference
 import com.ghhccghk.musicplay.R
 import com.ghhccghk.musicplay.ui.preference.BasePreferenceFragment
 
-class AudioSettingsActivity : BaseSettingsActivity(R.string.settings_audio,
-    { AudioSettingsFragment() })
 
-class AudioSettingsFragment : BasePreferenceFragment() {
+class ReplayGainSettingsActivity : BaseSettingsActivity(
+    R.string.settings_replaygain,
+    { ReplayGainSettingsFragment() })
+
+class ReplayGainSettingsFragment : BasePreferenceFragment() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        preferenceManager.sharedPreferencesName = "play_setting_prefs"
-        setPreferencesFromResource(R.xml.settings_audio, rootKey)
-    }
-    override fun onPreferenceTreeClick(preference: Preference): Boolean {
-        when (preference.key) {
-            "replaygain" -> {
-                startActivity(ReplayGainSettingsActivity::class.java)
-            }
-        }
-        return super.onPreferenceTreeClick(preference)
+        setPreferencesFromResource(R.xml.settings_replaygain, rootKey)
     }
 }
