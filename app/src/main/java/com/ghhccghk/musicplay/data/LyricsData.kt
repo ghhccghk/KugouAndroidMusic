@@ -1,12 +1,16 @@
 package com.ghhccghk.musicplay.data
 
+import com.squareup.moshi.JsonClass
+
+@JsonClass(generateAdapter = true)
 data class LyricLine(
-    val time: Long,      // 毫秒
-    val text: String,
+    val time: Long = 0L,      // 毫秒
+    val text: String = "",
     val translation: String? = null  // 翻译内容，可以为 null
 )
 
 
+@JsonClass(generateAdapter = true)
 data class getLyricCode(
     val status: Int = 0,
     val info : String = "",

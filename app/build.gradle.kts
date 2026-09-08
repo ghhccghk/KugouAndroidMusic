@@ -262,7 +262,6 @@ dependencies {
 
     implementation(libs.core)
     implementation(libs.zxing.android.embedded)
-    implementation(libs.gson)
     implementation(libs.glide)
 
 
@@ -342,7 +341,6 @@ dependencies {
     implementation(libs.aboutlibraries.compose.m3)
 
     implementation(libs.retrofit)
-    implementation(libs.converter.gson)
 
 
     implementation(libs.androidx.glance.appwidget)
@@ -371,3 +369,4 @@ fun readProperties(propertiesFile: File) = Properties().apply {
         load(fis)
     }
 }
+

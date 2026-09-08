@@ -1,5 +1,8 @@
 package com.ghhccghk.musicplay.data.songurl.getsongurl
 
+import com.squareup.moshi.JsonClass
+
+@JsonClass(generateAdapter = true)
 data class TrackerThrough(
     val all_quality_free: Int = 0,
     val cpy_grade: Int = 0,

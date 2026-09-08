@@ -5,7 +5,7 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class DfidData(
-    val data : Data,
-    @field:Json(name = "error_code") val errorCode: Int,
-    val status: Int
+    val data: Data = Data(),
+    @field:Json(name = "error_code") val errorCode: Int = 0,
+    val status: Int = 0
 )

@@ -111,7 +111,6 @@ import com.ghhccghk.musicplay.util.others.toMediaItem
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.gson.Gson
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.SuperLyricHelper
 import com.hchen.superlyricapi.SuperLyricLine
@@ -121,6 +120,7 @@ import com.mocharealm.accompanist.lyrics.core.model.karaoke.KaraokeLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.SyncedLine
 import com.mocharealm.accompanist.lyrics.core.model.synced.mapper.toSyncedLine
 import com.mocharealm.accompanist.lyrics.core.parser.AutoParser
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -164,7 +164,7 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
 
     // 当前歌词行数
     private var currentLyricIndex: Int = 0
-    val gson = Gson()
+    val moshi = Moshi.Builder().build()
 
     // 创建一个 CoroutineScope，默认用 SupervisorJob 和 Main 调度器（UI线程）
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -1200,8 +1200,9 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
                 }
 
                 try {
-                    val searchResult = gson.fromJson(searchJson, searchLyricBase::class.java)
-                    val candidate = searchResult.candidates.getOrNull(0)
+                    val searchResult =
+                        moshi.adapter(searchLyricBase::class.java).fromJson(searchJson!!)
+                    val candidate = searchResult?.candidates?.getOrNull(0)
                     val secondAttempt = fetchLyrics(
                         id = candidate?.id.orEmpty(),
                         accessKey = candidate?.accesskey.orEmpty()
@@ -1243,8 +1244,8 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
             KugouAPi.getSongLyrics(id = id, accesskey = accessKey, fmt = "krc", decode = true)
         }
         return try {
-            val result = gson.fromJson(json, getLyricCode::class.java)
-            result.decodeContent
+            val result = moshi.adapter(getLyricCode::class.java).fromJson(json!!)
+            result?.decodeContent
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -1558,4 +1559,5 @@ class PlayService : MediaLibraryService(), MediaSessionService.Listener,
     }
 
 }
+
 

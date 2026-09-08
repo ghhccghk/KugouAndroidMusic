@@ -17,7 +17,7 @@ import com.ghhccghk.musicplay.databinding.FragmentLoginQrBinding
 import com.ghhccghk.musicplay.util.TokenManager
 import com.ghhccghk.musicplay.util.Tools.generateQRCode
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.google.gson.Gson
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -91,22 +91,28 @@ class LoginQrcode: Fragment() {
             val json = withContext(Dispatchers.IO) {
                 val a = KugouAPi.getQrCodekey()
                 Log.d("KugouAPi", "QR Code Key: $a")
-                val gson = Gson()
-                val result = gson.fromJson(a, getLoginQr::class.java)
-                val img = result.data.qrcode
-                key = result.data.qrcode
-                KugouAPi.getQrCode(img)
+                val moshi = Moshi.Builder().build()
+                val result = moshi.adapter(getLoginQr::class.java).fromJson(a!!)
+                val img = result?.data?.qrcode
+                key = result?.data?.qrcode ?: ""
+                if (img != "" && img != null) {
+                    KugouAPi.getQrCode(img)
+                } else {
+                    "404"
+                }
             }
-            if (json == null || json == "502" || json == "404") {
+            if (json == "404") {
                 Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
             } else {
                 try {
-                    val gson = Gson()
-                    val result = gson.fromJson(json, QrImg::class.java)
-                    val img = result.data.url
-                    Log.d("a", result.data.url)
-                    binding.qrimage.setImageBitmap(generateQRCode(img, 512))
-                    update()
+                    val moshi = Moshi.Builder().build()
+                    val result = moshi.adapter(QrImg::class.java).fromJson(json!!)
+                    val img = result?.data?.url
+                    Log.d("a", result?.data?.url.toString())
+                    if (img != "" && img != null) {
+                        binding.qrimage.setImageBitmap(generateQRCode(img, 512))
+                        update()
+                    }
 
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -131,18 +137,18 @@ class LoginQrcode: Fragment() {
                 if (json == null || json == "502" || json == "404") {
                     Toast.makeText(context, "失败 $json", Toast.LENGTH_LONG).show()
                 } else {
-                    val gson = Gson()
+                    val moshi = Moshi.Builder().build()
                     Log.d("KugouAPi", "data" + json)
-                    val result = gson.fromJson(json, QrLoginkey::class.java)
+                    val result = moshi.adapter(QrLoginkey::class.java).fromJson(json!!)
                     when {
-                        result.data.status == 4 -> {
+                        result?.data?.status == 4 -> {
                             TokenManager.saveToken(result.data.token)
                             TokenManager.saveUserId(result.data.userid.toString())
                             Toast.makeText(context, "登录成功", Toast.LENGTH_LONG).show()
                             s = 4
                         }
 
-                        result.data.status == 0 -> {
+                        result?.data?.status == 0 -> {
                             if (s != 0) {
                                 Toast.makeText(context, "二维码已过期", Toast.LENGTH_LONG).show()
                                 s = 0
@@ -150,14 +156,14 @@ class LoginQrcode: Fragment() {
 
                         }
 
-                        result.data.status == 1 -> {
+                        result?.data?.status == 1 -> {
                             if (s != 1) {
                                 Toast.makeText(context, "等待扫码", Toast.LENGTH_LONG).show()
                                 s = 1
                             }
                         }
 
-                        result.data.status == 2 -> {
+                        result?.data?.status == 2 -> {
                             if (s != 2) {
                                 Toast.makeText(context, "等待确认", Toast.LENGTH_LONG).show()
                                 s = 2

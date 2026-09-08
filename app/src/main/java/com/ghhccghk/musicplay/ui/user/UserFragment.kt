@@ -281,13 +281,32 @@ class UserFragment : Fragment() {
                 return@launch
             }
 
-            val userinfo = moshi.adapter(UserDetail::class.java).fromJson(json)
-            val data = userinfo?.data ?: run {
-                showNotLoggedIn()
-                return@launch
-            }
+            try {
+                val userinfo = moshi.adapter(UserDetail::class.java).fromJson(json)
 
-            showUserInfo(data)
+                // 检查 API 错误（token 失效等）
+                if (userinfo == null || userinfo.error_code != 0 || userinfo.status != 1) {
+                    Log.w(
+                        "KugouAPi",
+                        "User detail error: error_code=${userinfo?.error_code}, status=${userinfo?.status}"
+                    )
+                    showNotLoggedIn()
+                    return@launch
+                }
+
+                val data = userinfo.data
+                if (data.nickname.isEmpty()) {
+                    // 数据为空，可能是 token 失效
+                    Log.w("KugouAPi", "User data is empty, token may be invalid")
+                    showNotLoggedIn()
+                    return@launch
+                }
+
+                showUserInfo(data)
+            } catch (e: Exception) {
+                Log.e("KugouAPi", "Failed to parse user detail", e)
+                showNotLoggedIn()
+            }
         }
 
     }
@@ -375,3 +394,5 @@ class UserFragment : Fragment() {
 
     }
 }
+
+

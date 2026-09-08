@@ -65,7 +65,7 @@ data class Data(
     val m_type: Int = 0,
     val main_long_case: String = "",
     val main_short_case: String = "",
-    val medal: Medal, // Medal 也要有默认构造
+    val medal: Medal = Medal(),
     val musical_visible: Int = 0,
     val musicstation_visible: Int = 0,
     val mv_visible: Int = 0,

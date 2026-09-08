@@ -1,10 +1,13 @@
 package com.ghhccghk.musicplay.data.songurl.getsongurl
 
+import com.squareup.moshi.JsonClass
+
+@JsonClass(generateAdapter = true)
 data class GetSongUrlBase(
     val auth_through: List<Any?> = emptyList(),
     val backupUrl: List<String> = emptyList(),
     val bitRate: Int = 1,
-    val classmap: Classmap,
+    val classmap: Classmap = Classmap(),
     val extName: String = "",
     val fileHead: Int = 0,
     val fileName: String= "",
@@ -16,8 +19,8 @@ data class GetSongUrlBase(
     val std_hash: String = "",
     val std_hash_time: Int = 0,
     val timeLength: Int = 0,
-    val tracker_through: TrackerThrough,
-    val trans_param: TransParam,
+    val tracker_through: TrackerThrough = TrackerThrough(),
+    val trans_param: TransParam = TransParam(),
     val url: List<String> = emptyList(),
     val volume: String = "",
     val volume_gain: String = "",

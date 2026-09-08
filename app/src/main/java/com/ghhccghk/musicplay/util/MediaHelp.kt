@@ -13,7 +13,6 @@ import com.ghhccghk.musicplay.data.user.playListDetail.songlist.Song
 import com.ghhccghk.musicplay.data.user.playListDetail.songlist.SongListBase
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
 import com.ghhccghk.musicplay.util.others.toMediaItem
-import com.google.gson.Gson
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -45,10 +44,10 @@ object MediaHelp {
         if (b == null || b == "502" || b == "404") {
            Log.e("createMediaItemWithId","load error")
         } else {
-            val gson = Gson()
-            val resulta = gson.fromJson(b, searchLyricBase::class.java)
-            val accesskey = resulta.candidates.getOrNull(0)?.accesskey
-            val id = resulta.candidates.getOrNull(0)?.id
+            val moshi = Moshi.Builder().build()
+            val resulta = moshi.adapter(searchLyricBase::class.java).fromJson(b)
+            val accesskey = resulta?.candidates?.getOrNull(0)?.accesskey
+            val id = resulta?.candidates?.getOrNull(0)?.id
 
             val abc = MediaItemEntity(
                 mediaId = mediaId,
@@ -158,15 +157,27 @@ object MediaHelp {
                 null
             } else {
                 Log.d("MediaHelp", "getSongsUrl response: $json")
-                val re = Gson().fromJson(json, GetSongUrlBase::class.java)
-                val url = re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
+                val re =
+                    Moshi.Builder().build().adapter(GetSongUrlBase::class.java).fromJson(json!!)
+                val url =
+                    re?.url?.getOrNull(1) ?: re?.url?.getOrNull(0) ?: re?.backupUrl?.getOrNull(1)
+                    ?: re?.backupUrl?.getOrNull(0) ?: ""
 
                 val encodedUrl = URLEncoder.encode(url, "UTF-8")
                 val uri = "musicplay://playurl?id=${name + hash}&url=$encodedUrl&hash=${hash}".toUri().toString()
 
                 val (title, artist) = splitArtistAndTitle(name ?: "未知歌曲") ?: return null
 
-                createMediaItemWithId(title, artist, uri, re,re.hash,this.add_mixsongid.toString())
+                re?.let {
+                    createMediaItemWithId(
+                        title,
+                        artist,
+                        uri,
+                        it,
+                        re.hash,
+                        this.add_mixsongid.toString()
+                    )
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

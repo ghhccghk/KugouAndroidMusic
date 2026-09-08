@@ -4,11 +4,11 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class Data(
-    val album_count: Long,
-    val collect_count: Long,
-    val info: List<Info>,
-    val list_count: Long,
-    val phone_flag: Long,
-    val total_ver: Int,
-    val userid: Long
+    val album_count: Long = 0L,
+    val collect_count: Long = 0L,
+    val info: List<Info> = emptyList(),
+    val list_count: Long = 0L,
+    val phone_flag: Long = 0L,
+    val total_ver: Int = 0,
+    val userid: Long = 0L
 )

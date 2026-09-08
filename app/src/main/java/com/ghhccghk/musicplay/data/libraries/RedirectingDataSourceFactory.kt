@@ -11,7 +11,7 @@ import com.ghhccghk.musicplay.MainActivity
 import com.ghhccghk.musicplay.data.songurl.getsongurl.GetSongUrlBase
 import com.ghhccghk.musicplay.util.UrlCacheManager
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.google.gson.Gson
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -93,9 +93,10 @@ class RedirectingDataSource(
             val json = withContext(Dispatchers.IO) {
                 KugouAPi.getSongsUrl(id)
             }
-            val gson = Gson()
-            val re = gson.fromJson(json, GetSongUrlBase::class.java)
-            re.url?.getOrNull(1) ?: re.url?.getOrNull(0) ?: re.backupUrl?.getOrNull(1) ?:re.backupUrl?.getOrNull(0) ?: ""
+            val moshi = Moshi.Builder().build()
+            val re = moshi.adapter(GetSongUrlBase::class.java).fromJson(json!!)
+            re?.url?.getOrNull(1) ?: re?.url?.getOrNull(0) ?: re?.backupUrl?.getOrNull(1)
+            ?: re?.backupUrl?.getOrNull(0) ?: ""
         } catch (e: Exception) {
             null
         }
@@ -122,3 +123,4 @@ class RedirectingDataSource(
     }
 
 }
+

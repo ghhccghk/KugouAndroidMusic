@@ -4,7 +4,7 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 data class LikePlayListBase(
-    val `data`: Data,
-    val error_code: Int,
-    val status: Int
+    val data: Data = Data(),
+    val error_code: Int = 0,
+    val status: Int = 0
 )

@@ -77,7 +77,7 @@ import com.ghhccghk.musicplay.util.MediaHelp.splitArtistAndTitle
 import com.ghhccghk.musicplay.util.MediaHelp.toMediaItemListParallel
 import com.ghhccghk.musicplay.util.SmartImageCache
 import com.ghhccghk.musicplay.util.apihelp.KugouAPi
-import com.google.gson.Gson
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -204,14 +204,18 @@ fun PlaylistDetailScreen(
         }
 
         try {
-            val gson = Gson()
-            val result = gson.fromJson(json, PlayListDetail::class.java)
-            val playList = result.data[0]
-            playlistName = playList.name
-            playlistCreator = playList.list_create_username
-            playlistIntro = playList.intro
+            val moshi = Moshi.Builder().build()
+            val result = moshi.adapter(PlayListDetail::class.java).fromJson(json!!)
+            val playList = result?.data[0]
+            playlistName = playList?.name ?: ""
+            playlistCreator = playList?.list_create_username ?: ""
+            playlistIntro = playList?.intro ?: ""
             // 优先使用传入的 picurl（可能为 null），否则从数据里获取并修正
-            coverUrl = if (!picurl.isNullOrBlank() && picurl != "null") picurl else playList.create_user_pic.replaceFirst("/{size}/", "/")
+            coverUrl =
+                if (!picurl.isNullOrBlank() && picurl != "null") picurl else playList?.create_user_pic?.replaceFirst(
+                    "/{size}/",
+                    "/"
+                )
         } catch (e: Exception) {
             Log.e("PlaylistDetail", "parse playlist detail", e)
             Toast.makeText(context, "数据加载失败: ${e.message}", Toast.LENGTH_LONG).show()
@@ -315,23 +319,30 @@ fun PlaylistDetailScreen(
                                     Toast.makeText(context, "Song 数据加载失败", Toast.LENGTH_LONG).show()
                                 } else {
                                     try {
-                                        val gson = Gson()
-                                        val result = gson.fromJson(json, GetSongUrlBase::class.java)
-                                        val url = result.url.getOrNull(1) ?: result.url.getOrNull(0) ?: result.backupUrl.getOrNull(1) ?: result.backupUrl.getOrNull(0) ?: ""
+                                        val moshi = Moshi.Builder().build()
+                                        val result = moshi.adapter(GetSongUrlBase::class.java)
+                                            .fromJson(json!!)
+                                        val url =
+                                            result?.url?.getOrNull(1) ?: result?.url?.getOrNull(0)
+                                            ?: result?.backupUrl?.getOrNull(1)
+                                            ?: result?.backupUrl?.getOrNull(0) ?: ""
 
                                         val mixsongid = s.add_mixsongid ?: ""
                                         val encodedUrl = URLEncoder.encode(url, "UTF-8")
                                         val uri = "musicplay://playurl?id=${s.name + s.hash}&url=${encodedUrl}&hash=${s.hash}".toUri().toString()
                                         val name = s.name?.let { splitArtistAndTitle(it) }
-                                        val item = createMediaItemWithId(
-                                            name?.first,
-                                            name?.second,
-                                            uri,
-                                            result,
-                                            result.hash,
-                                            mixsongid.toString()
-                                        )
-                                        onAddMediaItem(item)
+                                        if (result != null) {
+                                            val item = createMediaItemWithId(
+                                                name?.first,
+                                                name?.second,
+                                                uri,
+                                                result,
+                                                result.hash,
+                                                mixsongid.toString()
+                                            )
+                                            onAddMediaItem(item)
+                                        }
+
                                     } catch (e: Exception) {
                                         Log.e("PlaylistDetail", "parse song url", e)
                                         Toast.makeText(context, "数据加载失败: ${e.message}", Toast.LENGTH_LONG).show()
@@ -560,3 +571,4 @@ fun SongRow(song: Song, index: Int, onSongClick: (Song) -> Unit, onSongLongClick
         }
     }
 }
+

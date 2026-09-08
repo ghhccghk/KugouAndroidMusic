@@ -14,3 +14,13 @@
 .cxx
 local.properties
 /.idea/
+
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Build outputs
+/app/debug/
+/app/release/
+.artifacts/
+.kotlin/
